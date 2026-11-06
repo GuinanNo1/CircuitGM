@@ -33,7 +33,8 @@ export function validate(buf) {
   }));
   return e;
 }
-if (process.argv[2]) {
+import { pathToFileURL } from 'node:url';
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   for (const f of process.argv.slice(2)) {
     const b = readFileSync(f);
     const errs = validate(b.buffer.slice(b.byteOffset, b.byteOffset + b.length));

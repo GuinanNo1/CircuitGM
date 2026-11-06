@@ -21,6 +21,10 @@ const state = {
   transpose: { S1: 0, S2: 0, M1: 0, M2: 0 },
   plan: null,
   playingSource: null,
+  mutes: { all: new Set(), bars: new Map() },
+  barCache: new Map(),
+  gridRows: [],
+  lastPlan: null,
 };
 const player = new Player();
 
@@ -42,7 +46,8 @@ async function init() {
   $('#patch-s1').addEventListener('change', () => { state.patchTouched[0] = true; });
   $('#patch-s2').addEventListener('change', () => { state.patchTouched[1] = true; });
   $('#kit').addEventListener('change', rearrange);
-  $('#play').addEventListener('click', togglePlanPlay);
+  $('#play').addEventListener('click', () => togglePlanPlay());
+  $('#grid').addEventListener('click', onGridClick);
   $('#build').addEventListener('click', build);
   player.onEnd = () => { setPlanButton(false); setSourceButton(null); };
 }
@@ -135,6 +140,9 @@ async function loadFile(file) {
   ].map(([k, v]) => `<span><span class="k">${k}</span><b>${v}</b></span>`).join('');
 
   defaultRoles();
+  state.mutes = { all: new Set(), bars: new Map() };
+  state.barCache = new Map();
+  state.lastPlan = null;
   state.patchTouched = [false, false];
   state.transpose = { S1: 0, S2: 0, M1: 0, M2: 0 };
   $('#title').value = ascii(state.fileName).slice(0, 28);
@@ -218,6 +226,7 @@ function sourcesFor(role) {
 }
 
 function rolesChanged() {
+  state.barCache.delete('lane4'); state.barCache.delete('lane5'); state.barCache.delete('lane6'); state.barCache.delete('lane7');
   // Default each synth patch to the GM program of the first part on it (TracksGM is in GM order).
   ['S1', 'S2'].forEach((r, i) => {
     const first = sourcesFor(r)[0];
@@ -248,9 +257,12 @@ function renderTranspose() {
 // ---------- step 4: arrangement ----------
 function rearrange() {
   if (!state.midi) return;
+  // Keep the preview going from the same place when a mute or option changes.
+  const resumeAt = player.playing && !state.playingSource ? player.position : null;
   player.stop();
   setPlanButton(false);
   setSourceButton(null);
+  syncSectionToRate();
   const plan = arrange(state.midi, assignment(), {
     rate: $('#rate').value,
     sectionBars: Number($('#section-bars').value),
@@ -258,68 +270,173 @@ function rearrange() {
     trimStart: $('#trim').checked,
     kit: Number($('#kit').value),
     transpose: state.transpose,
+    mutes: state.mutes,
   });
   state.plan = plan.error ? null : plan;
   $('#play').disabled = !state.plan;
   $('#build').disabled = !state.plan || !state.base;
   if (plan.error) {
     $('#summary').innerHTML = `<p class="status error">${esc(plan.error)}</p>`;
-    $('#grid').innerHTML = '';
     $('#warnings').innerHTML = '';
+    // Keep the grid so muted parts can be unmuted again.
+    if (state.lastPlan) renderGrid(state.lastPlan, true); else $('#grid').innerHTML = '';
     return;
   }
+  state.lastPlan = plan;
   renderSummary(plan);
   renderGrid(plan);
   renderWarnings(plan);
+  if (resumeAt !== null) togglePlanPlay(resumeAt);
+}
+
+// Patterns longer than the section don't fit, so raise the section length to match.
+const RATE_BARS = { 16: 2, 8: 4, 4: 8, 2: 16, 1: 32 };
+function syncSectionToRate() {
+  const bars = RATE_BARS[$('#rate').value];
+  const sel = $('#section-bars');
+  if (bars && Number(sel.value) < bars) sel.value = String(bars);
 }
 
 function renderSummary(plan) {
   const maxPat = Math.max(...plan.projects.flatMap((p) => p.patternCounts));
   const scenes = plan.projects.map((p) => p.scenes.length);
+  const tempoNote = plan.tempoDiv > 1 ? `BPM on the Tracks (${round1(plan.sourceTempo)} ÷ ${plan.tempoDiv})` : 'BPM';
   const stats = [
     [plan.projects.length, plan.projects.length === 1 ? 'project' : 'projects'],
     [plan.nSections, `sections of ${plan.sectionBars} bars`],
     [scenes.join(' + '), 'scenes per project (max 16)'],
     [`${plan.chunkBars} bar${plan.chunkBars > 1 ? 's' : ''}`, `per pattern (${plan.rateLabel})`],
     [`${maxPat} of 8`, 'most patterns used on a track'],
-    [plan.tempo, 'BPM'],
+    [plan.tempo, tempoNote],
   ];
   $('#summary').innerHTML = stats.map(([v, k]) => `<div class="stat"><div class="v">${esc(String(v))}</div><div class="k">${esc(k)}</div></div>`).join('');
 }
 
-function renderGrid(plan) {
+// ---------- mutes ----------
+// state.mutes = { all: Set(key), bars: Map(key -> Set(bar)) }. Keys: source ids, and
+// 'lane4'..'lane7' for the drum tracks. Bars count from bar 0 of the file.
+function totalBars() {
+  const m = state.midi;
+  return Math.ceil(m.lengthTicks / barTicks()) + 1;
+}
+function barTicks() {
+  const m = state.midi;
+  return m.ppq * 4 * m.timeSig.num / m.timeSig.den;
+}
+function isMuted(key, bar) {
+  return state.mutes.all.has(key) || !!state.mutes.bars.get(key)?.has(bar);
+}
+// Bars that hold notes, per source and per drum lane (cached per file / assignment).
+function notesBars(key) {
+  const cache = state.barCache;
+  if (cache.has(key)) return cache.get(key);
+  const bt = barTicks();
+  const set = new Set();
+  if (key.startsWith('lane')) {
+    const lane = Number(key.slice(4)) - 4;
+    for (const s of sourcesFor('DR')) for (const n of s.notes) if (gmDrum(n.note)[0] === lane) set.add(Math.floor(n.tick / bt + 1e-9));
+  } else {
+    const s = state.midi.sources.find((x) => x.id === key);
+    for (const n of s?.notes ?? []) set.add(Math.floor(n.tick / bt + 1e-9));
+  }
+  cache.set(key, set);
+  return set;
+}
+// Muted = every bar with notes in `bars` is muted for every key (and there is something there).
+function mutedState(keys, bars) {
+  let on = 0, off = 0;
+  for (const k of keys) {
+    const nb = notesBars(k);
+    for (const b of bars) {
+      if (!nb.has(b)) continue;
+      if (isMuted(k, b)) off++; else on++;
+    }
+  }
+  return { has: on + off > 0, muted: on === 0 && off > 0, partial: on > 0 && off > 0 };
+}
+function toggleMute(keys, bars) {
+  const { all, bars: byKey } = state.mutes;
+  if (!bars) {
+    const allMuted = keys.every((k) => all.has(k));
+    for (const k of keys) {
+      if (allMuted) all.delete(k);
+      else { all.add(k); byKey.delete(k); }
+    }
+  } else {
+    const { muted } = mutedState(keys, bars);
+    for (const k of keys) {
+      if (!byKey.has(k)) byKey.set(k, new Set());
+      const set = byKey.get(k);
+      if (muted) {
+        if (all.has(k)) {          // whole part was muted: keep the rest muted, open these bars
+          all.delete(k);
+          for (let b = 0; b < totalBars(); b++) set.add(b);
+        }
+        for (const b of bars) set.delete(b);
+      } else {
+        for (const b of bars) set.add(b);
+      }
+    }
+  }
+  rearrange();
+}
+
+function renderGrid(plan, stale = false) {
   const grid = $('#grid');
   grid.innerHTML = '';
+  grid.classList.toggle('stale', stale);
   const order = playOrder(plan);
-  state.order = order;
+  if (!stale) state.order = order;
+
+  // Rows: each Circuit Tracks track, then the MIDI parts feeding it.
+  const rows = [];
+  MELODIC_ROLES.forEach((r, t) => {
+    if (!plan.active[t]) return;
+    const srcs = sourcesFor(r);
+    rows.push({ kind: 'track', t, name: TRACK_NAMES[t], keys: srcs.map((s) => s.id) });
+    for (const s of srcs) rows.push({ kind: 'src', t, name: s.name, sub: s.instrument, keys: [s.id] });
+  });
+  if (plan.active[4]) {
+    for (let t = 4; t < 8; t++) rows.push({ kind: 'lane', t, name: TRACK_NAMES[t], keys: [`lane${t}`] });
+    for (const s of sourcesFor('DR')) rows.push({ kind: 'src', t: 4, name: s.name, sub: 'GM drums', keys: [s.id] });
+  }
+  state.gridRows = rows;
+
   const labels = document.createElement('div');
   labels.className = 'labels';
   labels.innerHTML = `<div class="row-label head">Project</div><div class="row-label head">Scene · bar</div>`;
-  TRACK_NAMES.forEach((name, t) => {
+  rows.forEach((row, ri) => {
     const d = document.createElement('div');
-    d.className = 'row-label';
-    d.style.opacity = plan.active[t] ? '1' : '0.45';
-    d.innerHTML = `<span class="sw" style="background:var(${TRACK_VAR[t]})"></span>${name}`;
-    if (plan.active[t]) {
-      const m = document.createElement('button');
-      m.type = 'button'; m.textContent = 'M'; m.title = `Mute ${name} in the preview`;
-      m.className = player.mutes[t] ? 'on' : '';
-      m.addEventListener('click', () => { player.setMute(t, !player.mutes[t]); m.classList.toggle('on', player.mutes[t]); });
+    d.className = `row-label ${row.kind === 'src' ? 'src' : ''}`;
+    const whole = row.keys.length > 0 && row.keys.every((k) => state.mutes.all.has(k));
+    const dot = document.createElement('button');
+    dot.type = 'button';
+    dot.className = `dot${whole ? ' off' : ''}`;
+    dot.style.setProperty('--c', `var(${TRACK_VAR[row.t]})`);
+    dot.title = `${whole ? 'Unmute' : 'Mute'} ${row.name}`;
+    dot.setAttribute('aria-pressed', String(!whole));
+    dot.addEventListener('click', () => toggleMute(row.keys, null));
+    const name = document.createElement('span');
+    name.className = 'nm';
+    name.textContent = row.name;
+    if (row.sub) name.title = `${row.name} · ${row.sub}`;
+    d.append(dot, name);
+    if (row.kind !== 'src') {
       const s = document.createElement('button');
-      s.type = 'button'; s.textContent = 'S'; s.title = `Solo ${name} in the preview`;
-      s.className = player.solo === t ? 'on' : '';
+      s.type = 'button'; s.textContent = 'S'; s.className = `solo${player.solo === row.t ? ' on' : ''}`;
+      s.title = `Solo ${row.name} in the preview`;
+      s.dataset.solo = row.t;
       s.addEventListener('click', () => {
-        player.setSolo(t);
+        player.setSolo(row.t);
         for (const b of labels.querySelectorAll('button[data-solo]')) b.classList.toggle('on', Number(b.dataset.solo) === player.solo);
       });
-      s.dataset.solo = t;
-      d.append(m, s);
+      d.append(s);
     }
     labels.append(d);
   });
   grid.append(labels);
 
-  const barOf = (chunk) => plan.startBar + chunk * plan.chunkBars + 1;
+  const barOf = (chunk) => plan.startBar + chunk * plan.chunkBars;
   order.forEach((o, k) => {
     const col = document.createElement('div');
     col.className = 'col';
@@ -328,31 +445,54 @@ function renderGrid(plan) {
     else if (prev && prev.section !== o.section) col.classList.add('sec-start');
     const proj = plan.projects[o.project];
     const projHead = !prev || prev.project !== o.project ? `P${o.project + 1}` : '';
-    const sceneHead = !prev || prev.section !== o.section ? `${o.scene + 1}·${barOf(o.chunk)}` : '';
+    const sceneHead = !prev || prev.section !== o.section ? `${o.scene + 1}·${barOf(o.chunk) + 1}` : '';
+    const b0 = barOf(o.chunk);
+    const bars = Array.from({ length: plan.chunkBars }, (_, i) => b0 + i);
     let html = `<div class="hd">${projHead}</div><div class="hd">${sceneHead}</div>`;
-    for (let t = 0; t < 8; t++) {
-      if (!plan.active[t]) { html += '<div class="cell dim"></div>'; continue; }
-      const p = o.patterns[t];
-      const content = proj.patterns[t][p];
-      const empty = !content || !content.steps.length;
-      const mix = 100 - (p % 8) * 8;
-      html += `<div class="cell${empty ? ' empty' : ''}" style="${empty ? '' : `background:color-mix(in srgb, var(${TRACK_VAR[t]}) ${mix}%, #000)`}" title="${TRACK_NAMES[t]}: pattern ${p + 1}${empty ? ' (empty)' : ''}">${p + 1}</div>`;
-    }
+    rows.forEach((row, ri) => {
+      const ms = mutedState(row.keys, bars);
+      const range = plan.chunkBars > 1 ? `bars ${b0 + 1}–${b0 + plan.chunkBars}` : `bar ${b0 + 1}`;
+      if (row.kind === 'src') {
+        const cls = !ms.has ? 'empty' : ms.muted ? 'muted' : ms.partial ? 'on part' : 'on';
+        html += `<button type="button" class="cell src ${cls}" data-row="${ri}" data-col="${k}" style="--c:var(${TRACK_VAR[row.t]})" title="${esc(row.name)}, ${range}${ms.has ? (ms.muted ? ' (muted): click to unmute' : ms.partial ? ' (partly muted): click to mute all' : ': click to mute') : ' (no notes)'}"></button>`;
+      } else {
+        const p = o.patterns[row.t];
+        const content = proj.patterns[row.t][p];
+        const empty = !content || !content.steps.length;
+        const mix = 100 - (p % 8) * 8;
+        const cls = ms.muted ? 'muted' : empty ? 'empty' : '';
+        html += `<button type="button" class="cell ${cls}" data-row="${ri}" data-col="${k}" style="${empty ? '' : `background:color-mix(in srgb, var(${TRACK_VAR[row.t]}) ${mix}%, #000)`}" title="${row.name}: pattern ${p + 1}, ${range}${ms.muted ? ' (muted): click to unmute' : ms.has ? ': click to mute' : ' (empty)'}">${p + 1}</button>`;
+      }
+    });
     col.innerHTML = html;
+    col.dataset.bars = bars.join(',');
     grid.append(col);
   });
+}
+
+function onGridClick(e) {
+  const cell = e.target.closest('.cell[data-row]');
+  if (!cell) return;
+  const row = state.gridRows[Number(cell.dataset.row)];
+  const col = cell.closest('.col');
+  if (!row || !col) return;
+  const bars = col.dataset.bars.split(',').map(Number);
+  if (!mutedState(row.keys, bars).has) return;
+  toggleMute(row.keys, bars);
 }
 
 function renderWarnings(plan) {
   const w = plan.warnings;
   const out = [];
   const m = state.midi;
-  if (plan.projects.length > 1) out.push(`The song needs ${plan.projects.length} projects: each track holds 8 patterns per project, and this song has more distinct material than that. On the Circuit Tracks, queue the next project to carry on (projects ${1}–${plan.projects.length}).`);
+  if (plan.projects.length > 1) out.push(`The song needs ${plan.projects.length} projects: each track holds 8 patterns per project, and this song has more distinct material than that. On the Circuit Tracks, queue the next project to carry on (projects 1–${plan.projects.length}). Longer patterns or muting parts can bring this down.`);
   if (w.tooLong) out.push('The song is longer than 64 projects; only the first 64 fit in a pack.');
+  if (w.moved) out.push(`${w.moved} of ${w.total} notes (${Math.round(w.movedRatio * 100)}%) moved by more than a 64th note to fit the step grid. Each step has 6 micro-steps, so longer patterns place notes less precisely.`);
+  if (plan.tempoDiv > 1) out.push(`The project tempo is ${plan.tempo} BPM, ${plan.tempoDiv === 2 ? 'half' : 'a quarter of'} the song's ${round1(plan.sourceTempo)} BPM, so that each 1/4 step covers ${plan.tempoDiv === 2 ? 'a half note' : 'a whole bar of 4/4'}. The song plays at its own speed, but tempo-synced effects (delay, synced LFOs, arpeggios) and MIDI clock run ${plan.tempoDiv === 2 ? 'at half' : 'at a quarter of the'} speed.`);
   if (w.dropped) out.push(`${w.dropped} notes were left out where more than 6 notes start on one step (the lowest and highest notes are kept).`);
   if (w.drumDropped) out.push(`${w.drumDropped} drum hits were left out where two sounds land on the same step of one drum track (the louder one is kept).`);
   if (w.held) out.push(`${w.held} long notes run past the end of a pattern; they are struck again at the start of the next pattern.`);
-  if (m.tempoChanges) out.push(`The file has ${m.tempoChanges} tempo changes; the project uses the first tempo (${plan.tempo} BPM) throughout.`);
+  if (m.tempoChanges) out.push(`The file has ${m.tempoChanges} tempo changes; the project uses the first tempo throughout.`);
   if (plan.tempoClamped) out.push(`The tempo was limited to the Circuit Tracks range of 40–240 BPM.`);
   if (m.timeSigChanges) out.push(`The file changes time signature; it is arranged as ${m.timeSig.num}/${m.timeSig.den} throughout.`);
   $('#warnings').innerHTML = out.map((x) => `<li>${esc(x)}</li>`).join('');
@@ -360,7 +500,7 @@ function renderWarnings(plan) {
 
 // ---------- preview ----------
 function planEvents(plan) {
-  const stepSec = (60 / plan.tempo) * (plan.rate === 16 ? 0.25 : 0.5);
+  const stepSec = (60 / plan.tempo) * plan.syncQuarters;
   const micro = stepSec / 6;
   const chunkSec = plan.patLen * stepSec;
   const programs = MELODIC_ROLES.map((r) => sourcesFor(r)[0]?.program ?? 0);
@@ -385,8 +525,9 @@ function planEvents(plan) {
   return { ev, chunkSec, length: state.order.length * chunkSec };
 }
 
-async function togglePlanPlay() {
-  if (player.playing && !state.playingSource) { player.stop(); setPlanButton(false); return; }
+async function togglePlanPlay(from = 0) {
+  if (typeof from !== 'number') from = 0;
+  if (player.playing && !state.playingSource && !from) { player.stop(); setPlanButton(false); return; }
   setSourceButton(null);
   const { ev, chunkSec, length } = planEvents(state.plan);
   const cols = [...$('#grid').querySelectorAll('.col')];
@@ -408,7 +549,7 @@ async function togglePlanPlay() {
   player.onEnd = () => { setPlanButton(false); cols[last]?.classList.remove('now'); };
   state.playingSource = null;
   await loadKitSamples();
-  await player.play(ev, { length });
+  await player.play(ev, { from, length });
   setPlanButton(true);
 }
 

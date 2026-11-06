@@ -59,6 +59,7 @@ export class Player {
   }
 
   get playing() { return this.timer !== null; }
+  get position() { return this.playing ? Math.max(0, this.ctx.currentTime - this.startTime) : 0; }
 
   async play(events, { from = 0, length } = {}) {
     this.stop();

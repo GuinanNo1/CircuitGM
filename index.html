@@ -57,9 +57,16 @@
     <h2><span class="num">4</span> Check the arrangement</h2>
     <div class="options">
       <div class="field"><label for="section-bars">Section length</label>
-        <select id="section-bars"><option value="4">4 bars</option><option value="8" selected>8 bars</option><option value="16">16 bars</option></select></div>
-      <div class="field"><label for="rate">Step rate</label>
-        <select id="rate"><option value="auto" selected>Auto (fewest projects)</option><option value="16">1/16 steps · 2-bar patterns</option><option value="8">1/8 steps · 4-bar patterns</option></select></div>
+        <select id="section-bars"><option value="4">4 bars</option><option value="8" selected>8 bars</option><option value="16">16 bars</option><option value="32">32 bars</option></select></div>
+      <div class="field"><label for="rate">Pattern length</label>
+        <select id="rate">
+          <option value="auto" selected>Auto (fewest projects, timing kept)</option>
+          <option value="16">2 bars · 1/16 steps</option>
+          <option value="8">4 bars · 1/8 steps</option>
+          <option value="4">8 bars · 1/4 steps</option>
+          <option value="2">16 bars · 1/4 steps, tempo ÷2</option>
+          <option value="1">32 bars · 1/4 steps, tempo ÷4</option>
+        </select></div>
       <div class="field"><label for="match">Repeats</label>
         <select id="match"><option value="loose" selected>Match ignoring velocity</option><option value="exact">Match exactly</option></select></div>
       <div class="field check"><label><input type="checkbox" id="trim" checked> Skip empty bars at the start</label></div>
@@ -70,6 +77,7 @@
       <span class="time" id="time">0:00</span>
       <span class="hint inline">The preview plays the converted parts: quantised to the step grid, 6 notes per step, one drum sample per step.</span>
     </div>
+    <p class="hint">Click a coloured dot to mute or unmute a whole row, or a box to mute or unmute those bars. Mutes change the preview and the pack. The numbers are the pattern each Circuit Tracks track plays; the rows under it are the MIDI parts feeding it. S solos a track in the preview only.</p>
     <div class="gridwrap" id="gridwrap"><div class="grid" id="grid"></div></div>
     <ul class="warnings" id="warnings"></ul>
   </section>

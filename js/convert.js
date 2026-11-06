@@ -36,48 +36,77 @@ export function gmDrum(note) {
 }
 export const DRUM_TRACK_LABELS = ['Kick', 'Snare / Tom', 'Hi-hats', 'Percussion'];
 
-const RATES = {
-  16: { stepQuarter: 1 / 4, syncRate: 3, label: '1/16 steps' },
-  8: { stepQuarter: 1 / 2, syncRate: 5, label: '1/8 steps' },
+// Pattern lengths. stepQuarter = how much of the song (in quarter notes) one step covers;
+// syncRate = the pattern's step rate on the Tracks; tempoDiv = how much the project tempo is
+// divided by. Slower than 1/4 steps needs a lower project tempo, because 1/4 is the slowest
+// step rate a pattern can have.
+export const RATES = {
+  16: { stepQuarter: 1 / 4, syncRate: 3, syncQuarters: 1 / 4, tempoDiv: 1, label: '1/16 steps' },
+  8: { stepQuarter: 1 / 2, syncRate: 5, syncQuarters: 1 / 2, tempoDiv: 1, label: '1/8 steps' },
+  4: { stepQuarter: 1, syncRate: 7, syncQuarters: 1, tempoDiv: 1, label: '1/4 steps' },
+  2: { stepQuarter: 2, syncRate: 7, syncQuarters: 1, tempoDiv: 2, label: '1/4 steps at half tempo' },
+  1: { stepQuarter: 4, syncRate: 7, syncQuarters: 1, tempoDiv: 4, label: '1/4 steps at quarter tempo' },
 };
+const AUTO_RATES = [16, 8, 4];
+const MOVED_LIMIT = 0.02;        // Auto skips a step rate that moves more than 2% of notes
 
 // assignment: { S1: [sourceId], S2: [...], M1: [...], M2: [...], DR: [...] }
-// options: { rate: 'auto' | 16 | 8, sectionBars: 8, trimStart: true, kit: 0-7, transpose: {S1: 0, ...} }
+// options: { rate: 'auto' | 16 | 8 | 4 | 2 | 1, sectionBars: 8, trimStart: true, kit: 0-7,
+//            transpose: {S1: 0, ...}, mutes: { all: Set(key), bars: Map(key -> Set(bar)) } }
+// Mute keys are source ids, plus 'lane4'..'lane7' for the four drum tracks. Bars count from
+// the start of the file (bar 0), so mutes survive changes to the other options.
 export function arrange(midi, assignment, options = {}) {
   const opt = { rate: 'auto', sectionBars: 8, trimStart: true, kit: 1, match: 'loose', ...options };
   const byId = new Map(midi.sources.map((s) => [s.id, s]));
   const pick = (role) => (assignment[role] ?? []).map((id) => byId.get(id)).filter(Boolean);
 
+  const barTicks = midi.ppq * 4 * midi.timeSig.num / midi.timeSig.den;
+  const mutes = opt.mutes ?? { all: new Set(), bars: new Map() };
+  const muted = (key, tick) => mutes.all.has(key) || !!mutes.bars.get(key)?.has(Math.floor(tick / barTicks + 1e-9));
+
   const melodic = MELODIC_ROLES.map((r) => {
     const srcs = pick(r);
     const shift = opt.transpose?.[r] ?? 0;
-    return srcs.length ? srcs.flatMap((s) => s.notes.map((n) => ({ ...n, note: n.note + shift }))) : null;
+    return srcs.length
+      ? srcs.flatMap((s) => s.notes.filter((n) => !muted(s.id, n.tick)).map((n) => ({ ...n, note: n.note + shift })))
+      : null;
   });
   const drumSrcs = pick('DR');
-  const drumHits = drumSrcs.length ? drumSrcs.flatMap((s) => s.notes) : null;
+  const drumHits = drumSrcs.length
+    ? drumSrcs.flatMap((s) => s.notes.filter((n) => !muted(s.id, n.tick) && !muted(`lane${4 + gmDrum(n.note)[0]}`, n.tick)))
+    : null;
   const active = [...melodic.map(Boolean), ...[0, 1, 2, 3].map(() => !!drumHits)];
 
-  const barTicks = midi.ppq * 4 * midi.timeSig.num / midi.timeSig.den;
   const all = [...melodic.filter(Boolean).flat(), ...(drumHits ?? [])];
-  if (!all.length) return { error: 'Choose at least one track with notes.' };
+  if (!all.length) return { error: active.some(Boolean) ? 'Everything is muted. Unmute a part to build the song.' : 'Choose at least one track with notes.' };
   const firstTick = Math.min(...all.map((n) => n.tick));
   const lastTick = Math.max(...all.map((n) => n.tick + (n.dur ?? 0)));
   const startTick = opt.trimStart ? Math.floor(firstTick / barTicks + 1e-9) * barTicks : 0;
 
-  const candidates = opt.rate === 'auto' ? [16, 8] : [Number(opt.rate)];
+  const candidates = opt.rate === 'auto' ? AUTO_RATES : [Number(opt.rate)];
   const results = [];
+  let tempoProblem = false;
   for (const rate of candidates) {
     const r = tryRate(rate);
-    if (r) results.push(r);
+    if (r === 'tempo') tempoProblem = true;
+    else if (r) results.push(r);
   }
-  if (!results.length) return { error: `A ${midi.timeSig.num}/${midi.timeSig.den} bar does not fit whole steps at the chosen step rate.` };
-  results.sort((a, b) => a.projects.length - b.projects.length || b.rate - a.rate);
-  const best = results[0];
+  if (!results.length) {
+    return { error: tempoProblem
+      ? `Dividing ${Math.round(midi.tempo)} BPM by ${RATES[candidates[0]].tempoDiv} goes below the Circuit Tracks minimum of 40 BPM. Choose a shorter pattern length.`
+      : `This pattern length doesn't fit a ${midi.timeSig.num}/${midi.timeSig.den} bar in whole steps, or is longer than the section. Try a different pattern or section length.` };
+  }
+  // Auto: fewest projects among the rates that keep timing (<= 2% of notes moved), finest first.
+  const keep = results.filter((r) => r.warnings.movedRatio <= MOVED_LIMIT);
+  const pool = keep.length ? keep : results;
+  pool.sort((a, b) => a.projects.length - b.projects.length || b.rate - a.rate);
+  const best = pool[0];
   best.alternatives = results.map((r) => ({ rate: r.rate, projects: r.projects.length }));
   return best;
 
   function tryRate(rate) {
     const R = RATES[rate];
+    if (midi.tempo / R.tempoDiv < 39.5) return 'tempo';
     const stepTicks = midi.ppq * R.stepQuarter;
     const stepsPerBar = barTicks / stepTicks;
     if (Math.abs(stepsPerBar - Math.round(stepsPerBar)) > 1e-6 || stepsPerBar > MAX_STEPS) return null;
@@ -95,7 +124,12 @@ export function arrange(midi, assignment, options = {}) {
     const nChunks = Math.max(1, Math.ceil((lastTick - startTick) / (chunkBars * barTicks) - 1e-9));
     const nSections = Math.ceil(nChunks / perSection);
     const totalChunks = nSections * perSection;
-    const warn = { dropped: 0, drumDropped: 0, held: 0, beforeStart: 0 };
+    const warn = { dropped: 0, drumDropped: 0, held: 0, beforeStart: 0, moved: 0, total: 0 };
+    const MOVE_TOL = midi.ppq / 16;    // a 1/64 note
+    const countMove = (n, pos) => {
+      warn.total++;
+      if (Math.abs(pos * microTicks - (n.tick - startTick)) > MOVE_TOL) warn.moved++;
+    };
 
     // ---- per-track chunk contents ----
     const contents = []; // contents[t][chunk] = { notes|hits, key }
@@ -106,6 +140,7 @@ export function arrange(midi, assignment, options = {}) {
       for (const n of notes) {
         let pos = Math.round((n.tick - startTick) / microTicks);
         if (pos < 0) { warn.beforeStart++; continue; }
+        countMove(n, pos);
         let len = Math.max(1, Math.round(n.dur / microTicks));
         // Notes that run past the end of a pattern are cut there and struck again at the
         // start of the next pattern, because each pattern is stored separately.
@@ -129,6 +164,7 @@ export function arrange(midi, assignment, options = {}) {
       for (const n of drumHits) {
         const pos = Math.round((n.tick - startTick) / microTicks);
         if (pos < 0) { warn.beforeStart++; continue; }
+        countMove(n, pos);
         const c = Math.floor(pos / chunkMicro);
         if (c >= totalChunks) continue;
         const local = pos - c * chunkMicro;
@@ -230,10 +266,14 @@ export function arrange(midi, assignment, options = {}) {
       lastSection: p.scenes[p.scenes.length - 1].section,
     }));
 
+    warn.movedRatio = warn.total ? warn.moved / warn.total : 0;
     return {
       rate,
       rateLabel: R.label,
       syncRate: R.syncRate,
+      syncQuarters: R.syncQuarters,
+      tempoDiv: R.tempoDiv,
+      sourceTempo: midi.tempo,
       patLen,
       chunkBars,
       perSection,
@@ -243,8 +283,8 @@ export function arrange(midi, assignment, options = {}) {
       barTicks,
       startTick,
       microTicks,
-      tempo: clamp(Math.round(midi.tempo), 40, 240),
-      tempoClamped: Math.round(midi.tempo) < 40 || Math.round(midi.tempo) > 240,
+      tempo: clamp(Math.round(midi.tempo / R.tempoDiv), 40, 240),
+      tempoClamped: Math.round(midi.tempo / R.tempoDiv) < 40 || Math.round(midi.tempo / R.tempoDiv) > 240,
       active,
       contents,
       drumDefaults,

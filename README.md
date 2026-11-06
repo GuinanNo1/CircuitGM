@@ -24,21 +24,34 @@ Sending the pack to the Tracks replaces the pack in that slot, so send it to a s
    - **Synth patches:** choose a TracksGM patch for each synth. The default is the GM instrument of the first part on that track (TracksGM slot = GM program number).
    - **Drum kit:** choose a kit (Std, Room, Power, Elec, 808, Jazz, Brush, Orch).
    - **Octave:** each melodic track can be shifted up or down an octave.
-4. **Check the arrangement.** The grid shows which pattern each track plays, section by section, and across projects if the song needs more than one. **Play preview** plays the converted parts:
+4. **Check the arrangement.**
+   - **Grid:** each Circuit Tracks track has a row showing which pattern it plays, section by section and across projects if the song needs more than one. Under it is a row for each MIDI part feeding that track.
+   - **Muting:** click a coloured dot to mute or unmute a whole row, or a box to mute or unmute those bars. On a drum row (Kick, Snare/Tom, Hi-hats, Perc) the dot mutes just that sound. Mutes apply to both the preview and the pack, and muting can bring the number of projects down.
+   - **Pattern length:** choose from 2 to 32 bars per pattern (see below).
+   
+   **Play preview** plays the converted parts:
    - melodic parts use simple synth voices, as a sketch of the part rather than the Tracks patch;
    - drums use the real samples of the chosen kit.
    
-   Use M and S to mute or solo tracks in the preview. Notes about anything that had to change (dropped notes, tempo changes and so on) appear under the grid.
+   S solos a track in the preview only. Changing a mute or option while the preview plays carries on from the same spot. Notes about anything that had to change (dropped or moved notes, tempo changes and so on) appear under the grid.
 5. **Build the pack.** Name the project and the pack, then **Download pack**. Open it in Novation Components and send it to your Circuit Tracks.
 
 ### How a song becomes Circuit Tracks projects
 
-- **Steps and patterns.** A Circuit Tracks pattern has up to 32 steps. The converter places every note on a step plus one of 6 micro-steps, so timing is kept to 1/96 or 1/48 of a bar:
-  - at **1/16 steps**, a pattern is 2 bars;
-  - at **1/8 steps** (the pattern's own step rate, so the project tempo stays correct), a pattern is 4 bars.
+- **Steps and patterns.** A Circuit Tracks pattern has up to 32 steps, and the converter places every note on a step plus one of 6 micro-steps. A longer pattern holds more of the song, so fewer projects are needed, but its timing is coarser:
+
+  | Pattern length | How | Timing grid |
+  |---|---|---|
+  | 2 bars | 1/16 steps | 1/96 note |
+  | 4 bars | 1/8 steps | 1/48 note (16ths and 16th triplets exact) |
+  | 8 bars | 1/4 steps | 1/24 note (16ths fall between micro-steps) |
+  | 16 bars | 1/4 steps, project tempo halved | 1/12 note |
+  | 32 bars | 1/4 steps, project tempo quartered | 1/6 note |
+
+  Up to 8 bars, the pattern's own step rate does the work, so the project tempo on the Tracks stays correct. 1/4 is the slowest step rate, so 16 and 32 bars also halve or quarter the project tempo (which must stay at 40 BPM or above). The song still plays at its own speed, but tempo-synced effects, arpeggios and MIDI clock run slower. The page reports how many notes moved by more than a 64th.
   
-  *Auto* picks whichever needs fewer projects.
-- **Sections and scenes.** The song is cut into sections (8 bars by default; 4 or 16 can be chosen). Each section becomes a scene, and the scenes are chained in song order.
+  *Auto* picks the length that needs the fewest projects without moving more than 2% of notes (2, 4 or 8 bars).
+- **Sections and scenes.** The song is cut into sections (8 bars by default; 4, 16 or 32 can be chosen, and the section grows to fit longer patterns). Each section becomes a scene, and the scenes are chained in song order.
 - **Reusing repeats.** A track that repeats one pattern through a section loops that pattern; otherwise it chains the section's patterns. When a section repeats, its patterns are reused. By default, repeats match even if velocities differ slightly.
 - **Projects.** Each track holds 8 patterns per project, and a project has 16 scenes. When the song has more distinct material than that, it carries on in the next project (up to 64).
 - **Drums.** The GM drum part is spread across the four drum tracks, using the chosen kit's samples:
