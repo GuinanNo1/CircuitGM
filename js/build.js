@@ -70,7 +70,9 @@ export function buildProjects(plan, base, settings) {
     proj.scenes = Array.from({ length: 16 }, (_, s) => {
       const sc = p.scenes[s];
       if (!sc) return { flags: 0, trackChains: Array.from({ length: 8 }, () => ({ start: 0, end: 0 })) };
-      return { flags: 1, trackChains: sc.chains.map((c) => ({ start: c.start, end: c.end })) };
+      // Byte 0 of scene 1's block is the timing section's spare byte (must stay 0; every
+      // hardware-saved project has 0 there). Later scenes carry a used flag of 1.
+      return { flags: s === 0 ? 0 : 1, trackChains: sc.chains.map((c) => ({ start: c.start, end: c.end })) };
     });
     proj.sceneChain = { start: 0, end: p.scenes.length - 1 };
     proj.patternChains = p.scenes[0].chains.map((c) => ({ start: c.start, end: c.end }));

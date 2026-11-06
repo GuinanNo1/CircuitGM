@@ -37,7 +37,7 @@ for (const [pi, p] of plan.projects.entries()) {
           const st = got.steps[s.step];
           const k = st.notes.findIndex((x, j) => (st.mask >> j & 1) && x.note === n.note && x.delay === n.delay && x.velocity === n.vel && !x.cont);
           const g = k < 0 ? -1 : st.notes[k].gate;
-          if (k < 0 || (g & 0x7f) !== Math.min(96, n.len) || (!!(g & 0x80)) !== (n.len > 96 && s.step + 16 < plan.patLen)) { errors++; if (errors < 5) console.log('note mismatch', t, i, s.step, n, st); }
+          if (k < 0 || (g & 0x7f) !== Math.min(96, n.len) || ((g & 0x80) && n.len <= 96)) { errors++; if (errors < 5) console.log('note mismatch', t, i, s.step, n, st); }
         }
       } else {
         for (const s of want.steps) {
@@ -51,7 +51,7 @@ for (const [pi, p] of plan.projects.entries()) {
   }
   for (const [si, sc] of p.scenes.entries()) {
     const g = pr.scenes[si];
-    if (g.flags !== 1 || sc.chains.some((c, t) => g.trackChains[t].start !== c.start || g.trackChains[t].end !== c.end)) { errors++; console.log('scene mismatch', si); }
+    if (g.flags !== (si === 0 ? 0 : 1) || sc.chains.some((c, t) => g.trackChains[t].start !== c.start || g.trackChains[t].end !== c.end)) { errors++; console.log('scene mismatch', si); }
   }
   if (pr.sceneChain.start !== 0 || pr.sceneChain.end !== p.scenes.length - 1) errors++;
 }

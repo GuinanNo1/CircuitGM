@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TracksGM Pack Builder</title>
+<meta name="description" content="Turn a General MIDI file into a Novation Circuit Tracks pack using the TracksGM sound set.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<header class="masthead">
+  <div class="wrap">
+    <h1>TracksGM <span>Pack Builder</span></h1>
+    <p class="lede">Turn a General MIDI file into a Novation Circuit Tracks pack. Pick the parts you want, hear how they'll play, and download a <code>.circuittrackspack</code> for Novation Components, built on the TracksGM sound set.</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="panel" id="step-load">
+    <h2><span class="num">1</span> Load a MIDI file</h2>
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept=".mid,.midi,.rmi,.kar,audio/midi">
+      <span class="drop-main">Drop a .mid file here, or <u>choose one</u></span>
+      <span class="drop-sub">Standard MIDI files (type 0 or 1). Nothing is uploaded; everything runs in your browser.</span>
+    </label>
+    <div class="fileinfo" id="fileinfo" hidden></div>
+    <p class="status" id="base-status">Loading the TracksGM sound set…</p>
+  </section>
+
+  <section class="panel" id="step-tracks" hidden>
+    <h2><span class="num">2</span> Choose the parts</h2>
+    <p class="hint">Give each part a Circuit Tracks track. You can send several MIDI parts to the same track to combine them. Synth 1 and Synth 2 play on the Tracks itself; MIDI 1 and MIDI 2 play external gear; Drums uses the GM drum part (channel 10).</p>
+    <div class="tablewrap">
+      <table class="tracks" id="tracks">
+        <thead><tr><th class="c-play"></th><th>Part</th><th class="c-num">Notes</th><th class="c-roll">Activity</th><th class="c-roles">Track</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" id="step-sounds" hidden>
+    <h2><span class="num">3</span> Pick the sounds</h2>
+    <div class="sounds">
+      <div class="field role-s1"><label for="patch-s1">Synth 1 patch</label><select id="patch-s1"></select><span class="sub" id="sub-s1"></span></div>
+      <div class="field role-s2"><label for="patch-s2">Synth 2 patch</label><select id="patch-s2"></select><span class="sub" id="sub-s2"></span></div>
+      <div class="field role-dr"><label for="kit">Drum kit</label><select id="kit"></select><span class="sub">Drum 1 kick · Drum 2 snare/toms · Drum 3 hi-hats · Drum 4 percussion</span></div>
+      <div class="field role-m"><label>MIDI 1 &amp; 2</label><p class="sub" id="sub-midi">These send notes on the MIDI channels set on your Circuit Tracks (Setup view), to play external gear.</p></div>
+    </div>
+    <div class="transpose" id="transpose"></div>
+  </section>
+
+  <section class="panel" id="step-arrange" hidden>
+    <h2><span class="num">4</span> Check the arrangement</h2>
+    <div class="options">
+      <div class="field"><label for="section-bars">Section length</label>
+        <select id="section-bars"><option value="4">4 bars</option><option value="8" selected>8 bars</option><option value="16">16 bars</option></select></div>
+      <div class="field"><label for="rate">Step rate</label>
+        <select id="rate"><option value="auto" selected>Auto (fewest projects)</option><option value="16">1/16 steps · 2-bar patterns</option><option value="8">1/8 steps · 4-bar patterns</option></select></div>
+      <div class="field"><label for="match">Repeats</label>
+        <select id="match"><option value="loose" selected>Match ignoring velocity</option><option value="exact">Match exactly</option></select></div>
+      <div class="field check"><label><input type="checkbox" id="trim" checked> Skip empty bars at the start</label></div>
+    </div>
+    <div class="summary" id="summary"></div>
+    <div class="transport">
+      <button class="btn primary" id="play" type="button" disabled>Play preview</button>
+      <span class="time" id="time">0:00</span>
+      <span class="hint inline">The preview plays the converted parts: quantised to the step grid, 6 notes per step, one drum sample per step.</span>
+    </div>
+    <div class="gridwrap" id="gridwrap"><div class="grid" id="grid"></div></div>
+    <ul class="warnings" id="warnings"></ul>
+  </section>
+
+  <section class="panel" id="step-build" hidden>
+    <h2><span class="num">5</span> Build the pack</h2>
+    <div class="options">
+      <div class="field grow"><label for="title">Project name</label><input id="title" maxlength="28" autocomplete="off"></div>
+      <div class="field grow"><label for="packname">Pack name</label><input id="packname" maxlength="40" autocomplete="off"></div>
+      <div class="field"><label for="packcolor">Pack colour</label>
+        <select id="packcolor"><option>blue</option><option>green</option><option>orange</option><option>red</option></select></div>
+    </div>
+    <div class="buildrow">
+      <button class="btn primary big" id="build" type="button">Download pack</button>
+      <span class="status" id="build-status"></span>
+    </div>
+    <p class="hint">Open the pack in Novation Components and send it to your Circuit Tracks. It holds the full TracksGM sound set (128 patches, 64 drum samples) plus the new projects in project slots 1 onwards, so it replaces whatever pack you send it over. In each project, scenes 1 onwards hold the song's sections in order and are saved as one scene chain.</p>
+  </section>
+</main>
+
+<footer class="wrap foot">
+  <p>Patches: TracksGM by Ian Guinan. Drum samples: <a href="https://github.com/mrbumpy409/GeneralUser-GS">GeneralUser GS</a> by S. Christian Collins (<a href="data/LICENSE-GeneralUser-GS.txt">licence</a>). Project format code from <a href="https://github.com/namirsab/circuit-tracks-tools">circuit-tracks-tools</a> by Namir Sayed-Ahmad Baraza (MIT). Not affiliated with Novation or Focusrite; "Circuit Tracks" and "Components" are their trademarks.</p>
+</footer>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
