@@ -5,6 +5,8 @@ Could General MIDI files be converted to play on a Novation Circuit Tracks? Rese
 
 **Try it:** https://guinanno1.github.io/TracksGM/
 
+**Help:** [Quickstart](https://guinanno1.github.io/TracksGM/help.html#quickstart) · [User guide](https://guinanno1.github.io/TracksGM/help.html)
+
 A web page that turns a General MIDI file (`.mid`) into a Circuit Tracks pack (`.circuittrackspack`) you can load with Novation Components. It runs entirely in the browser: nothing is uploaded, and there is no server.
 
 The pack it makes contains:
