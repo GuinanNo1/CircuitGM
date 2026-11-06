@@ -1,2 +1,117 @@
 # TracksGM
 Could General MIDI files be converted to play on a Novation Circuit Tracks? Research, and public projects
+
+## TracksGM Pack Builder
+
+A web page that turns a General MIDI file (`.mid`) into a Circuit Tracks pack (`.circuittrackspack`) you can load with Novation Components. It runs entirely in the browser: nothing is uploaded, and there is no server.
+
+The pack it makes contains:
+- the **TracksGM_final** sound set: 128 synth patches in General MIDI order, and 64 drum samples (8 kits) from GeneralUser GS;
+- one or more **projects** holding the converted song, in project slots 1 onwards.
+
+Sending the pack to the Tracks replaces the pack in that slot, so send it to a spare pack slot.
+
+### Using it
+
+1. **Load a MIDI file.** Drop a `.mid` file on the page or choose one. Type 0 and type 1 files both work. Each MIDI track and channel becomes a separate part.
+2. **Choose the parts.** Give each part a Circuit Tracks track:
+   - **S1 / S2** play on Synth 1 and Synth 2.
+   - **M1 / M2** play external gear through MIDI 1 and MIDI 2.
+   - **Drums** takes the General MIDI drum part (channel 10).
+   
+   Send several parts to the same track to combine them. The ▶ button plays a single part on its own. By default, the two busiest parts go to Synth 1 and Synth 2, the next two to MIDI 1 and MIDI 2, and channel 10 to Drums.
+3. **Pick the sounds.**
+   - **Synth patches:** choose a TracksGM patch for each synth. The default is the GM instrument of the first part on that track (TracksGM slot = GM program number).
+   - **Drum kit:** choose a kit (Std, Room, Power, Elec, 808, Jazz, Brush, Orch).
+   - **Octave:** each melodic track can be shifted up or down an octave.
+4. **Check the arrangement.** The grid shows which pattern each track plays, section by section, and across projects if the song needs more than one. **Play preview** plays the converted parts:
+   - melodic parts use simple synth voices, as a sketch of the part rather than the Tracks patch;
+   - drums use the real samples of the chosen kit.
+   
+   Use M and S to mute or solo tracks in the preview. Notes about anything that had to change (dropped notes, tempo changes and so on) appear under the grid.
+5. **Build the pack.** Name the project and the pack, then **Download pack**. Open it in Novation Components and send it to your Circuit Tracks.
+
+### How a song becomes Circuit Tracks projects
+
+- **Steps and patterns.** A Circuit Tracks pattern has up to 32 steps. The converter places every note on a step plus one of 6 micro-steps, so timing is kept to 1/96 or 1/48 of a bar:
+  - at **1/16 steps**, a pattern is 2 bars;
+  - at **1/8 steps** (the pattern's own step rate, so the project tempo stays correct), a pattern is 4 bars.
+  
+  *Auto* picks whichever needs fewer projects.
+- **Sections and scenes.** The song is cut into sections (8 bars by default; 4 or 16 can be chosen). Each section becomes a scene, and the scenes are chained in song order.
+- **Reusing repeats.** A track that repeats one pattern through a section loops that pattern; otherwise it chains the section's patterns. When a section repeats, its patterns are reused. By default, repeats match even if velocities differ slightly.
+- **Projects.** Each track holds 8 patterns per project, and a project has 16 scenes. When the song has more distinct material than that, it carries on in the next project (up to 64).
+- **Drums.** The GM drum part is spread across the four drum tracks, using the chosen kit's samples:
+
+  | Track | Plays | Samples used |
+  |---|---|---|
+  | Drum 1 | Kick | kick |
+  | Drum 2 | Snare / Tom | snare and tom, chosen per step |
+  | Drum 3 | Hi-hats | closed and open hat, chosen per step |
+  | Drum 4 | Percussion | rim/clap, cymbals and other percussion, chosen per step |
+
+  Each drum step plays one sample. Where two sounds land on the same step of one track, the louder one is kept. Repeated hits within a step become flams and rolls.
+- **Limits.** These apply on top of the Tracks' own rules:
+  - At most 6 notes can start on one step; the top and bottom notes are always kept.
+  - Notes longer than 16 steps are tied.
+  - Notes that run past the end of a pattern are struck again at the start of the next one.
+  - The project uses the file's first tempo (40–240 BPM) and first time signature.
+- **Project settings.** Projects use the Chromatic scale so notes play exactly as written. Synth 1 and Synth 2 point at the chosen pack patches, and also carry their own copies of them. MIDI 1 and MIDI 2 send on the MIDI channels set on the Tracks (Setup view).
+
+### Still to confirm on hardware
+
+The project format is reverse-engineered, so these need checking on a Circuit Tracks:
+- notes longer than 16 steps (tied notes);
+- the octave of notes sent on MIDI 1 and MIDI 2;
+- scenes playing through the song in order, each lasting as long as its longest pattern chain.
+
+### Hosting on GitHub Pages
+
+The page is static (HTML, CSS and JavaScript modules), with no build step.
+
+1. Make the repository public. GitHub Pages on a private repository needs a paid plan.
+2. In the repository, open **Settings → Pages**.
+3. Under **Build and deployment**, set **Source** to *Deploy from a branch*, choose the branch that holds the page (`web-converter`, or `main` once it's merged) and the `/ (root)` folder, then click **Save**.
+4. After a minute or two the page is live at `https://<your-user-name>.github.io/TracksGM/`.
+
+### Running it on your own computer
+
+Browsers block JavaScript modules and file loading when a page is opened straight from disk, so serve the folder instead:
+
+```sh
+cd TracksGM
+python3 -m http.server 8765
+```
+
+Then open <http://localhost:8765/>.
+
+### Files
+
+| Path | What it is |
+|---|---|
+| `index.html`, `css/app.css` | The page. |
+| `js/app.js` | The page logic: loading, part picker, sounds, arrangement view, build. |
+| `js/midifile.js` | MIDI file reader. |
+| `js/convert.js` | Quantising, drum mapping, and laying the song out as patterns, scenes and projects. |
+| `js/build.js` | Writes the `.ncs` projects and the pack. |
+| `js/player.js` | Preview playback (Web Audio). |
+| `js/vendor/ncs.js`, `js/vendor/zip.js` | Project file reader/writer and zip code from circuit-tracks-tools (MIT licence, see `js/vendor/LICENSE-circuit-tracks-tools.txt`). |
+| `data/TracksGM_final.circuittrackspack` | The sound set every pack is built on. |
+| `data/Empty.ncs` | Blank project used as the template (from circuit-tracks-tools). |
+| `tests/` | Node scripts: parse MIDI files, plan arrangements, build packs and read them back, and check projects against the Components validator's ranges. |
+
+Running the tests needs Node.js 18 or later and some MIDI files, for example GeneralUser GS's `demo MIDIs` folder:
+
+```sh
+node tests/build_test.mjs "path/to/song.mid" out     # build a pack, read every note back
+node tests/validate.mjs out/project_*.ncs            # range checks
+```
+
+### Credits and licences
+
+- **TracksGM patches:** Ian Guinan. How they were made is described on the `pack-build` branch.
+- **Drum samples:** [GeneralUser GS](https://github.com/mrbumpy409/GeneralUser-GS) by S. Christian Collins. Licence in `data/LICENSE-GeneralUser-GS.txt`; keep it with any shared pack and credit "Drum samples: GeneralUser GS by S. Christian Collins".
+- **Project-format code and blank project:** [circuit-tracks-tools](https://github.com/namirsab/circuit-tracks-tools) by Namir Sayed-Ahmad Baraza (MIT).
+- **Format research:** circuit-tracks-tools and [ncstool](https://github.com/Ondrysak/ncstool).
+- **Other code:** this repository's licence (MPL-2.0, see `LICENSE`).
+- Not affiliated with Novation or Focusrite. "Circuit Tracks" and "Components" are their trademarks.
