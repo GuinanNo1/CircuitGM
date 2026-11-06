@@ -16,6 +16,7 @@ A Novation Components pack with 128 synth patches in General MIDI order, voiced 
 A web page that turns a Standard MIDI file (`.mid`) into a Circuit Tracks pack built on the TracksGM Universal Circuit Tracks Pack. You choose the parts for Synth 1/2, MIDI 1/2 and the four drum tracks, preview and mute them, and download a `.circuittrackspack` for Novation Components. It runs in the browser, with nothing uploaded.
 
 - **Try it:** https://guinanno1.github.io/TracksGM/
+- **Help:** [Quickstart](https://guinanno1.github.io/TracksGM/help.html#quickstart) · [User guide](https://guinanno1.github.io/TracksGM/help.html)
 - **Code and documentation:** [`web-converter` branch](https://github.com/GuinanNo1/TracksGM/tree/web-converter)
 
 Alpha 0.1 is for testing. Please report problems in [Issues](https://github.com/GuinanNo1/TracksGM/issues).
