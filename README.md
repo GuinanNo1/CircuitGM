@@ -19,7 +19,7 @@ Sending the pack to the Tracks replaces the pack in that slot, so send it to a s
    - **M1 / M2** play external gear through MIDI 1 and MIDI 2.
    - **Drums** takes the General MIDI drum part (channel 10).
    
-   Send several parts to the same track to combine them. The ▶ button plays a single part on its own. By default, the two busiest parts go to Synth 1 and Synth 2, the next two to MIDI 1 and MIDI 2, and channel 10 to Drums.
+   Send several parts to the same track to combine them. Parts that share a name (as in type 0 files) are named by instrument and channel. The ▶ button plays a single part on its own. By default, the two busiest parts go to Synth 1 and Synth 2, the next two to MIDI 1 and MIDI 2, and channel 10 to Drums.
 3. **Pick the sounds.**
    - **Synth patches:** choose a TracksGM patch for each synth. The default is the GM instrument of the first part on that track (TracksGM slot = GM program number).
    - **Drum kit:** choose a kit (Std, Room, Power, Elec, 808, Jazz, Brush, Orch).
@@ -63,7 +63,10 @@ Sending the pack to the Tracks replaces the pack in that slot, so send it to a s
   The page reports how many notes moved by more than a 64th.
   - **Tempo division side effects:** the project tempo must stay at 40 BPM or above. The song plays at its own speed, but tempo-synced effects, arpeggios and MIDI clock run slower.
   - **Auto** picks the step rate that needs the fewest projects without moving more than 2% of notes.
-- **Sections and scenes.** The song is cut into sections, and each section becomes a scene; the scenes are chained in song order. *Auto* tries 8-bar sections and one-pattern sections, and keeps whichever needs fewer projects. One-pattern sections let any pattern be reused anywhere, but use more of the 16 scenes.
+- **Sections and scenes.** The song is cut into sections, and each section becomes a scene; the scenes are chained in song order. *Auto* tries three layouts and keeps whichever needs the fewest projects:
+  - 8-bar sections;
+  - one-pattern sections, which let any pattern be reused anywhere but use up the 16 scenes faster;
+  - variable scenes, where consecutive patterns share a scene whenever that costs no extra patterns.
 - **Reusing repeats.**
   - **Within a section:** a track that repeats a cycle (A A A A, or A B A B) loops just those patterns. Otherwise it chains the section's patterns.
   - **Repeated sections** reuse their patterns.

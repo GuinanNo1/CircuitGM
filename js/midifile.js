@@ -163,6 +163,13 @@ export function parseMidi(buffer) {
   }
   sources.sort((x, y) => x.track - y.track || x.channel - y.channel);
   sources.forEach((s, i) => { s.index = i + 1; });
+  // Parts that share a name (type 0 files, or one track using several channels) are named
+  // by instrument and channel instead, so they can be told apart.
+  const count = {};
+  for (const s of sources) count[s.name] = (count[s.name] ?? 0) + 1;
+  for (const s of sources) {
+    if (count[s.name] > 1) { s.trackName = s.name; s.name = `${s.instrument} (ch ${s.channel + 1})`; }
+  }
 
   return {
     format,

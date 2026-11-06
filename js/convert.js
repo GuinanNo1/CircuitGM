@@ -111,10 +111,10 @@ export function arrange(midi, assignment, options = {}) {
     let bestForRate = null;
     const pb = patternBars(rate, tempoDiv, midi.timeSig);
     const sectionChoices = opt.sectionBars === 'auto'
-      ? [...new Set([Math.max(8, pb ?? 8), pb].filter(Boolean))]
+      ? [...new Set([Math.max(8, pb ?? 8), pb].filter(Boolean)), 'var']
       : [Number(opt.sectionBars)];
     for (const sectionBars of sectionChoices) {
-      const offsets = opt.align ? Array.from({ length: Math.min(MAX_ALIGN, sectionBars) }, (_, k) => k) : [0];
+      const offsets = opt.align ? Array.from({ length: Math.min(MAX_ALIGN, sectionBars === 'var' ? (pb ?? 8) : sectionBars) }, (_, k) => k) : [0];
       for (const k of offsets) {
         const r = tryRate(rate, baseStart - k * barTicks, sectionBars);
         if (!r) continue;
@@ -142,11 +142,12 @@ export function arrange(midi, assignment, options = {}) {
 
   function tryRate(rate, startTick, sectionBars) {
     const R = RATES[rate];
-    const chunkBars = patternBars(rate, tempoDiv, midi.timeSig, sectionBars);
+    const variable = sectionBars === 'var';
+    const chunkBars = patternBars(rate, tempoDiv, midi.timeSig, variable ? 32 : sectionBars);
     if (!chunkBars) return null;
     const stepTicks = midi.ppq * R.syncQuarters * tempoDiv;
     const spb = Math.round(barTicks / stepTicks);
-    const perSection = sectionBars / chunkBars;              // patterns per section
+    const perSection = variable ? 1 : sectionBars / chunkBars;   // patterns per section
     if (perSection > MAX_PATTERNS) return null;
     const patLen = chunkBars * spb;                           // steps per pattern
     const chunkMicro = patLen * MICRO;
@@ -225,46 +226,83 @@ export function arrange(midi, assignment, options = {}) {
     const projects = [];
     const newProject = () => ({ scenes: [], store: Array.from({ length: 8 }, () => []) });
     let cur = newProject();
-    for (let sec = 0; sec < nSections; sec++) {
-      let placed = tryPlace(cur, sec);
-      if (!placed && cur.scenes.length) {
-        projects.push(cur);
-        cur = newProject();
-        placed = tryPlace(cur, sec);
+    const storeSize = (st) => st.reduce((a, x) => a + x.length, 0);
+
+    if (!variable) {
+      for (let sec = 0; sec < nSections; sec++) {
+        let placed = place(cur, sec * perSection, (sec + 1) * perSection);
+        if (!placed && cur.scenes.length) {
+          projects.push(cur);
+          cur = newProject();
+          placed = place(cur, sec * perSection, (sec + 1) * perSection);
+        }
+        if (!placed) return null;
+        commit(cur, placed, sec);
       }
-      if (!placed) return null;
+    } else {
+      // Variable scenes: start a scene at each chunk and keep adding the next chunk to it while
+      // that costs no more patterns than giving the chunk a scene of its own.
+      let i = 0;
+      while (i < totalChunks) {
+        let best = place(cur, i, i + 1);
+        if (!best) {
+          projects.push(cur);
+          cur = newProject();
+          best = place(cur, i, i + 1);
+          if (!best) return null;
+        }
+        let len = 1;
+        while (len < MAX_PATTERNS && i + len < totalChunks) {
+          const ext = place(cur, i, i + len + 1);
+          if (!ext) break;
+          const after = { scenes: [...cur.scenes, best], store: best.store };
+          const sep = place(after, i + len, i + len + 1);
+          if (sep && storeSize(sep.store) < storeSize(ext.store)) break;
+          best = ext;
+          len++;
+        }
+        commit(cur, best, i);
+        i += len;
+      }
     }
     if (cur.scenes.length) projects.push(cur);
     if (projects.length > MAX_PROJECTS) warn.tooLong = true;
 
-    function tryPlace(proj, sec) {
-      if (proj.scenes.length >= MAX_SCENES) return false;
-      const store = proj.store.map((s) => s.slice());
+    function commit(proj, placed, section) {
+      proj.store = placed.store;
+      proj.scenes.push({ ...placed.scene, section });
+    }
+
+    // Lay out chunks [c0, c1) as one scene on top of proj's patterns. Returns the new pattern
+    // store and the scene, or null if a track would need more than 8 patterns or the project
+    // has no scenes left. Nothing is changed until commit().
+    function place(proj, c0, c1) {
+      if (proj.scenes.length >= MAX_SCENES) return null;
+      const L = c1 - c0;
+      const store = proj.store.map((x) => x.slice());
       const chains = [];
-      const keys = (t) => contents[t].slice(sec * perSection, (sec + 1) * perSection).map((c) => c.key);
+      const keys = (t) => contents[t].slice(c0, c1).map((c) => c.key);
       for (let t = 0; t < 8; t++) {
         if (!active[t]) { chains.push({ start: 0, len: 1 }); continue; }
-        // A chain loops within its scene, so a section that repeats every p patterns
+        // A chain loops within its scene, so a part that repeats every p patterns
         // (A A A A, or A B A B) only needs those p patterns.
         const k = keys(t);
         const p = period(k);
         chains.push({ start: findOrAdd(store[t], k.slice(0, p)), len: p });
       }
       // A scene lasts as long as its longest chain, so one track must chain the whole
-      // section. If every track repeats a shorter cycle, extend the busiest one.
-      if (perSection > 1 && !chains.some((c, t) => active[t] && c.len === perSection)) {
-        let t = [0, 1, 2, 3, 4, 5, 6, 7].filter((i) => active[i]).sort((a, b) => chains[b].len - chains[a].len)
-          .find((i) => keys(i)[0] !== '');
+      // scene. If every track repeats a shorter cycle, extend the busiest one.
+      if (L > 1 && !chains.some((c, t) => active[t] && c.len === L)) {
+        let t = [0, 1, 2, 3, 4, 5, 6, 7].filter((x) => active[x]).sort((x, y) => chains[y].len - chains[x].len)
+          .find((x) => keys(x)[0] !== '');
         if (t === undefined) t = active.findIndex(Boolean);
-        chains[t] = { start: findOrAdd(store[t], keys(t)), len: perSection };
+        chains[t] = { start: findOrAdd(store[t], keys(t)), len: L };
       }
-      if (store.some((s) => s.length > MAX_PATTERNS)) return false;
-      proj.store = store;
-      proj.scenes.push({
-        section: sec,
-        chains: chains.map((c) => ({ start: c.start, end: c.start + c.len - 1, len: c.len })),
-      });
-      return true;
+      if (store.some((x) => x.length > MAX_PATTERNS)) return null;
+      return {
+        store,
+        scene: { firstChunk: c0, chains: chains.map((c) => ({ start: c.start, end: c.start + c.len - 1, len: c.len })) },
+      };
     }
 
     // Pattern contents per project: keys -> chunk content.
@@ -291,7 +329,8 @@ export function arrange(midi, assignment, options = {}) {
       patLen,
       chunkBars,
       perSection,
-      sectionBars,
+      sectionBars: variable ? 'varies' : sectionBars,
+      variableScenes: variable,
       nSections,
       startBar: Math.round(startTick / barTicks),
       leadBars: Math.round((baseStart - startTick) / barTicks),
@@ -445,7 +484,7 @@ export function playOrder(plan) {
           project: p.index,
           scene: si,
           section: sc.section,
-          chunk: sc.section * plan.perSection + c,
+          chunk: sc.firstChunk + c,
           patterns: sc.chains.map((ch) => ch.start + (c % ch.len)),
         });
       }

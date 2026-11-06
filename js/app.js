@@ -318,7 +318,9 @@ function renderSummary(plan) {
   const tempoNote = plan.tempoDiv > 1 ? `BPM on the Tracks (${round1(plan.sourceTempo)} ÷ ${plan.tempoDiv})` : 'BPM';
   const stats = [
     [plan.projects.length, plan.projects.length === 1 ? 'project' : 'projects'],
-    [plan.nSections, `sections of ${plan.sectionBars} bars`],
+    plan.variableScenes
+      ? [scenes.reduce((a, b) => a + b, 0), 'scenes, each 1–8 patterns long']
+      : [plan.nSections, `sections of ${plan.sectionBars} bars`],
     [scenes.join(' + '), 'scenes per project (max 16)'],
     [`${plan.chunkBars} bar${plan.chunkBars > 1 ? 's' : ''}`, `per pattern (${plan.rateLabel})`],
     [`${maxPat} of 8`, 'most patterns used on a track'],
