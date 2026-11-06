@@ -34,7 +34,7 @@ async function fetchBuf(url) {
   return r.arrayBuffer();
 }
 
-// settings: { title, synthPatch: [slot, slot], kit, color (0-13) }
+// settings: { title, synthPatch: [slot, slot], kit, colors: [0-13 per project] | color: 0-13 }
 export function buildProjects(plan, base, settings) {
   const out = [];
   const n = plan.projects.length;
@@ -42,7 +42,8 @@ export function buildProjects(plan, base, settings) {
     const proj = parseNCS(base.template.slice(0));
     const name = n > 1 ? `${settings.title} ${p.index + 1}` : settings.title;
     proj.name = asciiName(name, 32);
-    proj.color = (settings.color ?? 8) % 14;
+    // settings.colors: one project colour (0-13) per project, or settings.color for all.
+    proj.color = (settings.colors?.[p.index] ?? settings.color ?? 8) % 14;
     proj.tempo = plan.tempo;
     proj.swing = 50;
     proj.scaleRoot = 0;

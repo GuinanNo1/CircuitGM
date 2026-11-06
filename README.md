@@ -42,7 +42,10 @@ Sending the pack to the Tracks replaces the pack in that slot, so send it to a s
    - drums use the real samples of the chosen kit.
    
    S solos a track in the preview only. Changing a mute or option while the preview plays carries on from the same spot. Notes about anything that had to change (dropped or moved notes, tempo changes and so on) appear under the grid.
-5. **Build the pack.** Name the project and the pack, then **Download pack**. Open it in Novation Components and send it to your Circuit Tracks.
+5. **Build the pack.** Name the project and the pack, choose the project colours, then **Download pack**.
+   - **Rainbow** (the default) colours the projects Red, Orange, Yellow, Green, Cyan, Blue, Purple, then repeats.
+   - **Graduated** steps through all 12 shades from red to purple.
+   - **One colour** gives every project the same colour. Open it in Novation Components and send it to your Circuit Tracks.
 
 ### How a song becomes Circuit Tracks projects
 

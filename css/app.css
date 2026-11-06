@@ -245,6 +245,7 @@ select, input[type="text"], input:not([type]) {
   background: repeating-linear-gradient(135deg, var(--cell-empty) 0 3px, color-mix(in srgb, var(--muted) 45%, transparent) 3px 5px);
 }
 .cell.src.part { background: linear-gradient(90deg, color-mix(in srgb, var(--c) 55%, var(--panel)) 50%, transparent 50%), repeating-linear-gradient(135deg, var(--cell-empty) 0 3px, color-mix(in srgb, var(--muted) 45%, transparent) 3px 5px); }
+.pdot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
 .col.now .cell { outline: 2px solid var(--ink); outline-offset: -1px; }
 
 .warnings { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }

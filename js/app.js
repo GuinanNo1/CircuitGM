@@ -1,5 +1,5 @@
 import { parseMidi, GM_NAMES } from './midifile.js';
-import { arrange, playOrder, gmDrum, patternBars, RATES, TRACKS, KITS, KIT_PARTS, MELODIC_ROLES } from './convert.js';
+import { arrange, playOrder, gmDrum, patternBars, projectColours, PROJECT_COLOURS, RATES, TRACKS, KITS, KIT_PARTS, MELODIC_ROLES } from './convert.js';
 import { loadBase, buildProjects, buildPack } from './build.js';
 import { Player } from './player.js';
 
@@ -49,6 +49,7 @@ async function init() {
   $('#play').addEventListener('click', () => togglePlanPlay());
   $('#grid').addEventListener('click', onGridClick);
   $('#build').addEventListener('click', build);
+  $('#projcolors').addEventListener('change', () => state.plan && renderGrid(state.plan));
   player.onEnd = () => { setPlanButton(false); setSourceButton(null); };
 }
 
@@ -454,6 +455,7 @@ function renderGrid(plan, stale = false) {
   grid.append(labels);
 
   const barOf = (chunk) => plan.startBar + chunk * plan.chunkBars;
+  const colours = projectColours(plan.projects.length, $('#projcolors').value);
   order.forEach((o, k) => {
     const col = document.createElement('div');
     col.className = 'col';
@@ -461,7 +463,8 @@ function renderGrid(plan, stale = false) {
     if (prev && prev.project !== o.project) col.classList.add('proj-start');
     else if (prev && prev.section !== o.section) col.classList.add('sec-start');
     const proj = plan.projects[o.project];
-    const projHead = !prev || prev.project !== o.project ? `P${o.project + 1}` : '';
+    const projHead = !prev || prev.project !== o.project
+      ? `<span class="pdot" style="background:rgb(${PROJECT_COLOURS[colours[o.project]][1].join(',')})" title="${PROJECT_COLOURS[colours[o.project]][0]}"></span>P${o.project + 1}` : '';
     const sceneHead = !prev || prev.section !== o.section ? `${o.scene + 1}·${barOf(o.chunk) + 1}` : '';
     const b0 = barOf(o.chunk);
     const bars = Array.from({ length: plan.chunkBars }, (_, i) => b0 + i);
@@ -623,7 +626,7 @@ async function build() {
       title,
       synthPatch: [Number($('#patch-s1').value), Number($('#patch-s2').value)],
       kit: Number($('#kit').value),
-      color: 8,
+      colors: projectColours(state.plan.projects.length, $('#projcolors').value),
     });
     const blob = await buildPack(state.base, projects.slice(0, 64), { name: packName, color: $('#packcolor').value });
     const a = document.createElement('a');

@@ -34,6 +34,23 @@ export function gmDrum(note) {
   if ([49, 51, 52, 53, 55, 57, 59].includes(note)) return [3, 'cymbal'];
   return [3, 'perc'];
 }
+// Project colours as stored in the .ncs header (0-13), with the RGB the Tracks shows
+// (circuit-tracks-tools docs/ncs-format.md, "Project Color Table").
+export const PROJECT_COLOURS = [
+  ['Red', [251, 53, 53]], ['Rose', [250, 52, 116]], ['Peach', [250, 130, 125]],
+  ['Orange', [250, 163, 52]], ['Sand', [250, 195, 125]], ['Yellow', [250, 242, 52]],
+  ['Khaki', [219, 250, 125]], ['Lime', [161, 239, 26]], ['Green', [52, 250, 55]],
+  ['Teal', [75, 250, 134]], ['Cyan', [52, 175, 250]], ['Blue', [52, 87, 250]],
+  ['Purple', [110, 52, 250]], ['Pink', [250, 75, 206]],
+];
+// R O Y G B I V; and every shade from red to purple in hue order.
+const RAINBOW = [0, 3, 5, 8, 10, 11, 12];
+const RAINBOW_FINE = [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+// scheme: 'rainbow' | 'rainbow-fine' | a single colour number 0-13
+export function projectColours(n, scheme = 'rainbow') {
+  const seq = scheme === 'rainbow' ? RAINBOW : scheme === 'rainbow-fine' ? RAINBOW_FINE : [Number(scheme) % 14];
+  return Array.from({ length: n }, (_, i) => seq[i % seq.length]);
+}
 export const DRUM_TRACK_LABELS = ['Kick', 'Snare / Tom', 'Hi-hats', 'Percussion'];
 
 // Step rates a pattern can run at on the Tracks. stepQuarter (how much of the song one step
