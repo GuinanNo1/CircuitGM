@@ -1,7 +1,9 @@
 # TracksGM
 Could General MIDI files be converted to play on a Novation Circuit Tracks? Research, and public projects
 
-## TracksGM Pack Builder
+## TracksGM Pack Builder (alpha 0.1)
+
+**Try it:** https://guinanno1.github.io/TracksGM/
 
 A web page that turns a General MIDI file (`.mid`) into a Circuit Tracks pack (`.circuittrackspack`) you can load with Novation Components. It runs entirely in the browser: nothing is uploaded, and there is no server.
 
@@ -97,8 +99,7 @@ Sending the pack to the Tracks replaces the pack in that slot, so send it to a s
 
 ### Still to confirm on hardware
 
-The project format is reverse-engineered, so these need checking on a Circuit Tracks:
-- notes longer than 16 steps (tied notes);
+The project format is reverse-engineered. Confirmed on a Circuit Tracks (alpha 0.1): packs load, synth and drum parts play, and long held notes sustain correctly. Still to check:
 - the octave of notes sent on MIDI 1 and MIDI 2;
 - scenes playing through the song in order, each lasting as long as its longest pattern chain.
 
