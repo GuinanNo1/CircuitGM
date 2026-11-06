@@ -1,6 +1,6 @@
-# TracksGM_final — the General MIDI sound set for Circuit Tracks
+# TracksGM Universal Circuit Tracks Pack
 
-`TracksGM_final.circuittrackspack` is a Novation Components pack for the Circuit Tracks: **128 synth patches in General MIDI order** and **64 drum samples** (8 kits of 8). It is the sound set the TracksGM converter builds on, and the master copy until it is revised.
+A General MIDI sound set for the Novation Circuit Tracks, as a Novation Components pack (`TracksGM_final.circuittrackspack`): **128 synth patches in General MIDI order** and **64 drum samples** (8 kits of 8). It works as a general-purpose pack on its own, and it is the sound set the [TracksGM MIDI to Circuit Tracks Converter](https://guinanno1.github.io/TracksGM/) builds on. This is the master copy until it is revised.
 
 | | |
 |---|---|
@@ -14,7 +14,7 @@
 
 | Path | What it is |
 |---|---|
-| `TracksGM_final.circuittrackspack` | The pack. Load it in Novation Components. |
+| `TracksGM_final.circuittrackspack` | The TracksGM Universal Circuit Tracks Pack. Load it in Novation Components. |
 | `tracksgm_patches.json` | The 128 patches as data: slot, name and the 340 patch bytes (hex), plus the 64 sample names. |
 | `drums/` | The 64 drum WAVs exactly as stored in the pack, named by slot. |
 | `tools/ctpatch.py` | Patch builder: the 340-byte patch map, parameter names, and calibrated helpers that work in real units (`cutoff(hz)`, `env_time(seconds)`, `eq_level(db, band)`, `lfo_rate(hz)`, `vib_depth(cents)` …). |
