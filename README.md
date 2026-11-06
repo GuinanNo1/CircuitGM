@@ -3,8 +3,8 @@ Could General MIDI files be converted to play on a Novation Circuit Tracks? Rese
 
 TracksGM is two projects:
 
-1. **[TracksGM Universal Circuit Tracks Pack](#1-tracksgm-universal-circuit-tracks-pack)**: a General MIDI sound set for the Circuit Tracks.
-2. **[TracksGM MIDI to Circuit Tracks Converter](#2-tracksgm-midi-to-circuit-tracks-converter)**: a web page that turns Standard MIDI files into Circuit Tracks projects using that pack.
+1. **[TracksGM Universal Circuit Tracks Pack](https://github.com/GuinanNo1/TracksGM/tree/pack-build)**: a General MIDI sound set for the Circuit Tracks. [Download the pack](https://github.com/GuinanNo1/TracksGM/raw/pack-build/TracksGM_final.circuittrackspack) · [details below](#1-tracksgm-universal-circuit-tracks-pack)
+2. **[TracksGM MIDI to Circuit Tracks Converter](https://github.com/GuinanNo1/TracksGM/tree/web-converter)**: a web page that turns Standard MIDI files into Circuit Tracks projects using that pack. [Open the converter](https://guinanno1.github.io/TracksGM/) · [details below](#2-tracksgm-midi-to-circuit-tracks-converter)
 
 ## 1. TracksGM Universal Circuit Tracks Pack
 A Novation Components pack with 128 synth patches in General MIDI order, voiced and loudness-matched on hardware, plus 64 drum samples (8 kits) from GeneralUser GS. It works as a general-purpose pack on its own.
