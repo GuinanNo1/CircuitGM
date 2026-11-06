@@ -8,7 +8,7 @@ const { chromium } = require('playwright');
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error' && !m.text().includes('ERR_TUNNEL')) errors.push(m.text()); });
   await page.goto('http://localhost:8765/index.html');
-  await page.waitForFunction(() => document.querySelector('#base-status').textContent.includes('ready'));
+  await page.waitForFunction(() => document.querySelector('#base-status').textContent.includes('patches'));
   await page.setInputFiles('#file', '/home/claude/mrbumpy409/generaluser-gs/demo MIDIs/Dance.mid');
   await page.waitForSelector('#grid .col');
   const rowNames = await page.$$eval('#grid .labels .row-label', (x) => x.map((e) => e.textContent.trim()));

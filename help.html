@@ -31,6 +31,7 @@
       <li><a href="#tracks">On the Circuit Tracks</a></li>
       <li><a href="#notes">The notes under the grid</a></li>
       <li><a href="#drums">How drums are mapped</a></li>
+      <li><a href="#base-pack">Using a different base pack</a></li>
       <li><a href="#limits">Limits and alpha status</a></li>
       <li><a href="#trouble">Troubleshooting</a></li>
     </ol>
@@ -41,7 +42,7 @@
     <ol class="steps">
       <li><b>Load a song.</b> Open the <a href="./">converter</a> and drop a Standard MIDI file (<code>.mid</code>) onto step 1.</li>
       <li><b>Check the parts.</b> The converter has already put the two busiest parts on Synth 1 and Synth 2, the next two on MIDI 1 and MIDI 2, and the drum part on Drums. Press ▶ next to a part to hear it, and click the S1, S2, M1, M2 or Drums buttons to change where it goes.</li>
-      <li><b>Pick the sounds.</b> Each synth gets the TracksGM patch for its General MIDI instrument; change it if you like, and pick a drum kit.</li>
+      <li><b>Pick the sounds.</b> Each synth gets the TracksGM patch for its General MIDI instrument; change it if you like, and pick a drum kit. (To use your own pack instead of TracksGM, drop it on the <b>Base pack</b> box first: see <a href="#base-pack">using a different base pack</a>.)</li>
       <li><b>Preview.</b> Press <b>Play preview</b> in step 4. Click a coloured dot to mute a part, or a box to mute some bars. If the summary says the song needs several projects, see <a href="#fewer">getting a song into fewer projects</a>.</li>
       <li><b>Download.</b> Press <b>Download pack</b> in step 5.</li>
       <li><b>Play it.</b> In Novation Components, open the pack and send it to a <b>spare</b> pack slot on your Circuit Tracks (it replaces whatever is in that slot). Load the pack on the Tracks and open project 1. The song's sections are its scenes, in order; if there is more than one project, carry on with project 2, 3 and so on.</li>
@@ -61,7 +62,8 @@
     <h2>The five steps in detail</h2>
 
     <h3>1. Load a MIDI file</h3>
-    <p>Drop a file onto the box or click it to choose one. The line under the box shows the file's tempo, time signature, length and number of parts. Each MIDI track and channel becomes a separate <em>part</em>. Where several parts share a name (common in type 0 files), they are named by instrument and channel instead, for example <i>Saw Lead (ch 4)</i>.</p>
+    <p><b>Base pack.</b> The box at the top of step 1 shows the pack the converter builds on: <i>TracksGM_final</i>, the TracksGM Universal Circuit Tracks Pack, unless you change it. Click <b>Use another pack…</b>, or drop a <code>.circuittrackspack</code> on the box (or on the MIDI box below it), to use a different one; <b>Back to TracksGM_final</b> switches back. See <a href="#base-pack">using a different base pack</a>.</p>
+    <p><b>MIDI file.</b> Drop a file onto the box or click it to choose one. The line under the box shows the file's tempo, time signature, length and number of parts. Each MIDI track and channel becomes a separate <em>part</em>. Where several parts share a name (common in type 0 files), they are named by instrument and channel instead, for example <i>Saw Lead (ch 4)</i>.</p>
 
     <h3>2. Choose the parts</h3>
     <p>Each row is one part of the song, with its General MIDI instrument, channel, note count and a picture of where it plays. The buttons on the right send it to a Circuit Tracks track:</p>
@@ -114,7 +116,7 @@
       <li><b>Pack name</b> and <b>pack colour</b> are how the pack appears in Components.</li>
       <li><b>Project colours:</b> <i>Rainbow</i> colours the projects Red, Orange, Yellow, Green, Cyan, Blue, Purple, then repeats; <i>graduated</i> steps through 12 shades from red to purple; or pick one colour for all.</li>
     </ul>
-    <p>The pack holds the whole TracksGM Universal Circuit Tracks Pack (128 patches, 64 drum samples) plus your projects in project slots 1 onwards.</p>
+    <p>The pack holds the whole base pack (the TracksGM Universal Circuit Tracks Pack, 128 patches and 64 drum samples, unless you chose another) plus your projects in project slots 1 onwards.</p>
   </section>
 
   <section class="panel" id="fewer">
@@ -172,6 +174,18 @@
     </table>
   </section>
 
+  <section class="panel" id="base-pack">
+    <h2>Using a different base pack</h2>
+    <p>Every converted pack is built on a <em>base pack</em>: its synth patches and drum samples are copied into your pack unchanged, and the converted song goes into its project slots. The default is <i>TracksGM_final</i>, the <a href="https://github.com/GuinanNo1/TracksGM/tree/pack-build">TracksGM Universal Circuit Tracks Pack</a>, which is still being tuned by ear; the converter always uses the latest version. You can use any other Circuit Tracks pack instead, such as your own edit of TracksGM or a pack exported from Components.</p>
+    <ul>
+      <li><b>Patches.</b> The Synth 1 and Synth 2 lists show the pack's own patch names. The default for each synth is still the slot matching the part's General MIDI instrument (or the nearest filled slot below it), so a pack laid out in General MIDI order, like TracksGM, gives the best defaults. With any other pack, choose the patches yourself.</li>
+      <li><b>Drum kits.</b> The pack's 64 drum samples are read as eight kits of eight, each in this order: kick, snare, rim/clap, closed hat, open hat, tom, cymbal, percussion (the <a href="#drums">drum mapping</a> picks from these). The kit list shows each group's first sample names; hover over one to see all eight. A pack laid out differently will play the wrong sounds on some drum steps.</li>
+      <li><b>Projects.</b> The base pack's own projects are replaced by the converted song (the converter says how many there were). Its patches and samples are kept as they are.</li>
+      <li><b>Checks.</b> The file must be a <code>.circuittrackspack</code> with at least one synth patch and eight sample slots; otherwise the converter says why and keeps the pack it had.</li>
+      <li>The base pack is only read in your browser, like the MIDI file. Reloading the page goes back to TracksGM_final.</li>
+    </ul>
+  </section>
+
   <section class="panel" id="limits">
     <h2>Limits and alpha status</h2>
     <ul>
@@ -191,6 +205,10 @@
       <dd>Your browser kept an old copy. Reload with Cmd + Shift + R (Mac) or Ctrl + Shift + R (Windows).</dd>
       <dt>"Could not load the TracksGM Universal Circuit Tracks Pack".</dt>
       <dd>The page needs to be opened from the website (or a local web server), not as a file on disk. Check your connection and reload.</dd>
+      <dt>"Could not use <i>pack</i>: …".</dt>
+      <dd>The file you chose as a base pack isn't a Circuit Tracks pack, or it has no patches or samples. The converter keeps using the previous pack.</dd>
+      <dt>The drums sound wrong with my own pack.</dt>
+      <dd>Its samples are probably not in the kick, snare, rim/clap, closed hat, open hat, tom, cymbal, percussion order per group of eight. See <a href="#base-pack">using a different base pack</a>.</dd>
       <dt>"This is not a standard MIDI file".</dt>
       <dd>The file isn't a <code>.mid</code> file, or it is damaged. Karaoke (.kar) and RIFF MIDI (.rmi) files usually work; other formats don't.</dd>
       <dt>The Drums button is greyed out.</dt>

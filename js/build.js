@@ -1,5 +1,5 @@
-// Arrangement -> .ncs projects -> .circuittrackspack (TracksGM_final patches and samples
-// plus the new projects).
+// Arrangement -> .ncs projects -> .circuittrackspack (the base pack's patches and samples,
+// TracksGM_final by default, plus the new projects).
 import { parseNCS, serializeNCS } from './vendor/ncs.js';
 import { readZip, writeZip } from './vendor/zip.js';
 import { KIT_PARTS, MAX_NOTES, MICRO } from './convert.js';
@@ -16,15 +16,22 @@ export async function loadBase(url = 'data/TracksGM_final.circuittrackspack', te
 }
 
 export async function loadBaseFromBuffers(packBuf, tplBuf) {
-  const zip = readZip(packBuf);
-  const index = JSON.parse(new TextDecoder().decode(await zip.get('index.json')()));
+  let zip;
+  try { zip = readZip(packBuf); } catch { throw new Error('This is not a .circuittrackspack file (it could not be opened as a zip).'); }
+  const getIndex = zip.get('index.json');
+  if (!getIndex) throw new Error('This pack has no index.json, so it is not a Circuit Tracks pack.');
+  let index;
+  try { index = JSON.parse(new TextDecoder().decode(await getIndex())); } catch { throw new Error('The pack\'s index.json could not be read.'); }
+  if (!Array.isArray(index.patches) || !Array.isArray(index.samples)) throw new Error('The pack\'s index.json has no patch or sample list.');
   const patches = [];
   for (const [i, p] of index.patches.entries()) {
-    const get = zip.get(p.url);
+    const get = p && p.url ? zip.get(p.url) : null;
     const raw = get ? new Uint8Array(await get()) : null;
-    patches.push({ slot: i, name: p.name, data: raw && raw.length === 350 ? raw.slice(9, 349) : null });
+    patches.push({ slot: i, name: (p && p.name) || '', data: raw && raw.length === 350 ? raw.slice(9, 349) : null });
   }
-  const samples = index.samples.map((s, i) => ({ slot: i, name: s.name }));
+  const samples = index.samples.map((s, i) => ({ slot: i, name: (s && s.name) || '', present: !!(s && s.url && zip.get(s.url)) }));
+  if (!patches.some((p) => p.data)) throw new Error('The pack has no synth patches.');
+  if (samples.length < 8) throw new Error('The pack needs at least 8 drum sample slots.');
   return { zip, index, patches, samples, template: tplBuf };
 }
 
@@ -144,7 +151,7 @@ function drumSteps(content, slotOf, defaultSlot) {
   return steps;
 }
 
-// Pack = TracksGM_final (patches + samples, untouched) + the new projects in slots 0..n-1.
+// Pack = the base pack (patches + samples, untouched) + the new projects in slots 0..n-1.
 export async function buildPack(base, projects, { name, color }) {
   const index = JSON.parse(JSON.stringify(base.index));
   index.name = asciiName(name, 64).trim() || 'TracksGM';

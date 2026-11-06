@@ -10,14 +10,14 @@ Could General MIDI files be converted to play on a Novation Circuit Tracks? Rese
 A web page that turns a General MIDI file (`.mid`) into a Circuit Tracks pack (`.circuittrackspack`) you can load with Novation Components. It runs entirely in the browser: nothing is uploaded, and there is no server.
 
 The pack it makes contains:
-- the **TracksGM Universal Circuit Tracks Pack** (`TracksGM_final.circuittrackspack`): 128 synth patches in General MIDI order, and 64 drum samples (8 kits) from GeneralUser GS;
+- a **base pack**'s patches and drum samples. By default this is the **TracksGM Universal Circuit Tracks Pack** (`TracksGM_final.circuittrackspack`): 128 synth patches in General MIDI order, and 64 drum samples (8 kits) from GeneralUser GS. You can drop in another pack instead (see below);
 - one or more **projects** holding the converted song, in project slots 1 onwards.
 
 Sending the pack to the Tracks replaces the pack in that slot, so send it to a spare pack slot.
 
 ### Using it
 
-1. **Load a MIDI file.** Drop a `.mid` file on the page or choose one. Type 0 and type 1 files both work. Each MIDI track and channel becomes a separate part.
+1. **Load a MIDI file.** The **Base pack** box at the top shows the pack the song is built on (*TracksGM_final* unless you change it). Then drop a `.mid` file on the page or choose one. Type 0 and type 1 files both work. Each MIDI track and channel becomes a separate part.
 2. **Choose the parts.** Give each part a Circuit Tracks track:
    - **S1 / S2** play on Synth 1 and Synth 2.
    - **M1 / M2** play external gear through MIDI 1 and MIDI 2.
@@ -52,6 +52,15 @@ Sending the pack to the Tracks replaces the pack in that slot, so send it to a s
    - **One colour** gives every project the same colour.
 
    Open the pack in Novation Components and send it to your Circuit Tracks.
+
+### Using a different base pack
+
+Click **Use another pack…** in step 1, or drop a `.circuittrackspack` on the Base pack box or the MIDI box, to build on another pack (an edited TracksGM, or any pack exported from Components). **Back to TracksGM_final** switches back.
+
+- **Patches:** the synth lists show the pack's own patch names. Defaults still assume General MIDI order (slot = GM program, or the nearest filled slot below).
+- **Drums:** the 64 samples are read as 8 kits of 8, each in the order kick, snare, rim/clap, closed hat, open hat, tom, cymbal, percussion.
+- **Projects:** the pack's own projects are replaced by the converted song; its patches and samples are copied unchanged.
+- **Checks:** the file must open as a pack with at least one patch and 8 sample slots, otherwise the page keeps the previous pack.
 
 ### How a song becomes Circuit Tracks projects
 
@@ -138,7 +147,7 @@ Then open <http://localhost:8765/>.
 | `js/build.js` | Writes the `.ncs` projects and the pack. |
 | `js/player.js` | Preview playback (Web Audio). |
 | `js/vendor/ncs.js`, `js/vendor/zip.js` | Project file reader/writer and zip code from circuit-tracks-tools (MIT licence, see `js/vendor/LICENSE-circuit-tracks-tools.txt`). |
-| `data/TracksGM_final.circuittrackspack` | The TracksGM Universal Circuit Tracks Pack, which every converted pack is built on. |
+| `data/TracksGM_final.circuittrackspack` | The TracksGM Universal Circuit Tracks Pack, the default base pack. Replace this file to update the default when the pack is retuned. |
 | `data/Empty.ncs` | Blank project used as the template (from circuit-tracks-tools). |
 | `tests/` | Node scripts: parse MIDI files, plan arrangements, build packs and read them back, and check projects against the Components validator's ranges. |
 

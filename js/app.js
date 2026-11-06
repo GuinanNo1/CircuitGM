@@ -1,6 +1,6 @@
 import { parseMidi, GM_NAMES } from './midifile.js';
 import { arrange, playOrder, gmDrum, patternBars, projectColours, PROJECT_COLOURS, RATES, TRACKS, KITS, KIT_PARTS, MELODIC_ROLES } from './convert.js';
-import { loadBase, buildProjects, buildPack } from './build.js';
+import { loadBase, loadBaseFromBuffers, buildProjects, buildPack } from './build.js';
 import { Player } from './player.js';
 
 const $ = (s) => document.querySelector(s);
@@ -12,8 +12,11 @@ const TRACK_NAMES = ['Synth 1', 'Synth 2', 'MIDI 1', 'MIDI 2', 'Kick', 'Snare/To
 const PLAY_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1l9 5-9 5z"/></svg>';
 const STOP_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="2" width="8" height="8"/></svg>';
 
+const DEFAULT_PACK = 'TracksGM_final';
 const state = {
   base: null,
+  defaultBase: null,
+  baseName: DEFAULT_PACK,
   midi: null,
   fileName: '',
   roleOf: new Map(),        // source id -> role
@@ -34,10 +37,8 @@ init();
 async function init() {
   wireLoad();
   try {
-    state.base = await loadBase();
-    fillPatchSelects();
-    fillKitSelect();
-    $('#base-status').textContent = `TracksGM Universal Circuit Tracks Pack ready: ${state.base.patches.filter((p) => p.data).length} patches, ${state.base.samples.filter((s) => s.name).length} drum samples.`;
+    state.defaultBase = await loadBase();
+    setBase(state.defaultBase, DEFAULT_PACK);
   } catch (e) {
     $('#base-status').textContent = `Could not load the TracksGM Universal Circuit Tracks Pack: ${e.message}. If you opened index.html straight from disk, serve the folder instead (see README).`;
     $('#base-status').classList.add('error');
@@ -53,48 +54,113 @@ async function init() {
   player.onEnd = () => { setPlanButton(false); setSourceButton(null); };
 }
 
+const isPack = (f) => /\.(circuittrackspack|zip)$/i.test(f.name);
+function routeFile(f) { if (isPack(f)) loadBaseFile(f); else loadFile(f); }
+
 function wireLoad() {
   const drop = $('#drop');
   const input = $('#file');
-  input.addEventListener('change', () => input.files[0] && loadFile(input.files[0]));
-  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
-  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
-  drop.addEventListener('drop', (e) => {
-    e.preventDefault();
-    drop.classList.remove('over');
-    const f = e.dataTransfer.files[0];
-    if (f) loadFile(f);
-  });
+  input.addEventListener('change', () => { if (input.files[0]) routeFile(input.files[0]); input.value = ''; });
+  for (const zone of [drop, $('#basepack')]) {
+    zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+    zone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      zone.classList.remove('over');
+      const f = e.dataTransfer.files[0];
+      if (!f) return;
+      if (zone === drop) routeFile(f); else loadBaseFile(f);
+    });
+  }
+  const bf = $('#base-file');
+  bf.addEventListener('change', () => { if (bf.files[0]) loadBaseFile(bf.files[0]); bf.value = ''; });
+  $('#base-reset').addEventListener('click', () => state.defaultBase && setBase(state.defaultBase, DEFAULT_PACK));
+}
+
+// ---------- base pack ----------
+async function loadBaseFile(file) {
+  const status = $('#base-status');
+  if (!state.defaultBase) return;
+  status.classList.remove('error');
+  status.textContent = `Reading ${file.name}…`;
+  try {
+    const base = await loadBaseFromBuffers(await file.arrayBuffer(), state.defaultBase.template);
+    setBase(base, file.name.replace(/\.(circuittrackspack|zip)$/i, ''));
+  } catch (e) {
+    status.textContent = `Could not use ${file.name}: ${e.message} Still using ${state.baseName}.`;
+    status.classList.add('error');
+  }
+}
+
+function setBase(base, name) {
+  player.stop();
+  setPlanButton(false);
+  setSourceButton(null);
+  state.base = base;
+  state.baseName = name;
+  const isDefault = base === state.defaultBase;
+  const nPatch = base.patches.filter((p) => p.data).length;
+  const nSamp = base.samples.filter((s) => s.present).length;
+  const nProj = (base.index.projects || []).filter((p) => p && p.name).length;
+  $('#base-name').textContent = name;
+  const status = $('#base-status');
+  status.classList.remove('error');
+  status.textContent = isDefault
+    ? `TracksGM Universal Circuit Tracks Pack: ${nPatch} patches, ${nSamp} drum samples.`
+    : `${base.index.name ? `“${base.index.name}”: ` : ''}${nPatch} patches, ${nSamp} drum samples.`
+      + (nProj ? ` Its ${nProj} project${nProj > 1 ? 's' : ''} will be replaced by the converted song.` : '');
+  $('#base-reset').hidden = isDefault;
+  $('#base-summary').textContent = isDefault
+    ? `TracksGM Universal Circuit Tracks Pack: ${nPatch} patches, ${nSamp} drum samples`
+    : `${name}: ${nPatch} patches, ${nSamp} drum samples`;
+  fillPatchSelects();
+  fillKitSelect();
+  loadedKit = -1;
+  if (state.midi) { rolesChanged(); }
 }
 
 function fillPatchSelects() {
-  for (const id of ['#patch-s1', '#patch-s2']) {
+  for (const [i, id] of ['#patch-s1', '#patch-s2'].entries()) {
     const sel = $(id);
+    const prev = sel.value;
     sel.innerHTML = '';
     for (const p of state.base.patches) {
       if (!p.data) continue;
       const o = document.createElement('option');
       o.value = p.slot;
-      o.textContent = `${String(p.slot + 1).padStart(3, '0')}  ${p.name}`;
+      o.textContent = `${String(p.slot + 1).padStart(3, '0')}  ${p.name || '(no name)'}`;
       sel.append(o);
     }
+    setPatch(sel, prev !== '' ? prev : String(i === 0 ? 0 : 32));
   }
-  $('#patch-s1').value = '0';
-  $('#patch-s2').value = '32';
+}
+
+// Select a patch slot, or the nearest slot below it that has a patch.
+function setPatch(sel, slot) {
+  const opts = [...sel.options].map((o) => Number(o.value));
+  if (!opts.length) return;
+  const want = Number(slot);
+  const pick = opts.filter((v) => v <= want).pop() ?? opts[0];
+  sel.value = String(pick);
 }
 
 function fillKitSelect() {
   const sel = $('#kit');
+  const prev = sel.value;
   sel.innerHTML = '';
-  KITS.forEach((k, i) => {
+  const isDefault = state.base === state.defaultBase;
+  const nKits = Math.min(Math.floor(state.base.samples.length / 8), 8);
+  for (let i = 0; i < nKits; i++) {
     const o = document.createElement('option');
     o.value = i;
-    const kick = state.base.samples[i * 8]?.name ?? '';
-    o.textContent = `${k} kit (samples ${i * 8 + 1}–${i * 8 + 8})`;
-    o.title = kick;
+    const names = state.base.samples.slice(i * 8, i * 8 + 8).map((s) => s.name || '—');
+    o.textContent = isDefault && KITS[i]
+      ? `${KITS[i]} kit (samples ${i * 8 + 1}–${i * 8 + 8})`
+      : `Samples ${i * 8 + 1}–${i * 8 + 8}: ${names[0]}, ${names[1]}…`;
+    o.title = names.map((n, j) => `${KIT_PARTS[j]}: ${n}`).join('\n');
     sel.append(o);
-  });
-  sel.value = '1';
+  }
+  sel.value = prev !== '' && Number(prev) < nKits ? prev : String(Math.min(1, nKits - 1));
 }
 
 let loadedKit = -1;
@@ -228,10 +294,11 @@ function sourcesFor(role) {
 
 function rolesChanged() {
   state.barCache.delete('lane4'); state.barCache.delete('lane5'); state.barCache.delete('lane6'); state.barCache.delete('lane7');
-  // Default each synth patch to the GM program of the first part on it (TracksGM is in GM order).
+  // Default each synth patch to the GM program of the first part on it (TracksGM is in GM order;
+  // other packs are assumed to be too).
   ['S1', 'S2'].forEach((r, i) => {
     const first = sourcesFor(r)[0];
-    if (!state.patchTouched[i] && first && !first.isDrum) $(`#patch-${r.toLowerCase()}`).value = String(first.program);
+    if (!state.patchTouched[i] && first && !first.isDrum) setPatch($(`#patch-${r.toLowerCase()}`), first.program);
     const list = sourcesFor(r).map((s) => s.name);
     $(`#sub-${r.toLowerCase()}`).textContent = list.length ? `Playing: ${list.join(' + ')}` : 'No part chosen; this track stays empty.';
   });

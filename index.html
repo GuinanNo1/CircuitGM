@@ -16,7 +16,7 @@
   <div class="wrap">
     <h1>TracksGM <span>MIDI to Circuit Tracks Converter</span> <em class="badge">alpha 0.1</em></h1>
     <p class="helplinks"><a href="help.html#quickstart">Quickstart</a> · <a href="help.html">User guide</a></p>
-    <p class="lede">Turn a General MIDI file into a Novation Circuit Tracks pack. Pick the parts you want, hear how they'll play, and download a <code>.circuittrackspack</code> for Novation Components, built on the <a href="https://github.com/GuinanNo1/TracksGM/tree/pack-build">TracksGM Universal Circuit Tracks Pack</a>.</p>
+    <p class="lede">Turn a General MIDI file into a Novation Circuit Tracks pack. Pick the parts you want, hear how they'll play, and download a <code>.circuittrackspack</code> for Novation Components, built on the <a href="https://github.com/GuinanNo1/TracksGM/tree/pack-build">TracksGM Universal Circuit Tracks Pack</a> or a pack of your own.</p>
     <p class="alpha">Alpha 0.1, for testing. Packs load and play on the Circuit Tracks, but the project format is reverse-engineered: keep a backup of your packs, and please report anything odd on <a href="https://github.com/GuinanNo1/TracksGM/issues">GitHub</a>.</p>
   </div>
 </header>
@@ -24,13 +24,24 @@
 <main class="wrap">
   <section class="panel" id="step-load">
     <h2><span class="num">1</span> Load a MIDI file</h2>
+    <div class="basepack" id="basepack">
+      <div class="bp-info">
+        <span class="k">Base pack</span>
+        <b id="base-name">TracksGM_final</b>
+        <span class="status" id="base-status">Loading the TracksGM Universal Circuit Tracks Pack…</span>
+      </div>
+      <div class="bp-actions">
+        <label class="btn small filebtn">Use another pack…<input type="file" id="base-file" accept=".circuittrackspack,.zip"></label>
+        <button class="btn small" id="base-reset" type="button" hidden>Back to TracksGM_final</button>
+      </div>
+      <p class="hint small">The converted song is added to this pack's patches and drum samples. To use a different pack, drop a <code>.circuittrackspack</code> here or on the box below. <a href="help.html#base-pack">How other packs are used</a></p>
+    </div>
     <label class="drop" id="drop">
-      <input type="file" id="file" accept=".mid,.midi,.rmi,.kar,audio/midi">
+      <input type="file" id="file" accept=".mid,.midi,.rmi,.kar,audio/midi,.circuittrackspack">
       <span class="drop-main">Drop a .mid file here, or <u>choose one</u></span>
-      <span class="drop-sub">Standard MIDI files (type 0 or 1). Nothing is uploaded; everything runs in your browser.</span>
+      <span class="drop-sub">Standard MIDI files (type 0 or 1), or a <code>.circuittrackspack</code> to use as the base pack. Nothing is uploaded; everything runs in your browser.</span>
     </label>
     <div class="fileinfo" id="fileinfo" hidden></div>
-    <p class="status" id="base-status">Loading the TracksGM Universal Circuit Tracks Pack…</p>
   </section>
 
   <section class="panel" id="step-tracks" hidden>
@@ -106,7 +117,7 @@
       <button class="btn primary big" id="build" type="button">Download pack</button>
       <span class="status" id="build-status"></span>
     </div>
-    <p class="hint">Open the pack in Novation Components and send it to your Circuit Tracks. It holds the full TracksGM Universal Circuit Tracks Pack (128 patches, 64 drum samples) plus the new projects in project slots 1 onwards, so it replaces whatever pack you send it over. In each project, scenes 1 onwards hold the song's sections in order and are saved as one scene chain.</p>
+    <p class="hint">Open the pack in Novation Components and send it to your Circuit Tracks. It holds the whole base pack (<span id="base-summary">TracksGM Universal Circuit Tracks Pack: 128 patches, 64 drum samples</span>) plus the new projects in project slots 1 onwards, so it replaces whatever pack you send it over. In each project, scenes 1 onwards hold the song's sections in order and are saved as one scene chain.</p>
   </section>
 </main>
 
