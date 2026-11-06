@@ -1,5 +1,5 @@
 import { parseMidi, GM_NAMES } from './midifile.js';
-import { arrange, playOrder, gmDrum, TRACKS, KITS, KIT_PARTS, MELODIC_ROLES } from './convert.js';
+import { arrange, playOrder, gmDrum, patternBars, RATES, TRACKS, KITS, KIT_PARTS, MELODIC_ROLES } from './convert.js';
 import { loadBase, buildProjects, buildPack } from './build.js';
 import { Player } from './player.js';
 
@@ -42,7 +42,7 @@ async function init() {
     $('#base-status').textContent = `Could not load the TracksGM sound set: ${e.message}. If you opened index.html straight from disk, serve the folder instead (see README).`;
     $('#base-status').classList.add('error');
   }
-  for (const id of ['#section-bars', '#rate', '#match', '#trim']) $(id).addEventListener('change', rearrange);
+  for (const id of ['#section-bars', '#rate', '#tempo-div', '#match', '#quantize', '#align', '#trim']) $(id).addEventListener('change', rearrange);
   $('#patch-s1').addEventListener('change', () => { state.patchTouched[0] = true; });
   $('#patch-s2').addEventListener('change', () => { state.patchTouched[1] = true; });
   $('#kit').addEventListener('change', rearrange);
@@ -262,11 +262,15 @@ function rearrange() {
   player.stop();
   setPlanButton(false);
   setSourceButton(null);
-  syncSectionToRate();
+  updateRateLabels();
+  const sec = $('#section-bars').value;
   const plan = arrange(state.midi, assignment(), {
     rate: $('#rate').value,
-    sectionBars: Number($('#section-bars').value),
+    tempoDiv: Number($('#tempo-div').value),
+    sectionBars: sec === 'auto' ? 'auto' : Number(sec),
     match: $('#match').value,
+    quantize: Number($('#quantize').value),
+    align: $('#align').checked,
     trimStart: $('#trim').checked,
     kit: Number($('#kit').value),
     transpose: state.transpose,
@@ -289,12 +293,23 @@ function rearrange() {
   if (resumeAt !== null) togglePlanPlay(resumeAt);
 }
 
-// Patterns longer than the section don't fit, so raise the section length to match.
-const RATE_BARS = { 16: 2, 8: 4, 4: 8, 2: 16, 1: 32 };
-function syncSectionToRate() {
-  const bars = RATE_BARS[$('#rate').value];
-  const sel = $('#section-bars');
-  if (bars && Number(sel.value) < bars) sel.value = String(bars);
+// Show how many bars each step rate puts in a pattern at the chosen tempo division, and the
+// resulting project tempo.
+function updateRateLabels() {
+  const m = state.midi;
+  const div = Number($('#tempo-div').value);
+  for (const o of $('#rate').options) {
+    if (o.value === 'auto') continue;
+    const bars = patternBars(Number(o.value), div, m.timeSig);
+    o.textContent = bars ? `${bars} bar${bars > 1 ? 's' : ''} · ${RATES[o.value].label}` : `${RATES[o.value].label} (doesn't fit this time signature)`;
+    o.disabled = !bars;
+  }
+  for (const o of $('#tempo-div').options) {
+    const d = Number(o.value);
+    const bpm = Math.round(m.tempo / d);
+    o.textContent = d === 1 ? `Original (${bpm} BPM)` : `÷${d} (${bpm} BPM)`;
+    o.disabled = bpm < 40;
+  }
 }
 
 function renderSummary(plan) {
@@ -488,7 +503,9 @@ function renderWarnings(plan) {
   if (plan.projects.length > 1) out.push(`The song needs ${plan.projects.length} projects: each track holds 8 patterns per project, and this song has more distinct material than that. On the Circuit Tracks, queue the next project to carry on (projects 1–${plan.projects.length}). Longer patterns or muting parts can bring this down.`);
   if (w.tooLong) out.push('The song is longer than 64 projects; only the first 64 fit in a pack.');
   if (w.moved) out.push(`${w.moved} of ${w.total} notes (${Math.round(w.movedRatio * 100)}%) moved by more than a 64th note to fit the step grid. Each step has 6 micro-steps, so longer patterns place notes less precisely.`);
-  if (plan.tempoDiv > 1) out.push(`The project tempo is ${plan.tempo} BPM, ${plan.tempoDiv === 2 ? 'half' : 'a quarter of'} the song's ${round1(plan.sourceTempo)} BPM, so that each 1/4 step covers ${plan.tempoDiv === 2 ? 'a half note' : 'a whole bar of 4/4'}. The song plays at its own speed, but tempo-synced effects (delay, synced LFOs, arpeggios) and MIDI clock run ${plan.tempoDiv === 2 ? 'at half' : 'at a quarter of the'} speed.`);
+  if (plan.tempoDiv > 1) out.push(`The project tempo is ${plan.tempo} BPM, ${plan.tempoDiv === 2 ? 'half' : 'a quarter of'} the song's ${round1(plan.sourceTempo)} BPM, so each step covers ${plan.tempoDiv}× as much of the song. The song plays at its own speed, but tempo-synced effects (delay, synced LFOs, arpeggios) and MIDI clock run ${plan.tempoDiv === 2 ? 'at half' : 'at a quarter of the'} speed.`);
+  if (w.similarPatterns) out.push(`${w.similarPatterns} patterns were replaced by a similar earlier one, changing ${w.similarNotes} notes (${Math.round(100 * w.similarNotes / Math.max(1, w.total))}%).`);
+  if (plan.leadBars) out.push(`Sections start ${plan.leadBars} bar${plan.leadBars > 1 ? 's' : ''} before the first note so that repeats line up, which saves a project; the song begins after ${plan.leadBars} empty bar${plan.leadBars > 1 ? 's' : ''}.`);
   if (w.dropped) out.push(`${w.dropped} notes were left out where more than 6 notes start on one step (the lowest and highest notes are kept).`);
   if (w.drumDropped) out.push(`${w.drumDropped} drum hits were left out where two sounds land on the same step of one drum track (the louder one is kept).`);
   if (w.held) out.push(`${w.held} long notes run past the end of a pattern; they are struck again at the start of the next pattern.`);

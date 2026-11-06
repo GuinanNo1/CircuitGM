@@ -27,7 +27,15 @@ Sending the pack to the Tracks replaces the pack in that slot, so send it to a s
 4. **Check the arrangement.**
    - **Grid:** each Circuit Tracks track has a row showing which pattern it plays, section by section and across projects if the song needs more than one. Under it is a row for each MIDI part feeding that track.
    - **Muting:** click a coloured dot to mute or unmute a whole row, or a box to mute or unmute those bars. On a drum row (Kick, Snare/Tom, Hi-hats, Perc) the dot mutes just that sound. Mutes apply to both the preview and the pack, and muting can bring the number of projects down.
-   - **Pattern length:** choose from 2 to 32 bars per pattern (see below).
+   - **Options:**
+     - **Section length:** Auto, or 4 to 32 bars.
+     - **Pattern length:** Auto, or 1/16, 1/8 or 1/4 steps.
+     - **Tempo:** original, ÷2 or ÷4.
+     - **Repeats:** exact, ignoring velocity, or ≥90% / ≥75% similar.
+     - **Quantise:** off, 1/16, 1/8 or 1/16 triplet.
+     - **Line up sections with repeats** and **Skip empty bars at the start** (on/off).
+     
+     The sections below explain each one.
    
    **Play preview** plays the converted parts:
    - melodic parts use simple synth voices, as a sketch of the part rather than the Tracks patch;
@@ -38,21 +46,31 @@ Sending the pack to the Tracks replaces the pack in that slot, so send it to a s
 
 ### How a song becomes Circuit Tracks projects
 
-- **Steps and patterns.** A Circuit Tracks pattern has up to 32 steps, and the converter places every note on a step plus one of 6 micro-steps. A longer pattern holds more of the song, so fewer projects are needed, but its timing is coarser:
+- **Steps and patterns.** A Circuit Tracks pattern has up to 32 steps, and the converter places every note on a step plus one of 6 micro-steps. Two settings decide how much of the song (in 4/4) a pattern holds:
+  - **Pattern length**, the pattern's step rate: 1/16 steps hold 2 bars, 1/8 steps 4 bars, 1/4 steps 8 bars.
+  - **Tempo:** ÷2 or ÷4 lowers the project tempo, so each step covers 2× or 4× as much of the song (up to 32 bars per pattern).
 
-  | Pattern length | How | Timing grid |
-  |---|---|---|
-  | 2 bars | 1/16 steps | 1/96 note |
-  | 4 bars | 1/8 steps | 1/48 note (16ths and 16th triplets exact) |
-  | 8 bars | 1/4 steps | 1/24 note (16ths fall between micro-steps) |
-  | 16 bars | 1/4 steps, project tempo halved | 1/12 note |
-  | 32 bars | 1/4 steps, project tempo quartered | 1/6 note |
+  Longer patterns mean fewer projects but coarser timing:
 
-  Up to 8 bars, the pattern's own step rate does the work, so the project tempo on the Tracks stays correct. 1/4 is the slowest step rate, so 16 and 32 bars also halve or quarter the project tempo (which must stay at 40 BPM or above). The song still plays at its own speed, but tempo-synced effects, arpeggios and MIDI clock run slower. The page reports how many notes moved by more than a 64th.
-  
-  *Auto* picks the length that needs the fewest projects without moving more than 2% of notes (2, 4 or 8 bars).
-- **Sections and scenes.** The song is cut into sections (8 bars by default; 4, 16 or 32 can be chosen, and the section grows to fit longer patterns). Each section becomes a scene, and the scenes are chained in song order.
-- **Reusing repeats.** A track that repeats one pattern through a section loops that pattern; otherwise it chains the section's patterns. When a section repeats, its patterns are reused. By default, repeats match even if velocities differ slightly.
+  | Song per step | Timing grid |
+  |---|---|
+  | 1/16 note | 1/96 note |
+  | 1/8 note | 1/48 note (16ths and 16th triplets exact) |
+  | 1/4 note | 1/24 note (16ths fall between micro-steps) |
+  | 1/2 note | 1/12 note |
+  | whole note | 1/6 note |
+
+  The page reports how many notes moved by more than a 64th.
+  - **Tempo division side effects:** the project tempo must stay at 40 BPM or above. The song plays at its own speed, but tempo-synced effects, arpeggios and MIDI clock run slower.
+  - **Auto** picks the step rate that needs the fewest projects without moving more than 2% of notes.
+- **Sections and scenes.** The song is cut into sections, and each section becomes a scene; the scenes are chained in song order. *Auto* tries 8-bar sections and one-pattern sections, and keeps whichever needs fewer projects. One-pattern sections let any pattern be reused anywhere, but use more of the 16 scenes.
+- **Reusing repeats.**
+  - **Within a section:** a track that repeats a cycle (A A A A, or A B A B) loops just those patterns. Otherwise it chains the section's patterns.
+  - **Repeated sections** reuse their patterns.
+  - **Repeats setting:** *Match ignoring velocity* (the default) treats parts that differ only in velocity as repeats. The *similar* settings also treat a pattern that shares at least 90% or 75% of its notes with an earlier one as a repeat. That changes a few notes, and the page reports how many.
+  - **Line up sections with repeats** tries starting sections up to 8 bars earlier, to catch phrases that begin after a pickup or intro. It only does this when it saves a project, since the song then starts after a few empty bars.
+  - **Quantise** snaps notes to a grid first, so loosely played repeats match.
+- **How far repeats go:** on the GeneralUser GS demo songs, most sections are genuinely different (fills, variations, new parts). At 4-bar patterns, 8 of 9 songs already reach the smallest project count their number of different patterns allows. Longer patterns, muting parts, or the *similar* settings are the ways to go lower.
 - **Projects.** Each track holds 8 patterns per project, and a project has 16 scenes. When the song has more distinct material than that, it carries on in the next project (up to 64).
 - **Drums.** The GM drum part is spread across the four drum tracks, using the chosen kit's samples:
 

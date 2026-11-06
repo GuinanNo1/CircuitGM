@@ -57,18 +57,26 @@
     <h2><span class="num">4</span> Check the arrangement</h2>
     <div class="options">
       <div class="field"><label for="section-bars">Section length</label>
-        <select id="section-bars"><option value="4">4 bars</option><option value="8" selected>8 bars</option><option value="16">16 bars</option><option value="32">32 bars</option></select></div>
+        <select id="section-bars"><option value="auto" selected>Auto (fewest projects)</option><option value="4">4 bars</option><option value="8">8 bars</option><option value="16">16 bars</option><option value="32">32 bars</option></select></div>
       <div class="field"><label for="rate">Pattern length</label>
         <select id="rate">
           <option value="auto" selected>Auto (fewest projects, timing kept)</option>
-          <option value="16">2 bars · 1/16 steps</option>
-          <option value="8">4 bars · 1/8 steps</option>
-          <option value="4">8 bars · 1/4 steps</option>
-          <option value="2">16 bars · 1/4 steps, tempo ÷2</option>
-          <option value="1">32 bars · 1/4 steps, tempo ÷4</option>
+          <option value="16">1/16 steps</option>
+          <option value="8">1/8 steps</option>
+          <option value="4">1/4 steps</option>
         </select></div>
+      <div class="field"><label for="tempo-div">Tempo</label>
+        <select id="tempo-div"><option value="1" selected>Original</option><option value="2">÷2</option><option value="4">÷4</option></select></div>
       <div class="field"><label for="match">Repeats</label>
-        <select id="match"><option value="loose" selected>Match ignoring velocity</option><option value="exact">Match exactly</option></select></div>
+        <select id="match">
+          <option value="exact">Match exactly</option>
+          <option value="loose" selected>Match ignoring velocity</option>
+          <option value="similar90">Treat ≥90% similar as a repeat</option>
+          <option value="similar75">Treat ≥75% similar as a repeat</option>
+        </select></div>
+      <div class="field"><label for="quantize">Quantise</label>
+        <select id="quantize"><option value="0" selected>Off</option><option value="0.25">1/16</option><option value="0.5">1/8</option><option value="0.16666666666666666">1/16 triplet</option></select></div>
+      <div class="field check"><label><input type="checkbox" id="align" checked> Line up sections with repeats</label></div>
       <div class="field check"><label><input type="checkbox" id="trim" checked> Skip empty bars at the start</label></div>
     </div>
     <div class="summary" id="summary"></div>

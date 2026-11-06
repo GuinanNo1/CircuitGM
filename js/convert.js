@@ -36,87 +36,117 @@ export function gmDrum(note) {
 }
 export const DRUM_TRACK_LABELS = ['Kick', 'Snare / Tom', 'Hi-hats', 'Percussion'];
 
-// Pattern lengths. stepQuarter = how much of the song (in quarter notes) one step covers;
-// syncRate = the pattern's step rate on the Tracks; tempoDiv = how much the project tempo is
-// divided by. Slower than 1/4 steps needs a lower project tempo, because 1/4 is the slowest
-// step rate a pattern can have.
+// Step rates a pattern can run at on the Tracks. stepQuarter (how much of the song one step
+// covers, in quarter notes) = syncQuarters x the tempo division: halving the project tempo
+// doubles how much of the song each step, and so each pattern, holds.
 export const RATES = {
-  16: { stepQuarter: 1 / 4, syncRate: 3, syncQuarters: 1 / 4, tempoDiv: 1, label: '1/16 steps' },
-  8: { stepQuarter: 1 / 2, syncRate: 5, syncQuarters: 1 / 2, tempoDiv: 1, label: '1/8 steps' },
-  4: { stepQuarter: 1, syncRate: 7, syncQuarters: 1, tempoDiv: 1, label: '1/4 steps' },
-  2: { stepQuarter: 2, syncRate: 7, syncQuarters: 1, tempoDiv: 2, label: '1/4 steps at half tempo' },
-  1: { stepQuarter: 4, syncRate: 7, syncQuarters: 1, tempoDiv: 4, label: '1/4 steps at quarter tempo' },
+  16: { syncRate: 3, syncQuarters: 1 / 4, label: '1/16 steps' },
+  8: { syncRate: 5, syncQuarters: 1 / 2, label: '1/8 steps' },
+  4: { syncRate: 7, syncQuarters: 1, label: '1/4 steps' },
 };
 const AUTO_RATES = [16, 8, 4];
 const MOVED_LIMIT = 0.02;        // Auto skips a step rate that moves more than 2% of notes
+const SIMILAR = { similar90: 0.9, similar75: 0.75 };
+const MAX_ALIGN = 8;             // bars tried when lining sections up with repeats
+
+// Bars per pattern for a rate and tempo division in a given time signature (null if a bar
+// doesn't divide into whole steps).
+export function patternBars(rate, tempoDiv, timeSig, sectionBars = 32) {
+  const stepsPerBar = (4 * timeSig.num / timeSig.den) / (RATES[rate].syncQuarters * tempoDiv);
+  if (Math.abs(stepsPerBar - Math.round(stepsPerBar)) > 1e-6 || stepsPerBar > MAX_STEPS || stepsPerBar < 1) return null;
+  for (let b = Math.min(sectionBars, Math.floor(MAX_STEPS / Math.round(stepsPerBar))); b >= 1; b--) {
+    if (sectionBars % b === 0) return b;
+  }
+  return null;
+}
 
 // assignment: { S1: [sourceId], S2: [...], M1: [...], M2: [...], DR: [...] }
-// options: { rate: 'auto' | 16 | 8 | 4 | 2 | 1, sectionBars: 8, trimStart: true, kit: 0-7,
-//            transpose: {S1: 0, ...}, mutes: { all: Set(key), bars: Map(key -> Set(bar)) } }
+// options:
+//   rate: 'auto' | 16 | 8 | 4     step rate of every pattern
+//   tempoDiv: 1 | 2 | 4           project tempo = song tempo / tempoDiv
+//   sectionBars: 'auto' | 4 | 8 | 16 | 32  bars per scene ('auto' tries 8 bars and one pattern
+//                                  per scene, and keeps whichever needs fewer projects)
+//   match: 'exact' | 'loose' | 'similar90' | 'similar75'   how repeats are recognised
+//   quantize: 0 | grid in quarter notes (0.25 = 1/16, 0.5 = 1/8, 1/6 = 1/16 triplet)
+//   align: true                   try starting sections a few bars earlier to line up repeats
+//   trimStart, kit, transpose: {S1: 0, ...}, mutes: { all: Set(key), bars: Map(key -> Set(bar)) }
 // Mute keys are source ids, plus 'lane4'..'lane7' for the four drum tracks. Bars count from
 // the start of the file (bar 0), so mutes survive changes to the other options.
 export function arrange(midi, assignment, options = {}) {
-  const opt = { rate: 'auto', sectionBars: 8, trimStart: true, kit: 1, match: 'loose', ...options };
+  const opt = { rate: 'auto', tempoDiv: 1, sectionBars: 'auto', trimStart: true, kit: 1, match: 'loose', quantize: 0, align: true, ...options };
+  const tempoDiv = Number(opt.tempoDiv) || 1;
   const byId = new Map(midi.sources.map((s) => [s.id, s]));
   const pick = (role) => (assignment[role] ?? []).map((id) => byId.get(id)).filter(Boolean);
 
   const barTicks = midi.ppq * 4 * midi.timeSig.num / midi.timeSig.den;
   const mutes = opt.mutes ?? { all: new Set(), bars: new Map() };
   const muted = (key, tick) => mutes.all.has(key) || !!mutes.bars.get(key)?.has(Math.floor(tick / barTicks + 1e-9));
+  const q = opt.quantize ? midi.ppq * opt.quantize : 0;
+  const quant = (n) => (q ? { ...n, tick: Math.round(n.tick / q) * q, dur: Math.max(q, Math.round(n.dur / q) * q) } : n);
 
   const melodic = MELODIC_ROLES.map((r) => {
     const srcs = pick(r);
     const shift = opt.transpose?.[r] ?? 0;
     return srcs.length
-      ? srcs.flatMap((s) => s.notes.filter((n) => !muted(s.id, n.tick)).map((n) => ({ ...n, note: n.note + shift })))
+      ? srcs.flatMap((s) => s.notes.filter((n) => !muted(s.id, n.tick)).map((n) => quant({ ...n, note: n.note + shift })))
       : null;
   });
   const drumSrcs = pick('DR');
   const drumHits = drumSrcs.length
-    ? drumSrcs.flatMap((s) => s.notes.filter((n) => !muted(s.id, n.tick) && !muted(`lane${4 + gmDrum(n.note)[0]}`, n.tick)))
+    ? drumSrcs.flatMap((s) => s.notes.filter((n) => !muted(s.id, n.tick) && !muted(`lane${4 + gmDrum(n.note)[0]}`, n.tick)).map(quant))
     : null;
   const active = [...melodic.map(Boolean), ...[0, 1, 2, 3].map(() => !!drumHits)];
 
   const all = [...melodic.filter(Boolean).flat(), ...(drumHits ?? [])];
   if (!all.length) return { error: active.some(Boolean) ? 'Everything is muted. Unmute a part to build the song.' : 'Choose at least one track with notes.' };
+  if (midi.tempo / tempoDiv < 39.5) {
+    return { error: `Dividing ${Math.round(midi.tempo)} BPM by ${tempoDiv} goes below the Circuit Tracks minimum of 40 BPM. Choose a smaller tempo division.` };
+  }
   const firstTick = Math.min(...all.map((n) => n.tick));
   const lastTick = Math.max(...all.map((n) => n.tick + (n.dur ?? 0)));
-  const startTick = opt.trimStart ? Math.floor(firstTick / barTicks + 1e-9) * barTicks : 0;
-
+  const baseStart = opt.trimStart ? Math.floor(firstTick / barTicks + 1e-9) * barTicks : 0;
   const candidates = opt.rate === 'auto' ? AUTO_RATES : [Number(opt.rate)];
   const results = [];
-  let tempoProblem = false;
   for (const rate of candidates) {
-    const r = tryRate(rate);
-    if (r === 'tempo') tempoProblem = true;
-    else if (r) results.push(r);
+    let bestForRate = null;
+    const pb = patternBars(rate, tempoDiv, midi.timeSig);
+    const sectionChoices = opt.sectionBars === 'auto'
+      ? [...new Set([Math.max(8, pb ?? 8), pb].filter(Boolean))]
+      : [Number(opt.sectionBars)];
+    for (const sectionBars of sectionChoices) {
+      const offsets = opt.align ? Array.from({ length: Math.min(MAX_ALIGN, sectionBars) }, (_, k) => k) : [0];
+      for (const k of offsets) {
+        const r = tryRate(rate, baseStart - k * barTicks, sectionBars);
+        if (!r) continue;
+        if (!bestForRate || score(r) < score(bestForRate)) bestForRate = r;
+      }
+    }
+    if (bestForRate) results.push(bestForRate);
   }
   if (!results.length) {
-    return { error: tempoProblem
-      ? `Dividing ${Math.round(midi.tempo)} BPM by ${RATES[candidates[0]].tempoDiv} goes below the Circuit Tracks minimum of 40 BPM. Choose a shorter pattern length.`
-      : `This pattern length doesn't fit a ${midi.timeSig.num}/${midi.timeSig.den} bar in whole steps, or is longer than the section. Try a different pattern or section length.` };
+    return { error: `These settings don't fit a ${midi.timeSig.num}/${midi.timeSig.den} bar in whole steps, or the pattern is longer than the section. Try a different pattern length, tempo or section length.` };
   }
   // Auto: fewest projects among the rates that keep timing (<= 2% of notes moved), finest first.
   const keep = results.filter((r) => r.warnings.movedRatio <= MOVED_LIMIT);
   const pool = keep.length ? keep : results;
-  pool.sort((a, b) => a.projects.length - b.projects.length || b.rate - a.rate);
+  pool.sort((a, b) => score(a) - score(b) || b.rate - a.rate);
   const best = pool[0];
   best.alternatives = results.map((r) => ({ rate: r.rate, projects: r.projects.length }));
   return best;
 
-  function tryRate(rate) {
+  // Fewer projects first, then fewer added lead-in bars (silence), then fewer patterns.
+  function score(r) {
+    const pats = r.projects.reduce((a, p) => a + p.patternCounts.reduce((x, y) => x + y, 0), 0);
+    return r.projects.length * 1e6 + r.leadBars * 1000 + pats;
+  }
+
+  function tryRate(rate, startTick, sectionBars) {
     const R = RATES[rate];
-    if (midi.tempo / R.tempoDiv < 39.5) return 'tempo';
-    const stepTicks = midi.ppq * R.stepQuarter;
-    const stepsPerBar = barTicks / stepTicks;
-    if (Math.abs(stepsPerBar - Math.round(stepsPerBar)) > 1e-6 || stepsPerBar > MAX_STEPS) return null;
-    const spb = Math.round(stepsPerBar);
-    let chunkBars = 0;
-    for (let b = Math.min(opt.sectionBars, Math.floor(MAX_STEPS / spb)); b >= 1; b--) {
-      if (opt.sectionBars % b === 0) { chunkBars = b; break; }
-    }
+    const chunkBars = patternBars(rate, tempoDiv, midi.timeSig, sectionBars);
     if (!chunkBars) return null;
-    const perSection = opt.sectionBars / chunkBars;          // patterns per section
+    const stepTicks = midi.ppq * R.syncQuarters * tempoDiv;
+    const spb = Math.round(barTicks / stepTicks);
+    const perSection = sectionBars / chunkBars;              // patterns per section
     if (perSection > MAX_PATTERNS) return null;
     const patLen = chunkBars * spb;                           // steps per pattern
     const chunkMicro = patLen * MICRO;
@@ -124,7 +154,7 @@ export function arrange(midi, assignment, options = {}) {
     const nChunks = Math.max(1, Math.ceil((lastTick - startTick) / (chunkBars * barTicks) - 1e-9));
     const nSections = Math.ceil(nChunks / perSection);
     const totalChunks = nSections * perSection;
-    const warn = { dropped: 0, drumDropped: 0, held: 0, beforeStart: 0, moved: 0, total: 0 };
+    const warn = { dropped: 0, drumDropped: 0, held: 0, beforeStart: 0, moved: 0, total: 0, similarNotes: 0, similarPatterns: 0 };
     const MOVE_TOL = midi.ppq / 16;    // a 1/64 note
     const countMove = (n, pos) => {
       warn.total++;
@@ -132,7 +162,7 @@ export function arrange(midi, assignment, options = {}) {
     };
 
     // ---- per-track chunk contents ----
-    const contents = []; // contents[t][chunk] = { notes|hits, key }
+    const contents = []; // contents[t][chunk] = { steps, key }
     for (let t = 0; t < 8; t++) contents.push(Array.from({ length: totalChunks }, () => ({ items: [] })));
 
     melodic.forEach((notes, t) => {
@@ -174,11 +204,14 @@ export function arrange(midi, assignment, options = {}) {
     }
 
     // Normalise each chunk into step lists and a comparison key.
+    const loose = opt.match !== 'exact';
     for (let t = 0; t < 8; t++) {
       for (const ch of contents[t]) {
-        if (t < 4) normaliseSynth(ch, warn, opt.match !== 'exact'); else normaliseDrum(ch, warn, opt.match !== 'exact');
+        if (t < 4) normaliseSynth(ch, warn, loose); else normaliseDrum(ch, warn, loose);
       }
     }
+    // Similar repeats: a pattern that is mostly the same as an earlier one becomes that one.
+    if (SIMILAR[opt.match]) for (let t = 0; t < 8; t++) if (active[t]) mergeSimilar(contents[t], t < 4, SIMILAR[opt.match], warn);
 
     // Default sample per drum track = its most used kit part.
     const drumDefaults = [0, 1, 2, 3].map((dt) => {
@@ -190,9 +223,8 @@ export function arrange(midi, assignment, options = {}) {
 
     // ---- plan projects / scenes / patterns ----
     const projects = [];
-    let cur = null;
     const newProject = () => ({ scenes: [], store: Array.from({ length: 8 }, () => []) });
-    cur = newProject();
+    let cur = newProject();
     for (let sec = 0; sec < nSections; sec++) {
       let placed = tryPlace(cur, sec);
       if (!placed && cur.scenes.length) {
@@ -210,21 +242,19 @@ export function arrange(midi, assignment, options = {}) {
       const store = proj.store.map((s) => s.slice());
       const chains = [];
       const keys = (t) => contents[t].slice(sec * perSection, (sec + 1) * perSection).map((c) => c.key);
-      let anyFull = false;
       for (let t = 0; t < 8; t++) {
-        if (!active[t]) { chains.push({ start: 0, end: 0 }); continue; }
+        if (!active[t]) { chains.push({ start: 0, len: 1 }); continue; }
+        // A chain loops within its scene, so a section that repeats every p patterns
+        // (A A A A, or A B A B) only needs those p patterns.
         const k = keys(t);
-        if (k.every((x) => x === k[0])) {
-          chains.push({ start: findOrAdd(store[t], [k[0]]), len: 1 });
-        } else {
-          anyFull = true;
-          chains.push({ start: findOrAdd(store[t], k), len: k.length });
-        }
+        const p = period(k);
+        chains.push({ start: findOrAdd(store[t], k.slice(0, p)), len: p });
       }
-      // A scene lasts as long as its longest chain, so at least one track must chain the
-      // whole section. If every track repeats one pattern, extend one of them.
-      if (!anyFull && perSection > 1) {
-        let t = [0, 1, 2, 3, 4, 5, 6, 7].find((i) => active[i] && keys(i)[0] !== '');
+      // A scene lasts as long as its longest chain, so one track must chain the whole
+      // section. If every track repeats a shorter cycle, extend the busiest one.
+      if (perSection > 1 && !chains.some((c, t) => active[t] && c.len === perSection)) {
+        let t = [0, 1, 2, 3, 4, 5, 6, 7].filter((i) => active[i]).sort((a, b) => chains[b].len - chains[a].len)
+          .find((i) => keys(i)[0] !== '');
         if (t === undefined) t = active.findIndex(Boolean);
         chains[t] = { start: findOrAdd(store[t], keys(t)), len: perSection };
       }
@@ -232,26 +262,9 @@ export function arrange(midi, assignment, options = {}) {
       proj.store = store;
       proj.scenes.push({
         section: sec,
-        chains: chains.map((c) => ({ start: c.start, end: c.start + (c.len ?? 1) - 1, len: c.len ?? 1 })),
+        chains: chains.map((c) => ({ start: c.start, end: c.start + c.len - 1, len: c.len })),
       });
       return true;
-    }
-
-    // Find `seq` as a run of consecutive patterns already stored, or append it.
-    function findOrAdd(store, seq) {
-      for (let i = 0; i + seq.length <= store.length; i++) {
-        if (seq.every((k, j) => store[i + j] === k)) return i;
-      }
-      // Allow a run to start in the last few stored patterns and extend past the end.
-      for (let i = Math.max(0, store.length - seq.length + 1); i < store.length; i++) {
-        const tail = store.length - i;
-        if (seq.slice(0, tail).every((k, j) => store[i + j] === k)) {
-          store.push(...seq.slice(tail));
-          return i;
-        }
-      }
-      store.push(...seq);
-      return store.length - seq.length;
     }
 
     // Pattern contents per project: keys -> chunk content.
@@ -267,24 +280,26 @@ export function arrange(midi, assignment, options = {}) {
     }));
 
     warn.movedRatio = warn.total ? warn.moved / warn.total : 0;
+    const projectTempo = Math.round(midi.tempo / tempoDiv);
     return {
       rate,
-      rateLabel: R.label,
+      rateLabel: tempoDiv > 1 ? `${R.label}, tempo ÷${tempoDiv}` : R.label,
       syncRate: R.syncRate,
       syncQuarters: R.syncQuarters,
-      tempoDiv: R.tempoDiv,
+      tempoDiv,
       sourceTempo: midi.tempo,
       patLen,
       chunkBars,
       perSection,
-      sectionBars: opt.sectionBars,
+      sectionBars,
       nSections,
       startBar: Math.round(startTick / barTicks),
+      leadBars: Math.round((baseStart - startTick) / barTicks),
       barTicks,
       startTick,
       microTicks,
-      tempo: clamp(Math.round(midi.tempo / R.tempoDiv), 40, 240),
-      tempoClamped: Math.round(midi.tempo / R.tempoDiv) < 40 || Math.round(midi.tempo / R.tempoDiv) > 240,
+      tempo: clamp(projectTempo, 40, 240),
+      tempoClamped: projectTempo < 40 || projectTempo > 240,
       active,
       contents,
       drumDefaults,
@@ -292,6 +307,68 @@ export function arrange(midi, assignment, options = {}) {
       projects: outProjects,
       warnings: warn,
     };
+  }
+}
+
+// Smallest p dividing the list length such that the list repeats every p entries.
+function period(k) {
+  for (let p = 1; p < k.length; p++) {
+    if (k.length % p) continue;
+    if (k.every((x, i) => x === k[i % p])) return p;
+  }
+  return k.length;
+}
+
+// Find `seq` as a run of consecutive patterns already stored, or append it.
+function findOrAdd(store, seq) {
+  for (let i = 0; i + seq.length <= store.length; i++) {
+    if (seq.every((k, j) => store[i + j] === k)) return i;
+  }
+  // Allow a run to start in the last few stored patterns and extend past the end.
+  for (let i = Math.max(0, store.length - seq.length + 1); i < store.length; i++) {
+    const tail = store.length - i;
+    if (seq.slice(0, tail).every((k, j) => store[i + j] === k)) {
+      store.push(...seq.slice(tail));
+      return i;
+    }
+  }
+  store.push(...seq);
+  return store.length - seq.length;
+}
+
+// Replace each pattern that is at least `threshold` similar (shared notes / all notes) to an
+// earlier distinct pattern with that pattern. Notes are compared by position and pitch
+// (drums: position and sound), ignoring velocity and length.
+function mergeSimilar(chunks, synth, threshold, warn) {
+  const ids = (ch) => new Set(synth
+    ? ch.steps.flatMap((s) => s.notes.map((n) => `${s.step}.${n.delay}.${n.note}`))
+    : ch.steps.flatMap((s) => [...Array(6).keys()].filter((b) => s.mask >> b & 1).map((b) => `${s.step}.${b}.${s.part}`)));
+  const reps = [];          // { ch, set }
+  const seen = new Map();   // key -> rep chunk
+  for (const ch of chunks) {
+    if (!ch.key || seen.has(ch.key)) continue;
+    const set = ids(ch);
+    let best = null, bestSim = 0;
+    for (const r of reps) {
+      let inter = 0;
+      for (const x of set) if (r.set.has(x)) inter++;
+      const sim = inter / (set.size + r.set.size - inter);
+      if (sim > bestSim) { bestSim = sim; best = r; }
+    }
+    if (best && bestSim >= threshold) {
+      let inter = 0;
+      for (const x of set) if (best.set.has(x)) inter++;
+      warn.similarNotes += set.size + best.set.size - 2 * inter;
+      warn.similarPatterns++;
+      seen.set(ch.key, best.ch);
+    } else {
+      reps.push({ ch, set });
+      seen.set(ch.key, ch);
+    }
+  }
+  for (const ch of chunks) {
+    const r = ch.key && seen.get(ch.key);
+    if (r && r !== ch) { ch.steps = r.steps; ch.key = r.key; }
   }
 }
 

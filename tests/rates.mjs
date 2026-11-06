@@ -8,9 +8,9 @@ for (const f of readdirSync(dir).filter((x) => /\.mid$/i.test(x))) {
   const mel = m.sources.filter((s) => !s.isDrum);
   const asg = { S1: [mel[0]?.id], S2: [mel[1]?.id], M1: [mel[2]?.id], M2: [mel[3]?.id], DR: m.sources.filter((s) => s.isDrum).map((s) => s.id) };
   const row = [];
-  for (const [rate, sec] of [['auto', 8], [16, 8], [8, 8], [4, 8], [2, 16], [1, 32]]) {
-    const p = arrange(m, asg, { rate, sectionBars: sec });
-    row.push(p.error ? `${rate}:ERR` : `${rate}:${p.projects.length}p ${p.tempo}bpm ${(p.warnings.movedRatio * 100).toFixed(0)}%mv${rate === 'auto' ? `(=${p.rate})` : ''}`);
+  for (const [rate, div] of [['auto', 1], [16, 1], [8, 1], [4, 1], [4, 2], [4, 4]]) {
+    const p = arrange(m, asg, { rate, tempoDiv: div, sectionBars: 'auto' });
+    row.push(p.error ? `${rate}/${div}:ERR` : `${rate}:${p.projects.length}p ${p.tempo}bpm ${(p.warnings.movedRatio * 100).toFixed(0)}%mv${rate === 'auto' ? `(=${p.rate})` : ''}`);
   }
   console.log(f.slice(0, 18).padEnd(18), row.join(' | '));
 }
