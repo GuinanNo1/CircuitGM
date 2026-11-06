@@ -37,9 +37,9 @@ async function init() {
     state.base = await loadBase();
     fillPatchSelects();
     fillKitSelect();
-    $('#base-status').textContent = `TracksGM sound set ready: ${state.base.patches.filter((p) => p.data).length} patches, ${state.base.samples.filter((s) => s.name).length} drum samples.`;
+    $('#base-status').textContent = `TracksGM Universal Circuit Tracks Pack ready: ${state.base.patches.filter((p) => p.data).length} patches, ${state.base.samples.filter((s) => s.name).length} drum samples.`;
   } catch (e) {
-    $('#base-status').textContent = `Could not load the TracksGM sound set: ${e.message}. If you opened index.html straight from disk, serve the folder instead (see README).`;
+    $('#base-status').textContent = `Could not load the TracksGM Universal Circuit Tracks Pack: ${e.message}. If you opened index.html straight from disk, serve the folder instead (see README).`;
     $('#base-status').classList.add('error');
   }
   for (const id of ['#section-bars', '#rate', '#tempo-div', '#match', '#quantize', '#align', '#trim']) $(id).addEventListener('change', rearrange);

@@ -1,14 +1,14 @@
 # TracksGM
 Could General MIDI files be converted to play on a Novation Circuit Tracks? Research, and public projects
 
-## TracksGM Pack Builder (alpha 0.1)
+## TracksGM MIDI to Circuit Tracks Converter (alpha 0.1)
 
 **Try it:** https://guinanno1.github.io/TracksGM/
 
 A web page that turns a General MIDI file (`.mid`) into a Circuit Tracks pack (`.circuittrackspack`) you can load with Novation Components. It runs entirely in the browser: nothing is uploaded, and there is no server.
 
 The pack it makes contains:
-- the **TracksGM_final** sound set: 128 synth patches in General MIDI order, and 64 drum samples (8 kits) from GeneralUser GS;
+- the **TracksGM Universal Circuit Tracks Pack** (`TracksGM_final.circuittrackspack`): 128 synth patches in General MIDI order, and 64 drum samples (8 kits) from GeneralUser GS;
 - one or more **projects** holding the converted song, in project slots 1 onwards.
 
 Sending the pack to the Tracks replaces the pack in that slot, so send it to a spare pack slot.
@@ -136,7 +136,7 @@ Then open <http://localhost:8765/>.
 | `js/build.js` | Writes the `.ncs` projects and the pack. |
 | `js/player.js` | Preview playback (Web Audio). |
 | `js/vendor/ncs.js`, `js/vendor/zip.js` | Project file reader/writer and zip code from circuit-tracks-tools (MIT licence, see `js/vendor/LICENSE-circuit-tracks-tools.txt`). |
-| `data/TracksGM_final.circuittrackspack` | The sound set every pack is built on. |
+| `data/TracksGM_final.circuittrackspack` | The TracksGM Universal Circuit Tracks Pack, which every converted pack is built on. |
 | `data/Empty.ncs` | Blank project used as the template (from circuit-tracks-tools). |
 | `tests/` | Node scripts: parse MIDI files, plan arrangements, build packs and read them back, and check projects against the Components validator's ranges. |
 
@@ -149,7 +149,7 @@ node tests/validate.mjs out/project_*.ncs            # range checks
 
 ### Credits and licences
 
-- **TracksGM patches:** Ian Guinan. How they were made is described on the `pack-build` branch.
+- **TracksGM Universal Circuit Tracks Pack:** Ian Guinan. How it was made is described on the [`pack-build` branch](https://github.com/GuinanNo1/TracksGM/tree/pack-build).
 - **Drum samples:** [GeneralUser GS](https://github.com/mrbumpy409/GeneralUser-GS) by S. Christian Collins. Licence in `data/LICENSE-GeneralUser-GS.txt`; keep it with any shared pack and credit "Drum samples: GeneralUser GS by S. Christian Collins".
 - **Project-format code and blank project:** [circuit-tracks-tools](https://github.com/namirsab/circuit-tracks-tools) by Namir Sayed-Ahmad Baraza (MIT).
 - **Format research:** circuit-tracks-tools and [ncstool](https://github.com/Ondrysak/ncstool).
