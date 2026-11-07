@@ -4,17 +4,17 @@ Could General MIDI files be converted to play on a Novation Circuit Tracks? Rese
 TracksGM is two projects:
 
 1. **[TracksGM Universal Circuit Tracks Pack](https://github.com/GuinanNo1/TracksGM/tree/pack-build)**: a General MIDI sound set for the Circuit Tracks. [Download the pack](https://github.com/GuinanNo1/TracksGM/raw/pack-build/TracksGM_final.circuittrackspack) · [details below](#1-tracksgm-universal-circuit-tracks-pack)
-2. **[TracksGM MIDI to Circuit Tracks Converter](https://github.com/GuinanNo1/TracksGM/tree/web-converter)**: a web page that turns Standard MIDI files into Circuit Tracks projects using that pack. [Open the converter](https://guinanno1.github.io/TracksGM/) · [details below](#2-tracksgm-midi-to-circuit-tracks-converter)
+2. **[TracksGM MIDI to Circuit Tracks Converter (MIDI2Circuit)](https://github.com/GuinanNo1/TracksGM/tree/web-converter)**: a web page that turns Standard MIDI files into Circuit Tracks projects using that pack. [Open the converter](https://guinanno1.github.io/TracksGM/) · [details below](#2-tracksgm-midi-to-circuit-tracks-converter-midi2circuit-alpha-01)
 
 ## 1. TracksGM Universal Circuit Tracks Pack
 A Novation Components pack with 128 synth patches in General MIDI order, voiced and loudness-matched on hardware, plus 64 drum samples (8 kits) from GeneralUser GS. It works as a general-purpose pack on its own.
 
-The final pack will be further manually tuned to improve the patches. The final pack is used in the [TracksGM MIDI to Circuit Tracks Converter](https://guinanno1.github.io/TracksGM/) (though alternate packs can be uploaded into the converter).
+The final pack will be further manually tuned to improve the patches. The final pack is used in the [TracksGM MIDI to Circuit Tracks Converter (MIDI2Circuit)](https://guinanno1.github.io/TracksGM/) (though alternate packs can be uploaded into the converter).
 
 - **Download:** [TracksGM_final.circuittrackspack](https://github.com/GuinanNo1/TracksGM/raw/pack-build/TracksGM_final.circuittrackspack)
 - **How it was made:** [`pack-build` branch](https://github.com/GuinanNo1/TracksGM/tree/pack-build). It holds the pack, the code that generates every patch from calibrated settings, the drum renderer, and a write-up of the calibration method and file-format research (start with `PACK.md`).
 
-## 2. TracksGM MIDI to Circuit Tracks Converter (alpha 0.1)
+## 2. TracksGM MIDI to Circuit Tracks Converter (MIDI2Circuit) (alpha 0.1)
 A web page that turns a Standard MIDI file (`.mid`) into a Circuit Tracks pack built on the TracksGM Universal Circuit Tracks Pack (or another pack you upload). You choose the parts for Synth 1/2, MIDI 1/2 and the four drum tracks, preview and mute them, and download a `.circuittrackspack` for Novation Components. It runs in the browser, with nothing uploaded.
 
 - **Try it:** https://guinanno1.github.io/TracksGM/
