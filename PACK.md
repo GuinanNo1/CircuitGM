@@ -1,8 +1,8 @@
 # TracksGM Universal Circuit Tracks Pack
 
-A General MIDI sound set for the Novation Circuit Tracks, as a Novation Components pack (`TracksGM_final.circuittrackspack`): **128 synth patches in General MIDI order** and **64 drum samples** (8 kits of 8). It works as a general-purpose pack on its own, and it is the sound set the [TracksGM MIDI to Circuit Tracks Converter](https://guinanno1.github.io/TracksGM/) builds on. This is the master copy until it is revised.
+A General MIDI sound set for the Novation Circuit Tracks, as a Novation Components pack (`TracksGM_final.circuittrackspack`): **128 synth patches in General MIDI order** and **64 drum samples** (8 kits of 8). It works as a general-purpose pack on its own, and it is the sound set the [TracksGM MIDI to Circuit Tracks Converter (MIDI2Circuit)](https://guinanno1.github.io/TracksGM/) builds on. This is the master copy until it is revised.
 
-The final pack will be further manually tuned to improve the patches. The final pack is used in the [TracksGM MIDI to Circuit Tracks Converter](https://guinanno1.github.io/TracksGM/) (though alternate packs can be uploaded into the converter).
+The final pack will be further manually tuned to improve the patches. The final pack is used in the [TracksGM MIDI to Circuit Tracks Converter (MIDI2Circuit)](https://guinanno1.github.io/TracksGM/) (though alternate packs can be uploaded into the converter).
 
 When a retuned version replaces `TracksGM_final.circuittrackspack` here, copy it to `data/TracksGM_final.circuittrackspack` on the [`web-converter` branch](https://github.com/GuinanNo1/TracksGM/tree/web-converter) too, so the converter's default base pack stays current.
 
