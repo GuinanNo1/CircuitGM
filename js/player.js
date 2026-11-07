@@ -140,12 +140,24 @@ export class Player {
     g.gain.value = (e.vel / 127) * 0.9;
     g.connect(this.trackGains[e.track]);
     let src;
+    // e.choke: a new hit cuts the track's previous one (each Circuit drum or sample track
+    // plays one sound at a time). e.rate: playback rate for a transposed sample.
+    if (e.choke) {
+      const prev = this.lastVoice?.[e.track];
+      if (prev && prev.end > at) {
+        try { prev.gain.gain.setTargetAtTime(0, at, 0.008); prev.src.stop(at + 0.06); } catch { /* already stopped */ }
+        prev.end = at;
+      }
+    }
     if (buf) {
       src = ctx.createBufferSource();
       src.buffer = buf;
+      if (e.rate) src.playbackRate.value = e.rate;
       src.connect(g);
       src.start(at);
-      this.voices.push({ src, gain: g, end: at + buf.duration });
+      const v = { src, gain: g, end: at + buf.duration / (e.rate || 1) };
+      this.voices.push(v);
+      if (e.choke) (this.lastVoice ??= [])[e.track] = v;
       return;
     }
     // Fallback synth drums (used before the kit has loaded).

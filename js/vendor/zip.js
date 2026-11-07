@@ -38,39 +38,56 @@ export function readZip(buf) {
   return entries;
 }
 
-// Build a zip Blob from [{name, data: Uint8Array}] entries (stored, no
-// compression — pack content is mostly WAV/NCS that barely compresses).
+// Build a zip Blob from [{name, data: Uint8Array}] entries (stored, no compression).
 export function writeZip(entries) {
+  return buildZip(entries);
+}
+
+// Like writeZip, but each entry is deflated when that makes it smaller (as Components does).
+export async function writeZipDeflate(entries) {
+  const out = [];
+  for (const e of entries) {
+    if (e.data.length < 64) { out.push(e); continue; }
+    const cs = new CompressionStream('deflate-raw');
+    const comp = new Uint8Array(await new Response(new Blob([e.data]).stream().pipeThrough(cs)).arrayBuffer());
+    out.push(comp.length < e.data.length ? { ...e, comp } : e);
+  }
+  return buildZip(out);
+}
+
+function buildZip(entries) {
   const enc = new TextEncoder();
   const parts = [];
   const central = [];
   let offset = 0;
 
-  for (const { name, data } of entries) {
+  for (const { name, data, comp } of entries) {
     const nameBytes = enc.encode(name);
     const crc = crc32(data);
+    const method = comp ? 8 : 0;
+    const stored = comp ?? data;
     const local = new DataView(new ArrayBuffer(30));
     local.setUint32(0, LOCAL_SIG, true);
     local.setUint16(4, 20, true); // version needed
-    local.setUint16(8, 0, true); // method: store
+    local.setUint16(8, method, true); // 0 store, 8 deflate
     local.setUint32(14, crc, true);
-    local.setUint32(18, data.length, true);
+    local.setUint32(18, stored.length, true);
     local.setUint32(22, data.length, true);
     local.setUint16(26, nameBytes.length, true);
-    parts.push(local.buffer, nameBytes, data);
+    parts.push(local.buffer, nameBytes, stored);
 
     const cd = new DataView(new ArrayBuffer(46));
     cd.setUint32(0, CENTRAL_SIG, true);
     cd.setUint16(4, 20, true);
     cd.setUint16(6, 20, true);
-    cd.setUint16(10, 0, true);
+    cd.setUint16(10, method, true);
     cd.setUint32(16, crc, true);
-    cd.setUint32(20, data.length, true);
+    cd.setUint32(20, stored.length, true);
     cd.setUint32(24, data.length, true);
     cd.setUint16(28, nameBytes.length, true);
     cd.setUint32(42, offset, true);
     central.push(cd.buffer, nameBytes);
-    offset += 30 + nameBytes.length + data.length;
+    offset += 30 + nameBytes.length + stored.length;
   }
 
   const cdSize = central.reduce((n, p) => n + (p.byteLength ?? p.length), 0);

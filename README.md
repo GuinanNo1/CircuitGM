@@ -1,6 +1,10 @@
 # TracksGM
 Could General MIDI files be converted to play on a Novation Circuit Tracks? Research, and public projects
 
+This branch holds the two converter pages, served by GitHub Pages:
+- **MIDI2Circuit** (the site root): a MIDI file to a Circuit Tracks pack.
+- **Circuit2MIDI** (`circuit2midi/`): a Circuit Tracks or Circuit Rhythm pack to a MIDI file, and pack compacting.
+
 ## TracksGM MIDI to Circuit Tracks Converter (MIDI2Circuit) (alpha 0.1)
 
 **Try it:** https://guinanno1.github.io/TracksGM/
@@ -116,7 +120,26 @@ The project format is reverse-engineered. Confirmed on a Circuit Tracks (alpha 0
 - the octave of notes sent on MIDI 1 and MIDI 2;
 - scenes playing through the song in order, each lasting as long as its longest pattern chain.
 
-### Hosting on GitHub Pages
+## TracksGM Circuit Tracks to MIDI Converter (Circuit2MIDI) (alpha 0.1)
+
+**Try it:** https://guinanno1.github.io/TracksGM/circuit2midi/
+
+**Help:** [Quickstart](https://guinanno1.github.io/TracksGM/circuit2midi/help.html#quickstart) · [User guide](https://guinanno1.github.io/TracksGM/circuit2midi/help.html)
+
+The reverse of MIDI2Circuit. A web page that opens a Novation Components pack for the **Circuit Tracks** (`.circuittrackspack`) or **Circuit Rhythm** (`.circuitrhythmpack`), and:
+
+1. **Compacts the pack** (optional): saves a copy without the samples and patches no project uses. Slot numbers are kept, so projects are copied unchanged; unused slots stay as empty slots, as Components stores them. Packs without projects can't be compacted.
+2. **Converts one project at a time** to a type 1 Standard MIDI file:
+   - **Scenes:** the saved scene chain, every used scene in order, or a custom order (`1-4, 2, 5x2`). Each scene lasts as long as its longest pattern chain; shorter chains repeat.
+   - **Patterns:** start and end steps, step length (1/32 to 1/4, triplets included), direction, micro-step timing, gates, velocities, ties, rolls and swing. Steps with a chance below 100% can be kept or left out.
+   - **Tracks:** each Circuit track becomes a MIDI track. Melodic tracks get a channel, a GM program and an octave shift; drum tracks get one note per sample, guessed from the sample names and editable.
+   - A grid shows each scene's pattern chains per track, with track mutes and solo, and a preview that plays the pack's own samples.
+
+It runs entirely in the browser. The Circuit Rhythm project format was worked out for this page from a hardware-saved project; see [`docs/circuit-rhythm-format.md`](docs/circuit-rhythm-format.md).
+
+**Still to confirm on hardware:** the triplet step lengths, what the per-track bit mask in each Circuit Rhythm scene does (offered as an unconfirmed option), and that scene length follows the longest chain.
+
+## Hosting on GitHub Pages
 
 The page is static (HTML, CSS and JavaScript modules), with no build step.
 
@@ -125,7 +148,7 @@ The page is static (HTML, CSS and JavaScript modules), with no build step.
 3. Under **Build and deployment**, set **Source** to *Deploy from a branch*, choose the branch that holds the page (`web-converter`, or `main` once it's merged) and the `/ (root)` folder, then click **Save**.
 4. After a minute or two the page is live at `https://<your-user-name>.github.io/TracksGM/`.
 
-### Running it on your own computer
+## Running it on your own computer
 
 Browsers block JavaScript modules and file loading when a page is opened straight from disk, so serve the folder instead:
 
@@ -134,18 +157,25 @@ cd TracksGM
 python3 -m http.server 8765
 ```
 
-Then open <http://localhost:8765/>.
+Then open <http://localhost:8765/> (MIDI2Circuit) or <http://localhost:8765/circuit2midi/> (Circuit2MIDI).
 
-### Files
+## Files
 
 | Path | What it is |
 |---|---|
-| `index.html`, `css/app.css` | The page. |
+| `index.html`, `help.html`, `css/app.css` | MIDI2Circuit's page and help. |
+| `circuit2midi/index.html`, `circuit2midi/help.html`, `css/c2m.css` | Circuit2MIDI's page and help. |
 | `js/app.js` | The page logic: loading, part picker, sounds, arrangement view, build. |
 | `js/midifile.js` | MIDI file reader. |
 | `js/convert.js` | Quantising, drum mapping, and laying the song out as patterns, scenes and projects. |
 | `js/build.js` | Writes the `.ncs` projects and the pack. |
-| `js/player.js` | Preview playback (Web Audio). |
+| `js/player.js` | Preview playback (Web Audio), for both pages. |
+| `js/c2m.js` | Circuit2MIDI's page logic. |
+| `js/pack.js` | Reads Circuit Tracks and Circuit Rhythm packs, finds the samples and patches in use, writes compacted packs. |
+| `js/rhythm.js` | Circuit Rhythm project reader. |
+| `js/song.js` | Turns a project into scenes, chains and timed notes, and maps them to MIDI. |
+| `js/midiwrite.js` | Standard MIDI file writer. |
+| `docs/circuit-rhythm-format.md` | The Circuit Rhythm project format, as far as it is known. |
 | `js/vendor/ncs.js`, `js/vendor/zip.js` | Project file reader/writer and zip code from circuit-tracks-tools (MIT licence, see `js/vendor/LICENSE-circuit-tracks-tools.txt`). |
 | `data/TracksGM_final.circuittrackspack` | The TracksGM Universal Circuit Tracks Pack, the default base pack. Replace this file to update the default when the pack is retuned. |
 | `data/Empty.ncs` | Blank project used as the template (from circuit-tracks-tools). |
@@ -156,13 +186,16 @@ Running the tests needs Node.js 18 or later and some MIDI files, for example Gen
 ```sh
 node tests/build_test.mjs "path/to/song.mid" out     # build a pack, read every note back
 node tests/validate.mjs out/project_*.ncs            # range checks
+node tests/roundtrip.mjs                             # MIDI -> MIDI2Circuit -> Circuit2MIDI -> MIDI, every note compared
 ```
 
-### Credits and licences
+The browser tests use Playwright with the page served on port 8765: `tests/ui_test.cjs` and `tests/ui_mutes.cjs` for MIDI2Circuit, and `node tests/ui_c2m.cjs <screenshot dir> <pack> [<pack> ...]` for Circuit2MIDI.
+
+## Credits and licences
 
 - **TracksGM Universal Circuit Tracks Pack:** Ian Guinan. How it was made is described on the [`pack-build` branch](https://github.com/GuinanNo1/TracksGM/tree/pack-build).
 - **Drum samples:** [GeneralUser GS](https://github.com/mrbumpy409/GeneralUser-GS) by S. Christian Collins. Licence in `data/LICENSE-GeneralUser-GS.txt`; keep it with any shared pack and credit "Drum samples: GeneralUser GS by S. Christian Collins".
 - **Project-format code and blank project:** [circuit-tracks-tools](https://github.com/namirsab/circuit-tracks-tools) by Namir Sayed-Ahmad Baraza (MIT).
 - **Format research:** circuit-tracks-tools and [ncstool](https://github.com/Ondrysak/ncstool).
 - **Other code:** this repository's licence (MPL-2.0, see `LICENSE`).
-- Not affiliated with Novation or Focusrite. "Circuit Tracks" and "Components" are their trademarks.
+- Not affiliated with Novation or Focusrite. "Circuit Tracks", "Circuit Rhythm" and "Components" are their trademarks.
