@@ -1,7 +1,7 @@
 # TracksGM
 Could General MIDI files be converted to play on a Novation Circuit Tracks? Research, and public projects
 
-## TracksGM MIDI to Circuit Tracks Converter (alpha 0.1)
+## TracksGM MIDI to Circuit Tracks Converter (MIDI2Circuit) (alpha 0.1)
 
 **Try it:** https://guinanno1.github.io/TracksGM/
 
