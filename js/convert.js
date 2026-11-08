@@ -83,7 +83,7 @@ export function patternBars(rate, tempoDiv, timeSig, sectionBars = 32) {
 
 // assignment: { S1: [sourceId], S2: [...], M1: [...], M2: [...], DR: [...] }
 // options:
-//   rate: 'auto' | 16 | 8 | 4     step rate of every pattern
+//   rate: 'auto' | 16 | 8 | 4     step rate of every pattern; 'track': a step rate per track
 //   tempoDiv: 1 | 2 | 4           project tempo = song tempo / tempoDiv
 //   sectionBars: 'auto' | 4 | 8 | 16 | 32  bars per scene ('auto' tries 8 bars and one pattern
 //                                  per scene, and keeps whichever needs fewer projects)
@@ -126,18 +126,26 @@ export function arrange(midi, assignment, options = {}) {
   const firstTick = Math.min(...all.map((n) => n.tick));
   const lastTick = Math.max(...all.map((n) => n.tick + (n.dur ?? 0)));
   const baseStart = opt.trimStart ? Math.floor(firstTick / barTicks + 1e-9) * barTicks : 0;
-  const candidates = opt.rate === 'auto' ? AUTO_RATES : [Number(opt.rate)];
+  // Each candidate is a step rate per track (index 0-7). 'auto' and a fixed rate give every
+  // track the same rate, as before. 'track' also tries a rate per track: each track's own
+  // preferred rate (a Circuit pack's tracks carry theirs), and the longest rate that keeps
+  // that track's timing; the same-rate layouts stay in the running, so it is never worse.
+  const candidates = opt.rate === 'auto' || opt.rate === 'track' ? AUTO_RATES.map((r) => Array(8).fill(r)) : [Array(8).fill(Number(opt.rate))];
+  if (opt.rate === 'track') {
+    for (const plan of trackRatePlans()) if (!candidates.some((c) => c.every((x, i) => !active[i] || x === plan[i]))) candidates.push(plan);
+  }
   const results = [];
-  for (const rate of candidates) {
+  for (const rates of candidates) {
     let bestForRate = null;
-    const pb = patternBars(rate, tempoDiv, midi.timeSig);
+    const coarse = coarsest(rates);
+    const pb = patternBars(coarse, tempoDiv, midi.timeSig);
     const sectionChoices = opt.sectionBars === 'auto'
       ? [...new Set([Math.max(8, pb ?? 8), pb].filter(Boolean)), 'var']
       : [Number(opt.sectionBars)];
     for (const sectionBars of sectionChoices) {
       const offsets = opt.align ? Array.from({ length: Math.min(MAX_ALIGN, sectionBars === 'var' ? (pb ?? 8) : sectionBars) }, (_, k) => k) : [0];
       for (const k of offsets) {
-        const r = tryRate(rate, baseStart - k * barTicks, sectionBars);
+        const r = tryRate(rates, baseStart - k * barTicks, sectionBars);
         if (!r) continue;
         if (!bestForRate || score(r) < score(bestForRate)) bestForRate = r;
       }
@@ -150,10 +158,42 @@ export function arrange(midi, assignment, options = {}) {
   // Auto: fewest projects among the rates that keep timing (<= 2% of notes moved), finest first.
   const keep = results.filter((r) => r.warnings.movedRatio <= MOVED_LIMIT);
   const pool = keep.length ? keep : results;
-  pool.sort((a, b) => score(a) - score(b) || b.rate - a.rate);
+  pool.sort((a, b) => score(a) - score(b) || b.fineness - a.fineness);
   const best = pool[0];
-  best.alternatives = results.map((r) => ({ rate: r.rate, projects: r.projects.length }));
+  best.alternatives = results.map((r) => ({ rate: r.mixed ? 'track' : r.rate, rates: r.trackRates.map((x) => x.rate), projects: r.projects.length }));
   return best;
+
+  // The longest (coarsest) step rate among the active tracks.
+  function coarsest(rates) {
+    const act = rates.filter((_, t) => active[t]);
+    return Math.min(...(act.length ? act : rates));
+  }
+
+  // Per-track rate plans: preferred rates from the sources (finest of a track's sources),
+  // and per track the longest rate whose grid keeps its notes in place (at most 2% moved).
+  function trackRatePlans() {
+    const plans = [];
+    const srcRates = (t) => (t < 4 ? pick(MELODIC_ROLES[t]) : drumSrcs).map((s) => s.rate).filter((x) => RATES[x]);
+    const own = Array.from({ length: 8 }, (_, t) => {
+      const rs = t < 4 ? srcRates(t) : (drumHits ?? []).filter((n) => laneOf(n) === t - 4).map((n) => n.rate).filter((x) => RATES[x]);
+      return rs.length ? Math.max(...rs) : null;
+    });
+    if (own.some((x, t) => active[t] && x)) plans.push(own.map((x) => x ?? 16));
+    const notesOf = (t) => (t < 4 ? melodic[t] ?? [] : (drumHits ?? []).filter((n) => laneOf(n) === t - 4));
+    const keeps = (t, rate) => {
+      const ns = notesOf(t);
+      if (!ns.length) return true;
+      const micro = midi.ppq * RATES[rate].syncQuarters * tempoDiv / MICRO;
+      let moved = 0;
+      for (const n of ns) {
+        const x = n.tick - baseStart;
+        if (Math.abs(Math.round(x / micro) * micro - x) > midi.ppq / 16) moved++;
+      }
+      return moved / ns.length <= MOVED_LIMIT;
+    };
+    plans.push(Array.from({ length: 8 }, (_, t) => [4, 8, 16].find((rate) => keeps(t, rate)) ?? 16));
+    return plans;
+  }
 
   // Fewer projects first, then fewer added lead-in bars (silence), then fewer patterns.
   function score(r) {
@@ -161,45 +201,60 @@ export function arrange(midi, assignment, options = {}) {
     return r.projects.length * 1e6 + r.leadBars * 1000 + pats;
   }
 
-  function tryRate(rate, startTick, sectionBars) {
-    const R = RATES[rate];
+  // rates: a step rate (RATES key) per track. The scene grid is cut into chunks of the
+  // coarsest track's pattern length; a track with a finer rate fills each chunk with k
+  // shorter patterns (k = chunk bars / its pattern bars). With one rate for all, k = 1.
+  function tryRate(rates, startTick, sectionBars) {
+    const coarse = coarsest(rates);
+    rates = rates.map((x, t) => (active[t] ? x : coarse));
+    const R = RATES[coarse];
     const variable = sectionBars === 'var';
-    const chunkBars = patternBars(rate, tempoDiv, midi.timeSig, variable ? 32 : sectionBars);
+    const chunkBars = patternBars(coarse, tempoDiv, midi.timeSig, variable ? 32 : sectionBars);
     if (!chunkBars) return null;
-    const stepTicks = midi.ppq * R.syncQuarters * tempoDiv;
-    const spb = Math.round(barTicks / stepTicks);
     const perSection = variable ? 1 : sectionBars / chunkBars;   // patterns per section
     if (perSection > MAX_PATTERNS) return null;
-    const patLen = chunkBars * spb;                           // steps per pattern
-    const chunkMicro = patLen * MICRO;
-    const microTicks = stepTicks / MICRO;
+    const tr = rates.map((rate) => {
+      const Rt = RATES[rate];
+      const patBars = patternBars(rate, tempoDiv, midi.timeSig, chunkBars);
+      if (!patBars) return null;
+      const stepTicks = midi.ppq * Rt.syncQuarters * tempoDiv;
+      const spb = Math.round(barTicks / stepTicks);
+      const patLen = patBars * spb;
+      return { rate, label: Rt.label, syncRate: Rt.syncRate, syncQuarters: Rt.syncQuarters, patBars, k: chunkBars / patBars, patLen, microTicks: stepTicks / MICRO, chunkMicro: patLen * MICRO };
+    });
+    if (tr.some((x) => !x)) return null;
+    const mixed = tr.some((x) => x.rate !== coarse);
+    const patLen = tr.find((x) => x.rate === coarse).patLen;     // steps per pattern on the coarsest track
+    const microTicks = tr.find((x) => x.rate === coarse).microTicks;
     const nChunks = Math.max(1, Math.ceil((lastTick - startTick) / (chunkBars * barTicks) - 1e-9));
     const nSections = Math.ceil(nChunks / perSection);
     const totalChunks = nSections * perSection;
     const warn = { dropped: 0, drumDropped: 0, held: 0, beforeStart: 0, moved: 0, total: 0, similarNotes: 0, similarPatterns: 0 };
     const MOVE_TOL = midi.ppq / 16;    // a 1/64 note
-    const countMove = (n, pos) => {
+    const countMove = (n, pos, mt) => {
       warn.total++;
-      if (Math.abs(pos * microTicks - (n.tick - startTick)) > MOVE_TOL) warn.moved++;
+      if (Math.abs(pos * mt - (n.tick - startTick)) > MOVE_TOL) warn.moved++;
     };
 
-    // ---- per-track chunk contents ----
-    const contents = []; // contents[t][chunk] = { steps, key }
-    for (let t = 0; t < 8; t++) contents.push(Array.from({ length: totalChunks }, () => ({ items: [] })));
+    // ---- per-track pattern contents ----
+    const contents = []; // contents[t][chunk * k + sub] = { steps, key }
+    for (let t = 0; t < 8; t++) contents.push(Array.from({ length: totalChunks * tr[t].k }, () => ({ items: [] })));
 
     melodic.forEach((notes, t) => {
       if (!notes) return;
+      const { microTicks, chunkMicro } = tr[t];
+      const nPat = totalChunks * tr[t].k;
       for (const n of notes) {
         let pos = Math.round((n.tick - startTick) / microTicks);
         if (pos < 0) { warn.beforeStart++; continue; }
-        countMove(n, pos);
+        countMove(n, pos, microTicks);
         let len = Math.max(1, Math.round(n.dur / microTicks));
         // Notes that run past the end of a pattern are cut there and struck again at the
         // start of the next pattern, because each pattern is stored separately.
         let first = true;
         while (len > 0) {
           const c = Math.floor(pos / chunkMicro);
-          if (c >= totalChunks) break;
+          if (c >= nPat) break;
           const local = pos - c * chunkMicro;
           const room = chunkMicro - local;
           const l = Math.min(len, room);
@@ -214,13 +269,14 @@ export function arrange(midi, assignment, options = {}) {
 
     if (drumHits) {
       for (const n of drumHits) {
+        const dt = laneOf(n), part = partOf(n);
+        const { microTicks, chunkMicro, k } = tr[4 + dt];
         const pos = Math.round((n.tick - startTick) / microTicks);
         if (pos < 0) { warn.beforeStart++; continue; }
-        countMove(n, pos);
+        countMove(n, pos, microTicks);
         const c = Math.floor(pos / chunkMicro);
-        if (c >= totalChunks) continue;
+        if (c >= totalChunks * k) continue;
         const local = pos - c * chunkMicro;
-        const dt = laneOf(n), part = partOf(n);
         contents[4 + dt][c].items.push({ step: Math.floor(local / MICRO), tick: local % MICRO, part, vel: n.vel });
       }
     }
@@ -302,7 +358,7 @@ export function arrange(midi, assignment, options = {}) {
       const L = c1 - c0;
       const store = proj.store.map((x) => x.slice());
       const chains = [];
-      const keys = (t) => contents[t].slice(c0, c1).map((c) => c.key);
+      const keys = (t) => contents[t].slice(c0 * tr[t].k, c1 * tr[t].k).map((c) => c.key);
       for (let t = 0; t < 8; t++) {
         if (!active[t]) { chains.push({ start: 0, len: 1 }); continue; }
         // A chain loops within its scene, so a part that repeats every p patterns
@@ -313,11 +369,14 @@ export function arrange(midi, assignment, options = {}) {
       }
       // A scene lasts as long as its longest chain, so one track must chain the whole
       // scene. If every track repeats a shorter cycle, extend the busiest one.
-      if (L > 1 && !chains.some((c, t) => active[t] && c.len === L)) {
-        let t = [0, 1, 2, 3, 4, 5, 6, 7].filter((x) => active[x]).sort((x, y) => chains[y].len - chains[x].len)
+      // (Covered = chain length x pattern length; tracks that already cover most come first,
+      // then the coarsest, which needs the fewest patterns.)
+      if (L > 1 && !chains.some((c, t) => active[t] && c.len === L * tr[t].k)) {
+        let t = [0, 1, 2, 3, 4, 5, 6, 7].filter((x) => active[x])
+          .sort((x, y) => chains[y].len / tr[y].k - chains[x].len / tr[x].k || tr[x].k - tr[y].k)
           .find((x) => keys(x)[0] !== '');
         if (t === undefined) t = active.findIndex(Boolean);
-        chains[t] = { start: findOrAdd(store[t], keys(t)), len: L };
+        chains[t] = { start: findOrAdd(store[t], keys(t)), len: L * tr[t].k };
       }
       if (store.some((x) => x.length > MAX_PATTERNS)) return null;
       return {
@@ -340,9 +399,13 @@ export function arrange(midi, assignment, options = {}) {
 
     warn.movedRatio = warn.total ? warn.moved / warn.total : 0;
     const projectTempo = Math.round(midi.tempo / tempoDiv);
+    const label = mixed ? 'step rate per track' : R.label;
     return {
-      rate,
-      rateLabel: tempoDiv > 1 ? `${R.label}, tempo ÷${tempoDiv}` : R.label,
+      rate: coarse,
+      mixed,
+      fineness: tr.reduce((a, x, t) => a + (active[t] ? x.rate : 0), 0),
+      trackRates: tr.map(({ rate, label, syncRate, syncQuarters, patBars, k, patLen }) => ({ rate, label, syncRate, syncQuarters, patBars, k, patLen })),
+      rateLabel: tempoDiv > 1 ? `${label}, tempo ÷${tempoDiv}` : label,
       syncRate: R.syncRate,
       syncQuarters: R.syncQuarters,
       tempoDiv,
@@ -498,15 +561,19 @@ function normaliseDrum(ch, warn, loose) {
 export function playOrder(plan) {
   const out = [];
   for (const p of plan.projects) {
+    const k = (t) => plan.trackRates?.[t].k ?? 1;
     for (const [si, sc] of p.scenes.entries()) {
-      const len = Math.max(...sc.chains.map((c) => c.len));
+      const len = Math.max(...sc.chains.map((c, t) => Math.ceil(c.len / k(t))));
       for (let c = 0; c < len; c++) {
+        // sub[t]: the k patterns track t plays in this chunk; patterns[t]: the first of them.
+        const sub = sc.chains.map((ch, t) => Array.from({ length: k(t) }, (_, j) => ch.start + ((c * k(t) + j) % ch.len)));
         out.push({
           project: p.index,
           scene: si,
           section: sc.section,
           chunk: sc.firstChunk + c,
-          patterns: sc.chains.map((ch) => ch.start + (c % ch.len)),
+          patterns: sub.map((s) => s[0]),
+          sub,
         });
       }
     }

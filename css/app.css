@@ -311,3 +311,7 @@ select, input[type="text"], input:not([type]) {
 .shrink .field.check label { padding-bottom: 2px; }
 .shrink .hint.small { margin: 2px 0 8px; font-size: 0.85rem; }
 .shrink .warnings:empty { display: none; }
+
+/* A column where a track plays several shorter patterns (step rate per track) */
+.grid .cell.multi { font-size: 0.62rem; letter-spacing: -0.02em; }
+.row-label .rtag { color: var(--muted); font-size: 0.7rem; font-weight: 500; }

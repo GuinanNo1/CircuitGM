@@ -566,11 +566,22 @@ function renderSummary(plan) {
       ? [scenes.reduce((a, b) => a + b, 0), 'scenes, each 1–8 patterns long']
       : [plan.nSections, `sections of ${plan.sectionBars} bars`],
     [scenes.join(' + '), 'scenes per project (max 16)'],
-    [`${plan.chunkBars} bar${plan.chunkBars > 1 ? 's' : ''}`, `per pattern (${plan.rateLabel})`],
+    plan.mixed ? patternRange(plan) : [`${plan.chunkBars} bar${plan.chunkBars > 1 ? 's' : ''}`, `per pattern (${plan.rateLabel})`],
     [`${maxPat} of 8`, 'most patterns used on a track'],
     [plan.tempo, tempoNote],
   ];
   $('#summary').innerHTML = stats.map(([v, k]) => `<div class="stat"><div class="v">${esc(String(v))}</div><div class="k">${esc(k)}</div></div>`).join('');
+}
+
+// Step rate per track: the range of pattern lengths, and each track's rate.
+function patternRange(plan) {
+  const act = plan.trackRates.filter((_, t) => plan.active[t]);
+  const bars = act.map((x) => x.patBars);
+  const lo = Math.min(...bars), hi = Math.max(...bars);
+  return [`${lo === hi ? lo : `${lo}–${hi}`} bars`, `per pattern (step rate per track${plan.tempoDiv > 1 ? `, tempo ÷${plan.tempoDiv}` : ''})`];
+}
+function rateTag(plan, t) {
+  return plan.mixed ? plan.trackRates[t].label.replace(' steps', '') : '';
 }
 
 // ---------- mutes ----------
@@ -680,6 +691,13 @@ function renderGrid(plan, stale = false) {
     const name = document.createElement('span');
     name.className = 'nm';
     name.textContent = row.name;
+    if (row.kind !== 'src' && rateTag(plan, row.t)) {
+      const tag = document.createElement('small');
+      tag.className = 'rtag';
+      tag.textContent = rateTag(plan, row.t);
+      tag.title = `${plan.trackRates[row.t].label}: ${plan.trackRates[row.t].patBars} bar${plan.trackRates[row.t].patBars > 1 ? 's' : ''} per pattern`;
+      name.append(' ', tag);
+    }
     if (row.sub) name.title = `${row.name} · ${row.sub}`;
     d.append(dot, name);
     if (row.kind !== 'src') {
@@ -719,12 +737,16 @@ function renderGrid(plan, stale = false) {
         const cls = !ms.has ? 'empty' : ms.muted ? 'muted' : ms.partial ? 'on part' : 'on';
         html += `<button type="button" class="cell src ${cls}" data-row="${ri}" data-col="${k}" style="--c:var(${TRACK_VAR[row.t]})" title="${esc(row.name)}, ${range}${ms.has ? (ms.muted ? ' (muted): click to unmute' : ms.partial ? ' (partly muted): click to mute all' : ': click to mute') : ' (no notes)'}"></button>`;
       } else {
-        const p = o.patterns[row.t];
-        const content = proj.patterns[row.t][p];
-        const empty = !content || !content.steps.length;
+        // A track with a shorter step rate plays several patterns in one column.
+        const subs = o.sub?.[row.t] ?? [o.patterns[row.t]];
+        const p = subs[0];
+        const empty = subs.every((i) => !proj.patterns[row.t][i]?.steps.length);
         const mix = 100 - (p % 8) * 8;
         const cls = ms.muted ? 'muted' : empty ? 'empty' : '';
-        html += `<button type="button" class="cell ${cls}" data-row="${ri}" data-col="${k}" style="${empty ? '' : `background:color-mix(in srgb, var(${TRACK_VAR[row.t]}) ${mix}%, #000)`}" title="${row.name}: pattern ${p + 1}, ${range}${ms.muted ? ' (muted): click to unmute' : ms.has ? ': click to mute' : ' (empty)'}">${p + 1}</button>`;
+        const same = subs.every((i) => i === p);
+        const txt = same ? `${p + 1}` : subs.every((i, j) => i === p + j) ? `${p + 1}–${subs[subs.length - 1] + 1}` : subs.map((i) => i + 1).join('·');
+        const what = same ? `pattern ${p + 1}${subs.length > 1 ? ` ×${subs.length}` : ''}` : `patterns ${subs.map((i) => i + 1).join(', ')}`;
+        html += `<button type="button" class="cell ${cls}${txt.length > 2 ? ' multi' : ''}" data-row="${ri}" data-col="${k}" style="${empty ? '' : `background:color-mix(in srgb, var(${TRACK_VAR[row.t]}) ${mix}%, #000)`}" title="${row.name}: ${what}, ${range}${ms.muted ? ' (muted): click to unmute' : ms.has ? ': click to mute' : ' (empty)'}">${txt}</button>`;
       }
     });
     col.innerHTML = html;
@@ -771,25 +793,30 @@ function renderWarnings(plan) {
 
 // ---------- preview ----------
 function planEvents(plan) {
-  const stepSec = (60 / plan.tempo) * plan.syncQuarters;
-  const micro = stepSec / 6;
-  const chunkSec = plan.patLen * stepSec;
+  const chunkSec = plan.patLen * (60 / plan.tempo) * plan.syncQuarters;
   const programs = MELODIC_ROLES.map((r) => sourcesFor(r)[0]?.program ?? 0);
   const ev = [];
   state.order.forEach((o, k) => {
-    const t0 = k * chunkSec;
     const proj = plan.projects[o.project];
     for (let t = 0; t < 8; t++) {
       if (!plan.active[t]) continue;
-      const pat = proj.patterns[t][o.patterns[t]];
-      if (!pat) continue;
-      for (const s of pat.steps) {
-        if (t < 4) {
-          for (const n of s.notes) ev.push({ t: t0 + (s.step * 6 + n.delay) * micro, d: n.len * micro, track: t, note: n.note - 12, vel: n.vel, program: programs[t] });
-        } else {
-          for (let b = 0; b < 6; b++) if (s.mask >> b & 1) ev.push({ t: t0 + (s.step * 6 + b) * micro, d: 0.1, track: t, part: s.part, vel: s.vel });
+      // Each track at its own step rate: k shorter patterns per column when finer.
+      const tr = plan.trackRates?.[t] ?? plan;
+      const stepSec = (60 / plan.tempo) * tr.syncQuarters;
+      const micro = stepSec / 6;
+      const subs = o.sub?.[t] ?? [o.patterns[t]];
+      subs.forEach((pi, j) => {
+        const pat = proj.patterns[t][pi];
+        if (!pat) return;
+        const t0 = k * chunkSec + j * tr.patLen * stepSec;
+        for (const s of pat.steps) {
+          if (t < 4) {
+            for (const n of s.notes) ev.push({ t: t0 + (s.step * 6 + n.delay) * micro, d: n.len * micro, track: t, note: n.note - 12, vel: n.vel, program: programs[t] });
+          } else {
+            for (let b = 0; b < 6; b++) if (s.mask >> b & 1) ev.push({ t: t0 + (s.step * 6 + b) * micro, d: 0.1, track: t, part: s.part, vel: s.vel });
+          }
         }
-      }
+      });
     }
   });
   ev.sort((a, b) => a.t - b.t);
