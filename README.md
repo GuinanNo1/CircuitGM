@@ -14,7 +14,7 @@ This branch holds the two converter pages, served by GitHub Pages:
 A web page that turns a General MIDI file (`.mid`) into a Circuit Tracks pack (`.circuittrackspack`) you can load with Novation Components. It runs entirely in the browser: nothing is uploaded, and there is no server.
 
 The pack it makes contains:
-- a **base pack**'s patches and drum samples. By default this is the **TracksGM Universal Circuit Tracks Pack** (`TracksGM_final.circuittrackspack`): 128 synth patches in General MIDI order, and 64 drum samples (8 kits) from GeneralUser GS. You can drop in another pack instead (see below);
+- a **base pack**'s patches and drum samples. By default this is the **TracksGM Universal Circuit Tracks Pack (TracksGM Pack)** (`TracksGM_final.circuittrackspack`): 128 synth patches in General MIDI order, and 64 drum samples (8 kits) from GeneralUser GS. You can drop in another pack instead (see below);
 - one or more **projects** holding the converted song, in project slots 1 onwards.
 
 Sending the pack to the Tracks replaces the pack in that slot, so send it to a spare pack slot.
@@ -29,7 +29,7 @@ Sending the pack to the Tracks replaces the pack in that slot, so send it to a s
    
    Send several parts to the same track to combine them. Parts that share a name (as in type 0 files) are named by instrument and channel. The ▶ button plays a single part on its own. By default, the two busiest parts go to Synth 1 and Synth 2, the next two to MIDI 1 and MIDI 2, and channel 10 to Drums.
 3. **Pick the sounds.**
-   - **Synth patches:** choose a TracksGM patch for each synth. The default is the GM instrument of the first part on that track (TracksGM slot = GM program number).
+   - **Synth patches:** choose a TracksGM Pack patch for each synth. The default is the GM instrument of the first part on that track (TracksGM Pack slot = GM program number).
    - **Drum kit:** choose a kit (Std, Room, Power, Elec, 808, Jazz, Brush, Orch).
    - **Octave:** each melodic track can be shifted up or down an octave.
 4. **Check the arrangement.**
@@ -59,7 +59,7 @@ Sending the pack to the Tracks replaces the pack in that slot, so send it to a s
 
 ### Using a different base pack
 
-Click **Use another pack…** in step 1, or drop a `.circuittrackspack` on the Base pack box or the MIDI box, to build on another pack (an edited TracksGM, or any pack exported from Components). **Back to TracksGM_final** switches back.
+Click **Use another pack…** in step 1, or drop a `.circuittrackspack` on the Base pack box or the MIDI box, to build on another pack (an edited TracksGM Pack, or any pack exported from Components). **Back to TracksGM_final** switches back.
 
 - **Patches:** the synth lists show the pack's own patch names. Defaults still assume General MIDI order (slot = GM program, or the nearest filled slot below).
 - **Drums:** the 64 samples are read as 8 kits of 8, each in the order kick, snare, rim/clap, closed hat, open hat, tom, cymbal, percussion.
@@ -177,7 +177,7 @@ Then open <http://localhost:8765/> (MIDI2Circuit) or <http://localhost:8765/circ
 | `js/midiwrite.js` | Standard MIDI file writer. |
 | `docs/circuit-rhythm-format.md` | The Circuit Rhythm project format, as far as it is known. |
 | `js/vendor/ncs.js`, `js/vendor/zip.js` | Project file reader/writer and zip code from circuit-tracks-tools (MIT licence, see `js/vendor/LICENSE-circuit-tracks-tools.txt`). |
-| `data/TracksGM_final.circuittrackspack` | The TracksGM Universal Circuit Tracks Pack, the default base pack. Replace this file to update the default when the pack is retuned. |
+| `data/TracksGM_final.circuittrackspack` | The TracksGM Pack, the default base pack. Replace this file to update the default when the pack is retuned. |
 | `data/Empty.ncs` | Blank project used as the template (from circuit-tracks-tools). |
 | `tests/` | Node scripts: parse MIDI files, plan arrangements, build packs and read them back, and check projects against the Components validator's ranges. |
 
@@ -193,7 +193,7 @@ The browser tests use Playwright with the page served on port 8765: `tests/ui_te
 
 ## Credits and licences
 
-- **TracksGM Universal Circuit Tracks Pack:** Ian Guinan. How it was made is described on the [`pack-build` branch](https://github.com/GuinanNo1/TracksGM/tree/pack-build).
+- **TracksGM Universal Circuit Tracks Pack (TracksGM Pack):** Ian Guinan. How it was made is described on the [`pack-build` branch](https://github.com/GuinanNo1/TracksGM/tree/pack-build).
 - **Drum samples:** [GeneralUser GS](https://github.com/mrbumpy409/GeneralUser-GS) by S. Christian Collins. Licence in `data/LICENSE-GeneralUser-GS.txt`; keep it with any shared pack and credit "Drum samples: GeneralUser GS by S. Christian Collins".
 - **Project-format code and blank project:** [circuit-tracks-tools](https://github.com/namirsab/circuit-tracks-tools) by Namir Sayed-Ahmad Baraza (MIT).
 - **Format research:** circuit-tracks-tools and [ncstool](https://github.com/Ondrysak/ncstool).

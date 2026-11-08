@@ -40,7 +40,7 @@ async function init() {
     state.defaultBase = await loadBase();
     setBase(state.defaultBase, DEFAULT_PACK);
   } catch (e) {
-    $('#base-status').textContent = `Could not load the TracksGM Universal Circuit Tracks Pack: ${e.message}. If you opened index.html straight from disk, serve the folder instead (see README).`;
+    $('#base-status').textContent = `Could not load the TracksGM Pack: ${e.message}. If you opened index.html straight from disk, serve the folder instead (see README).`;
     $('#base-status').classList.add('error');
   }
   for (const id of ['#section-bars', '#rate', '#tempo-div', '#match', '#quantize', '#align', '#trim']) $(id).addEventListener('change', rearrange);
@@ -106,12 +106,12 @@ function setBase(base, name) {
   const status = $('#base-status');
   status.classList.remove('error');
   status.textContent = isDefault
-    ? `TracksGM Universal Circuit Tracks Pack: ${nPatch} patches, ${nSamp} drum samples.`
+    ? `TracksGM Pack: ${nPatch} patches, ${nSamp} drum samples.`
     : `${base.index.name ? `“${base.index.name}”: ` : ''}${nPatch} patches, ${nSamp} drum samples.`
       + (nProj ? ` Its ${nProj} project${nProj > 1 ? 's' : ''} will be replaced by the converted song.` : '');
   $('#base-reset').hidden = isDefault;
   $('#base-summary').textContent = isDefault
-    ? `TracksGM Universal Circuit Tracks Pack: ${nPatch} patches, ${nSamp} drum samples`
+    ? `TracksGM Pack: ${nPatch} patches, ${nSamp} drum samples`
     : `${name}: ${nPatch} patches, ${nSamp} drum samples`;
   fillPatchSelects();
   fillKitSelect();
@@ -294,7 +294,7 @@ function sourcesFor(role) {
 
 function rolesChanged() {
   state.barCache.delete('lane4'); state.barCache.delete('lane5'); state.barCache.delete('lane6'); state.barCache.delete('lane7');
-  // Default each synth patch to the GM program of the first part on it (TracksGM is in GM order;
+  // Default each synth patch to the GM program of the first part on it (the TracksGM Pack is in GM order;
   // other packs are assumed to be too).
   ['S1', 'S2'].forEach((r, i) => {
     const first = sourcesFor(r)[0];

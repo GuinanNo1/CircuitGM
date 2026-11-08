@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>TracksGM MIDI to Circuit Tracks Converter (MIDI2Circuit)</title>
-<meta name="description" content="Turn a General MIDI file into a Novation Circuit Tracks pack built on the TracksGM Universal Circuit Tracks Pack.">
+<meta name="description" content="Turn a General MIDI file into a Novation Circuit Tracks pack built on the TracksGM Universal Circuit Tracks Pack (TracksGM Pack).">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,7 +16,7 @@
   <div class="wrap">
     <h1>TracksGM <span>MIDI to Circuit Tracks Converter (MIDI2Circuit)</span> <em class="badge">alpha 0.1</em></h1>
     <p class="helplinks"><a href="help.html#quickstart">Quickstart</a> · <a href="help.html">User guide</a> · <a href="circuit2midi/">Circuit2MIDI (Circuit packs to MIDI)</a></p>
-    <p class="lede">Turn a General MIDI file into a Novation Circuit Tracks pack. Pick the parts you want, hear how they'll play, and download a <code>.circuittrackspack</code> for Novation Components, built on the <a href="https://github.com/GuinanNo1/TracksGM/tree/pack-build">TracksGM Universal Circuit Tracks Pack</a> or a pack of your own.</p>
+    <p class="lede">Turn a General MIDI file into a Novation Circuit Tracks pack. Pick the parts you want, hear how they'll play, and download a <code>.circuittrackspack</code> for Novation Components, built on the <a href="https://github.com/GuinanNo1/TracksGM/tree/pack-build">TracksGM Universal Circuit Tracks Pack (TracksGM Pack)</a> or a pack of your own.</p>
     <p class="alpha">Alpha 0.1, for testing. Packs load and play on the Circuit Tracks, but the project format is reverse-engineered: keep a backup of your packs, and please report anything odd on <a href="https://github.com/GuinanNo1/TracksGM/issues">GitHub</a>.</p>
   </div>
 </header>
@@ -28,7 +28,7 @@
       <div class="bp-info">
         <span class="k">Base pack</span>
         <b id="base-name">TracksGM_final</b>
-        <span class="status" id="base-status">Loading the TracksGM Universal Circuit Tracks Pack…</span>
+        <span class="status" id="base-status">Loading the TracksGM Pack…</span>
       </div>
       <div class="bp-actions">
         <label class="btn small filebtn">Use another pack…<input type="file" id="base-file" accept=".circuittrackspack,.zip"></label>
@@ -117,7 +117,7 @@
       <button class="btn primary big" id="build" type="button">Download pack</button>
       <span class="status" id="build-status"></span>
     </div>
-    <p class="hint">Open the pack in Novation Components and send it to your Circuit Tracks. It holds the whole base pack (<span id="base-summary">TracksGM Universal Circuit Tracks Pack: 128 patches, 64 drum samples</span>) plus the new projects in project slots 1 onwards, so it replaces whatever pack you send it over. In each project, scenes 1 onwards hold the song's sections in order and are saved as one scene chain.</p>
+    <p class="hint">Open the pack in Novation Components and send it to your Circuit Tracks. It holds the whole base pack (<span id="base-summary">TracksGM Pack: 128 patches, 64 drum samples</span>) plus the new projects in project slots 1 onwards, so it replaces whatever pack you send it over. In each project, scenes 1 onwards hold the song's sections in order and are saved as one scene chain.</p>
   </section>
 </main>
 
