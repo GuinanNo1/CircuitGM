@@ -72,13 +72,13 @@ function isEmpty(product, proj) {
   return true;
 }
 
-// Which patches and samples the pack's non-empty projects refer to.
-export function findUsage(pack) {
+// Which patches and samples the pack's non-empty projects refer to (or just project `only`).
+export function findUsage(pack, only = null) {
   const samples = new Map();   // slot -> Set of project slots
   const patches = new Map();
   const add = (map, slot, p) => { if (!map.has(slot)) map.set(slot, new Set()); map.get(slot).add(p); };
   for (const e of pack.projects) {
-    if (e.empty || !e.project) continue;
+    if (e.empty || !e.project || (only != null && e.slot !== only)) continue;
     const proj = e.project;
     if (pack.product === 'circuit-rhythm') {
       for (const s of rhythmSampleRefs(proj)) add(samples, s, e.slot);
@@ -100,17 +100,24 @@ export function findUsage(pack) {
   };
   return {
     samples, patches, unusedSamples, unusedPatches,
-    projectsWithContent: pack.projects.filter((p) => !p.empty).length,
+    projectsWithContent: pack.projects.filter((p) => !p.empty && (only == null || p.slot === only)).length,
     unusedBytes: () => bytesOf([...unusedSamples, ...unusedPatches]),
   };
 }
 
 // The pack with unused samples and patches removed. Slot numbers are kept.
-export async function compactPack(pack, { name } = {}) {
-  if (!pack.usage.projectsWithContent) throw new Error('This pack has no projects with content, so compacting it would remove every sample and patch.');
+// only: keep just that project slot (the others are emptied, as Components stores an empty
+// slot: a blank name and no file) and the samples and patches it uses.
+export async function compactPack(pack, { name, only = null } = {}) {
+  const usage = only == null ? pack.usage : findUsage(pack, only);
+  if (!usage.projectsWithContent) throw new Error('This pack has no projects with content, so compacting it would remove every sample and patch.');
   const index = JSON.parse(JSON.stringify(pack.index));
-  const dropS = new Set(pack.usage.unusedSamples.map((s) => s.slot));
-  const dropP = new Set(pack.usage.unusedPatches.map((p) => p.slot));
+  const dropS = new Set(usage.unusedSamples.map((s) => s.slot));
+  const dropP = new Set(usage.unusedPatches.map((p) => p.slot));
+  const dropProj = new Set();
+  if (only != null) {
+    (index.projects ?? []).forEach((p, i) => { if (p && i !== only) { p.name = ''; if (p.url) dropProj.add(p.url); } });
+  }
   if (index.samples) index.samples.forEach((s, i) => { if (dropS.has(i) && s) s.name = ''; });
   if (index.patches) index.patches.forEach((p, i) => { if (dropP.has(i) && p) p.name = ''; });
   if (name) index.name = name;
@@ -118,7 +125,7 @@ export async function compactPack(pack, { name } = {}) {
   for (const [i, s] of (index.samples ?? []).entries()) if (!dropS.has(i) && s?.url) keep.add(s.url);
   for (const [i, p] of (index.patches ?? []).entries()) if (!dropP.has(i) && p?.url) keep.add(p.url);
   const slotFiles = new Set([...(index.samples ?? []), ...(index.patches ?? [])].map((x) => x?.url));
-  const files = [...pack.zip.keys()].filter((n) => n !== 'index.json' && (!slotFiles.has(n) || keep.has(n)));
+  const files = [...pack.zip.keys()].filter((n) => n !== 'index.json' && !dropProj.has(n) && (!slotFiles.has(n) || keep.has(n)));
   // Folder entries (the zip reader skips them), then everything else as it is:
   // projects, grid effects and the samples and patches still in use.
   const dirs = new Set(files.filter((n) => n.includes('/')).map((n) => n.slice(0, n.lastIndexOf('/') + 1)));

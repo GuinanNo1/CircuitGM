@@ -1,6 +1,6 @@
 // Circuit2MIDI page: load a Circuit Tracks / Circuit Rhythm pack, compact it, pick a project,
 // check its scenes, map its tracks to MIDI, preview it and save a .mid file.
-import { loadPack, compactPack } from './pack.js';
+import { loadPack, compactPack, findUsage } from './pack.js';
 import {
   songOf, renderSong, sceneOrder, defaultOrderKind, usedScenes, sceneTicks, defaultMapping,
   ensureDrumNotes, midiTracks, samplesByTrack, trackHasNotes, ticksToSeconds, PPQ, GM_DRUMS,
@@ -79,8 +79,17 @@ function showPackInfo(pack) {
 
 // ---------- 2. Compact ----------
 
-async function showCompact(pack) {
-  const u = pack.usage;
+async function showCompact(pack, keepChoice = true) {
+  // What to keep: every project, or just one (its own sounds only).
+  const sel = $('compact-only');
+  if (keepChoice) {
+    const prev = sel.value;
+    sel.replaceChildren(el('option', { value: 'all', text: 'Every project' }),
+      ...pack.projects.filter((p) => !p.empty).map((p) => el('option', { value: String(p.slot), text: `Only project ${p.slot + 1}: ${p.name || `Project ${p.slot + 1}`}` })));
+    sel.value = [...sel.options].some((o) => o.value === prev) ? prev : 'all';
+  }
+  const only = sel.value === 'all' ? null : Number(sel.value);
+  const u = only == null ? pack.usage : findUsage(pack, only);
   const tracks = pack.product === 'circuit-tracks';
   const sum = $('compact-summary');
   sum.replaceChildren();
@@ -101,15 +110,18 @@ async function showCompact(pack) {
     if (!items.length) return;
     body.append(el('h4', { text: title }), el('ul', {}, ...items.map((x) => el('li', { text: `${x.slot + 1}. ${x.name || '(no name)'}` }))));
   };
+  const goneProjects = only == null ? [] : pack.projects.filter((p) => !p.empty && p.slot !== only);
+  list('Projects (slots emptied)', goneProjects);
   list('Samples', u.unusedSamples);
   list('Patches', u.unusedPatches);
-  $('unused-list').hidden = !(u.unusedSamples.length || u.unusedPatches.length);
+  $('unused-list').hidden = !(u.unusedSamples.length || u.unusedPatches.length || goneProjects.length);
 
   $('compact-name').value = asciiName(pack.name, 16).trim();     // Components allows 16 characters
   const btn = $('compact');
-  const nothing = !u.unusedSamples.length && !u.unusedPatches.length;
+  const others = only != null && pack.projects.some((p) => !p.empty && p.slot !== only);
+  const nothing = !u.unusedSamples.length && !u.unusedPatches.length && !others;
   btn.disabled = !u.projectsWithContent || nothing;
-  $('compact-options').hidden = btn.disabled;
+  $('compact-options').hidden = !u.projectsWithContent || (nothing && sel.options.length < 3);
   setStatus('compact-status', !u.projectsWithContent
     ? 'This pack has no projects with content, so every sample and patch counts as unused. Compacting is off for packs like this.'
     : nothing ? 'Nothing to remove: every sample and patch is used by a project.' : '');
@@ -123,7 +135,8 @@ $('compact').addEventListener('click', async () => {
   setStatus('compact-status', 'Compacting…');
   try {
     const name = $('compact-name').value.trim() || pack.name;
-    const blob = await compactPack(pack, { name: asciiName(name, 16).trim() });
+    const only = $('compact-only').value === 'all' ? null : Number($('compact-only').value);
+    const blob = await compactPack(pack, { name: asciiName(name, 16).trim(), only });
     download(blob, `${fileSafe(name)}${pack.info.ext}`);
     setStatus('compact-status', `Saved ${fileSafe(name)}${pack.info.ext} (${mb(blob.size)}, was ${mb(pack.size)}).`);
   } catch (err) {
@@ -131,6 +144,8 @@ $('compact').addEventListener('click', async () => {
   }
   btn.disabled = false;
 });
+
+$('compact-only').addEventListener('change', () => state.pack && showCompact(state.pack, false));
 
 // ---------- 3. Project ----------
 
