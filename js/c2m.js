@@ -105,7 +105,7 @@ async function showCompact(pack) {
   list('Patches', u.unusedPatches);
   $('unused-list').hidden = !(u.unusedSamples.length || u.unusedPatches.length);
 
-  $('compact-name').value = pack.name;
+  $('compact-name').value = asciiName(pack.name, 16).trim();     // Components allows 16 characters
   const btn = $('compact');
   const nothing = !u.unusedSamples.length && !u.unusedPatches.length;
   btn.disabled = !u.projectsWithContent || nothing;
@@ -123,7 +123,7 @@ $('compact').addEventListener('click', async () => {
   setStatus('compact-status', 'Compacting…');
   try {
     const name = $('compact-name').value.trim() || pack.name;
-    const blob = await compactPack(pack, { name: asciiName(name, 40) });
+    const blob = await compactPack(pack, { name: asciiName(name, 16).trim() });
     download(blob, `${fileSafe(name)}${pack.info.ext}`);
     setStatus('compact-status', `Saved ${fileSafe(name)}${pack.info.ext} (${mb(blob.size)}, was ${mb(pack.size)}).`);
   } catch (err) {

@@ -9,6 +9,7 @@ const MAX_GATE = 96;                 // 16 steps; longer notes continue with a t
 const DRUM0_HEADER = 0xcd64;         // byte 0 = Synth 1 patch slot, byte 8 = Synth 2 patch slot
 const DEFAULT_DRUM_CHOICES = 0x1a278; // 4 bytes: default sample slot per drum track
 const CHROMATIC = 15;
+export const NAME_MAX = 16;          // pack and project names: Components allows 16 characters
 
 export async function loadBase(url = 'data/TracksGM_final.circuittrackspack', templateUrl = 'data/Empty.ncs') {
   const [packBuf, tplBuf] = await Promise.all([fetchBuf(url), fetchBuf(templateUrl)]);
@@ -47,8 +48,9 @@ export function buildProjects(plan, base, settings) {
   const n = plan.projects.length;
   for (const p of plan.projects) {
     const proj = parseNCS(base.template.slice(0));
-    const name = n > 1 ? `${settings.title} ${p.index + 1}` : settings.title;
-    proj.name = asciiName(name, 32);
+    // Names of up to 16 characters, as Components allows; a numbered project keeps its number.
+    const num = n > 1 ? ` ${p.index + 1}` : '';
+    proj.name = asciiName(settings.title, NAME_MAX - num.length).trim() + num;
     // settings.colors: one project colour (0-13) per project, or settings.color for all.
     proj.color = (settings.colors?.[p.index] ?? settings.color ?? 8) % 14;
     proj.tempo = plan.tempo;
@@ -163,7 +165,7 @@ function drumSteps(content, slotOf, defaultSlot) {
 // Pack = the base pack (patches + samples, untouched) + the new projects in slots 0..n-1.
 export async function buildPack(base, projects, { name, color }) {
   const index = JSON.parse(JSON.stringify(base.index));
-  index.name = asciiName(name, 64).trim() || 'TracksGM';
+  index.name = asciiName(name, NAME_MAX).trim() || 'TracksGM';
   index.color = color;
   index.projects = Array.from({ length: 64 }, (_, i) => ({
     name: projects[i]?.name ?? '',

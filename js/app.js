@@ -15,6 +15,7 @@ const PLAY_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1l9 5
 const STOP_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="2" width="8" height="8"/></svg>';
 
 const DEFAULT_PACK = 'TracksGM_final';
+const NAME_MAX = 16;          // pack and project names, as Components allows
 // The test version of the page (index.html?lab): per-track step rates for MIDI files too.
 const LAB = new URLSearchParams(location.search).has('lab');
 const TRACK_OPT = document.querySelector('#rate option[value="track"]');   // added only when offered (Safari ignores hidden options)
@@ -353,8 +354,10 @@ function songLoaded(firstRows) {
   state.lastPlan = null;
   state.patchTouched = [false, false];
   state.transpose = { S1: 0, S2: 0, M1: 0, M2: 0 };
-  $('#title').value = ascii(state.fileName).slice(0, 28);
-  $('#packname').value = `TracksGM ${ascii(state.fileName)}`.slice(0, 40);
+  // Components allows 16 characters for pack and project names (it accepts longer ones
+  // in a file but then won't let them be edited).
+  $('#title').value = ascii(state.fileName).trim().slice(0, NAME_MAX).trim();
+  $('#packname').value = `TracksGM ${ascii(state.fileName)}`.slice(0, NAME_MAX).trim();
   renderTracks();
   for (const id of STEPS_AFTER) $(id).hidden = false;
   rolesChanged();
