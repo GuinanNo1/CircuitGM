@@ -159,7 +159,9 @@ export function arrange(midi, assignment, options = {}) {
   // Per track: also count notes lost to the step grid (merged, or dropped from a full step).
   const lost = (r) => (opt.rate === 'track' ? (r.warnings.merged + r.warnings.dropped + r.warnings.drumDropped) / Math.max(1, r.warnings.total) : 0);
   const keep = results.filter((r) => r.warnings.movedRatio + lost(r) <= MOVED_LIMIT);
-  const pool = keep.length ? keep : results;
+  // Per track, when nothing is that close: the layouts within 2% of the least loss.
+  const least = Math.min(...results.map((r) => r.warnings.movedRatio + lost(r)));
+  const pool = keep.length ? keep : opt.rate === 'track' ? results.filter((r) => r.warnings.movedRatio + lost(r) <= least + MOVED_LIMIT) : results;
   pool.sort((a, b) => score(a) - score(b) || b.fineness - a.fineness);
   const best = pool[0];
   best.alternatives = results.map((r) => ({ rate: r.mixed ? 'track' : r.rate, rates: r.trackRates.map((x) => x.rate), projects: r.projects.length, moved: r.warnings.moved, lost: r.warnings.merged + r.warnings.dropped + r.warnings.drumDropped }));
