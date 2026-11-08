@@ -16,11 +16,6 @@ const STOP_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="2"
 
 const DEFAULT_PACK = 'TracksGM_final';
 const NAME_MAX = 16;          // pack and project names, as Components allows
-// The test version of the page (index.html?lab): per-track step rates for MIDI files too.
-const LAB = new URLSearchParams(location.search).has('lab');
-const TRACK_OPT = document.querySelector('#rate option[value="track"]');   // added only when offered (Safari ignores hidden options)
-TRACK_OPT.hidden = false;
-TRACK_OPT.remove();
 const state = {
   base: null,
   defaultBase: null,
@@ -42,21 +37,8 @@ const state = {
 const player = new Player();
 
 // ---------- startup ----------
-if (LAB) markLab();
 init();
 
-// The test version: a banner, a title mark, and kept out of search results.
-function markLab() {
-  document.title = `TEST · ${document.title}`;
-  const meta = document.createElement('meta');
-  meta.name = 'robots';
-  meta.content = 'noindex, nofollow';
-  document.head.append(meta);
-  const p = document.createElement('p');
-  p.className = 'lab';
-  p.innerHTML = '<b>Test version.</b> Pattern length <i>Per track</i> is offered for MIDI files too (it is the default here): each track gets the longest step rate that keeps its notes, which often keeps more notes at the cost of more projects. Compare it with the other pattern lengths, or with the <a href="./">public page</a>.';
-  document.querySelector('.masthead .wrap').append(p);
-}
 
 async function init() {
   wireLoad();
@@ -367,15 +349,6 @@ function songLoaded(firstRows) {
 // can be shrunk.
 function renderSongPackParts() {
   const pk = fromPack();
-  // Step rate per track: offered for Circuit packs (their tracks have their own rates), and
-  // for MIDI files too on the test version (?lab). Packs start on it.
-  const show = pk || LAB;
-  if (show && !TRACK_OPT.parentNode) $('#rate').prepend(TRACK_OPT);
-  if (!show && $('#rate').value === 'track') $('#rate').value = 'auto';
-  if (!show) TRACK_OPT.remove();
-  if (pk) $('#rate').value = 'track';
-  else if (LAB) $('#rate').value = 'track';
-  else if ($('#rate').value === 'track') $('#rate').value = 'auto';
   $('#kit').hidden = pk;
   $('#kit-pack').hidden = !pk;
   $('#shrink').hidden = !pk;
@@ -827,7 +800,7 @@ function renderWarnings(plan) {
   if (w.similarPatterns) out.push(`${w.similarPatterns} patterns were replaced by a similar earlier one, changing ${w.similarNotes} notes (${Math.round(100 * w.similarNotes / Math.max(1, w.total))}%).`);
   if (plan.leadBars) out.push(`Sections start ${plan.leadBars} bar${plan.leadBars > 1 ? 's' : ''} before the first note so that repeats line up, which saves a project; the song begins after ${plan.leadBars} empty bar${plan.leadBars > 1 ? 's' : ''}.`);
   if (w.dropped) out.push(`${w.dropped} notes were left out where more than 6 notes start on one step (the lowest and highest notes are kept).`);
-  if (w.merged) out.push(`${w.merged} notes were merged with a note of the same pitch in the same step (a step holds each pitch once; the longer note is kept).${plan.mixed || plan.rate !== 16 ? ' Shorter steps (a finer pattern length) keep them apart.' : ''}`);
+  if (w.merged) out.push(`${w.merged} notes were merged with a note of the same pitch in the same step (a step holds each pitch once; the longer note is kept).${$('#rate').value === 'track' ? (plan.mixed || plan.rate !== 16 ? ' 1/16 steps would keep them apart, at the cost of more projects.' : '') : ' Pattern length Per track keeps notes apart where it can, at the cost of more projects.'}`);
   if (w.drumDropped) out.push(`${w.drumDropped} drum hits were left out where two sounds land on the same step of one drum track (the louder one is kept).`);
   if (w.held) out.push(`${w.held} long notes run past the end of a pattern; they are struck again at the start of the next pattern.`);
   if (m.tempoChanges) out.push(`The file has ${m.tempoChanges} tempo changes; the project uses the first tempo throughout.`);

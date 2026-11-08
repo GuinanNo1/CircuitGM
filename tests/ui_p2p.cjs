@@ -78,7 +78,7 @@ const ok = (cond, msg) => { console.log(`${cond ? 'ok  ' : 'FAIL'} ${msg}`); if 
     await page.waitForFunction(() => /File/.test(document.querySelector('#fileinfo').textContent));
     ok((await text('#base-name')) === 'TracksGM_final', `${label}: MIDI file puts the base pack back to TracksGM`);
     ok(!(await visible('#projpick')) && !(await visible('#shrink')) && await visible('#kit'), `${label}: picker and shrink hidden for MIDI, kit list back`);
-    ok((await page.inputValue('#rate')) === 'auto' && !(await page.$('#rate option[value="track"]')), `${label}: MIDI file: Per track not offered, back to Auto`);
+    ok((await page.inputValue('#rate')) === 'track', `${label}: MIDI file: Per track is the default too`);
     ok(errors.length === 0, `${label}: no page errors ${errors.join(' | ')}`);
     await page.close();
   }

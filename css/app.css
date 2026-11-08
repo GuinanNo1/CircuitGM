@@ -316,4 +316,3 @@ select, input[type="text"], input:not([type]) {
 .grid .cell.multi { font-size: 0.62rem; letter-spacing: -0.02em; }
 .row-label .rtag { color: var(--muted); font-size: 0.7rem; font-weight: 500; }
 .roles .lane { margin-left: 6px; font-size: 0.8rem; padding: 3px 4px; max-width: 9.5em; }
-.lab { margin: 10px 0 0; max-width: 78ch; padding: 8px 12px; border-radius: 8px; font-size: 0.9rem; background: color-mix(in srgb, var(--warn) 14%, transparent); border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent); }
