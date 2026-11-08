@@ -45,10 +45,9 @@ export const PROJECT_COLOURS = [
 ];
 // R O Y G B I V; and every shade from red to purple in hue order.
 const RAINBOW = [0, 3, 5, 8, 10, 11, 12];
-const RAINBOW_FINE = [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-// scheme: 'rainbow' | 'rainbow-fine' | a single colour number 0-13
+// scheme: 'rainbow' | a single colour number 0-13
 export function projectColours(n, scheme = 'rainbow') {
-  const seq = scheme === 'rainbow' ? RAINBOW : scheme === 'rainbow-fine' ? RAINBOW_FINE : [Number(scheme) % 14];
+  const seq = scheme === 'rainbow' ? RAINBOW : [Number(scheme) % 14];
   return Array.from({ length: n }, (_, i) => seq[i % seq.length]);
 }
 export const DRUM_TRACK_LABELS = ['Kick', 'Snare / Tom', 'Hi-hats', 'Percussion'];
