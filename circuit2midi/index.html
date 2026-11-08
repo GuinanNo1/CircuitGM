@@ -53,6 +53,11 @@
     <h2><span class="num">3</span> Choose a project</h2>
     <p class="hint" id="project-hint">One project is converted at a time. Empty project slots aren't listed.</p>
     <div class="projects" id="projects" role="radiogroup" aria-label="Project"></div>
+    <div class="buildrow">
+      <button class="btn" id="to-tracks" type="button" disabled>Convert to Circuit Tracks (MIDI2Circuit)</button>
+      <span class="status" id="to-tracks-status" role="status"></span>
+    </div>
+    <p class="hint">Opens the chosen project in <a href="../">MIDI2Circuit</a> to build a Circuit Tracks pack from it, with the pack's own samples (and, from a Circuit Tracks pack, its patches). The pack is handed over inside your browser; nothing is uploaded.</p>
   </section>
 
   <section class="panel" id="step-scenes" hidden>

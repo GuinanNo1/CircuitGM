@@ -3,6 +3,7 @@ import { arrange, playOrder, laneOf, partOf, patternBars, projectColours, PROJEC
 import { loadBase, loadBaseFromBuffers, buildProjects, buildPack, composePack, SAMPLE_CAP_S } from './build.js';
 import { loadPack, PRODUCTS } from './pack.js';
 import { packSong, projectChoices, setLane } from './packsong.js';
+import { takeHandoff } from './handoff.js';
 import { Player } from './player.js';
 
 const $ = (s) => document.querySelector(s);
@@ -62,6 +63,14 @@ async function init() {
   $('#patch-s1').addEventListener('change', updateShrinkInfo);
   $('#patch-s2').addEventListener('change', updateShrinkInfo);
   player.onEnd = () => { setPlanButton(false); setSourceButton(null); };
+  // Opened from Circuit2MIDI's "Convert to Circuit Tracks": take the pack it handed over.
+  if (new URLSearchParams(location.search).get('from') === 'circuit2midi') {
+    history.replaceState(null, '', location.pathname);
+    let item = null;
+    try { item = await takeHandoff(); } catch { /* storage blocked */ }
+    if (item) await loadSongPack(new File([item.buffer], item.fileName), item.slot);
+    else loadError('The pack from Circuit2MIDI could not be found (it is only kept for a few minutes, in this browser). Drop the pack here instead.');
+  }
 }
 
 const isPack = (f) => /\.(circuittrackspack|circuitrhythmpack|zip)$/i.test(f.name);
@@ -250,7 +259,7 @@ async function loadFile(file) {
 // A Circuit Tracks or Circuit Rhythm pack as the song: pick one of its projects. Its drum
 // samples go into the converted pack; a Circuit Tracks pack also becomes the base pack, so
 // its own synth patches are used (the Base pack box can still change that).
-async function loadSongPack(file) {
+async function loadSongPack(file, slot = null) {
   player.stop();
   setPlanButton(false);
   let pack;
@@ -280,7 +289,7 @@ async function loadSongPack(file) {
   $('#project-hint').textContent = choices.length > 1
     ? `${choices.length} projects in this ${label} pack have notes. Changing the project starts the parts and mutes again.`
     : `This ${label} pack has one project with notes.`;
-  selectProject(choices[0].slot);
+  selectProject(choices.some((p) => p.slot === slot) ? slot : choices[0].slot);
 }
 
 // Back to a MIDI song (or a new pack): a base pack taken from the old song pack goes back to TracksGM.

@@ -9,6 +9,7 @@ import { writeSMF } from './midiwrite.js';
 import { GM_NAMES } from './midifile.js';
 import { PROJECT_COLOURS } from './convert.js';
 import { Player } from './player.js';
+import { putHandoff } from './handoff.js';
 
 const $ = (id) => document.getElementById(id);
 const el = (tag, props = {}, ...kids) => {
@@ -45,15 +46,19 @@ drop.addEventListener('drop', (e) => { e.preventDefault(); const f = e.dataTrans
 async function openFile(file) {
   player.stop();
   setStatus('load-status', `Reading ${file.name}…`);
-  let pack;
+  let pack, buffer;
   try {
-    pack = await loadPack(await file.arrayBuffer(), file.name);
+    buffer = await file.arrayBuffer();
+    pack = await loadPack(buffer, file.name);
   } catch (err) {
     setStatus('load-status', err.message, true);
     return;
   }
   pack.fileName = file.name;
+  pack.buffer = buffer;
   state.pack = pack;
+  $('to-tracks').disabled = true;
+  setStatus('to-tracks-status', '');
   state.entry = null;
   setStatus('load-status', '');
   showPackInfo(pack);
@@ -147,6 +152,19 @@ $('compact').addEventListener('click', async () => {
 
 $('compact-only').addEventListener('change', () => state.pack && showCompact(state.pack, false));
 
+// Hand the pack and chosen project to MIDI2Circuit.
+$('to-tracks').addEventListener('click', async () => {
+  if (!state.pack || !state.entry) return;
+  player.stop();
+  setStatus('to-tracks-status', 'Opening MIDI2Circuit…');
+  try {
+    await putHandoff({ buffer: state.pack.buffer, fileName: state.pack.fileName, slot: state.entry.slot });
+    location.href = '../?from=circuit2midi';
+  } catch (err) {
+    setStatus('to-tracks-status', `Could not hand the pack over (${err.message}). Open MIDI2Circuit and drop the pack there instead.`, true);
+  }
+});
+
 // ---------- 3. Project ----------
 
 function showProjects(pack) {
@@ -181,6 +199,7 @@ async function selectProject(e) {
   player.stop();
   setPlayButton(false);
   state.entry = e;
+  $('to-tracks').disabled = false;
   for (const b of document.querySelectorAll('.proj')) b.setAttribute('aria-checked', String(Number(b.dataset.slot) === e.slot));
   const song = songOf(state.pack, e);
   state.song = song;
