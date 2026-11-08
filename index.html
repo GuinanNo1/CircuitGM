@@ -16,14 +16,14 @@
   <div class="wrap">
     <h1>TracksGM <span>MIDI to Circuit Tracks Converter (MIDI2Circuit)</span> <em class="badge">alpha 0.1</em></h1>
     <p class="helplinks"><a href="help.html#quickstart">Quickstart</a> · <a href="help.html">User guide</a> · <a href="circuit2midi/">Circuit2MIDI (Circuit packs to MIDI)</a></p>
-    <p class="lede">Turn a General MIDI file into a Novation Circuit Tracks pack. Pick the parts you want, hear how they'll play, and download a <code>.circuittrackspack</code> for Novation Components, built on the <a href="https://github.com/GuinanNo1/TracksGM/tree/pack-build">TracksGM Universal Circuit Tracks Pack (TracksGM Pack)</a> or a pack of your own.</p>
+    <p class="lede">Turn a General MIDI file, or a project from a Circuit Tracks or Circuit Rhythm pack, into a Novation Circuit Tracks pack. Pick the parts you want, hear how they'll play, and download a <code>.circuittrackspack</code> for Novation Components, built on the <a href="https://github.com/GuinanNo1/TracksGM/tree/pack-build">TracksGM Universal Circuit Tracks Pack (TracksGM Pack)</a> or a pack of your own.</p>
     <p class="alpha">Alpha 0.1, for testing. Packs load and play on the Circuit Tracks, but the project format is reverse-engineered: keep a backup of your packs, and please report anything odd on <a href="https://github.com/GuinanNo1/TracksGM/issues">GitHub</a>.</p>
   </div>
 </header>
 
 <main class="wrap">
   <section class="panel" id="step-load">
-    <h2><span class="num">1</span> Load a MIDI file</h2>
+    <h2><span class="num">1</span> Load a MIDI file or Circuit pack</h2>
     <div class="basepack" id="basepack">
       <div class="bp-info">
         <span class="k">Base pack</span>
@@ -34,14 +34,18 @@
         <label class="btn small filebtn">Use another pack…<input type="file" id="base-file" accept=".circuittrackspack,.zip"></label>
         <button class="btn small" id="base-reset" type="button" hidden>Back to TracksGM_final</button>
       </div>
-      <p class="hint small">The converted song is added to this pack's patches and drum samples. To use a different pack, drop a <code>.circuittrackspack</code> here or on the box below. <a href="help.html#base-pack">How other packs are used</a></p>
+      <p class="hint small">The converted song is added to this pack's patches and drum samples (a Circuit pack loaded as the song brings its own drum samples). To use a different pack, drop a <code>.circuittrackspack</code> here. <a href="help.html#base-pack">How other packs are used</a></p>
     </div>
     <label class="drop" id="drop">
-      <input type="file" id="file" accept=".mid,.midi,.rmi,.kar,audio/midi,.circuittrackspack">
-      <span class="drop-main">Drop a .mid file here, or <u>choose one</u></span>
-      <span class="drop-sub">Standard MIDI files (type 0 or 1), or a <code>.circuittrackspack</code> to use as the base pack. Nothing is uploaded; everything runs in your browser.</span>
+      <input type="file" id="file" accept=".mid,.midi,.rmi,.kar,audio/midi,.circuittrackspack,.circuitrhythmpack">
+      <span class="drop-main">Drop a song here, or <u>choose one</u></span>
+      <span class="drop-sub">A Standard MIDI file (type 0 or 1), or a Circuit Tracks or Circuit Rhythm pack (<code>.circuittrackspack</code>, <code>.circuitrhythmpack</code>) to convert one of its projects. Nothing is uploaded; everything runs in your browser.</span>
     </label>
     <div class="fileinfo" id="fileinfo" hidden></div>
+    <div class="projpick" id="projpick" hidden>
+      <div class="field"><label for="project">Project</label><select id="project"></select></div>
+      <p class="hint small" id="project-hint"></p>
+    </div>
   </section>
 
   <section class="panel" id="step-tracks" hidden>
@@ -60,7 +64,7 @@
     <div class="sounds">
       <div class="field role-s1"><label for="patch-s1">Synth 1 patch</label><select id="patch-s1"></select><span class="sub" id="sub-s1"></span></div>
       <div class="field role-s2"><label for="patch-s2">Synth 2 patch</label><select id="patch-s2"></select><span class="sub" id="sub-s2"></span></div>
-      <div class="field role-dr"><label for="kit">Drum kit</label><select id="kit"></select><span class="sub">Drum 1 kick · Drum 2 snare/toms · Drum 3 hi-hats · Drum 4 percussion</span></div>
+      <div class="field role-dr"><label for="kit">Drum kit</label><select id="kit"></select><b class="packdrums" id="kit-pack" hidden></b><span class="sub" id="kit-sub">Drum 1 kick · Drum 2 snare/toms · Drum 3 hi-hats · Drum 4 percussion</span></div>
       <div class="field role-m"><label>MIDI 1 &amp; 2</label><p class="sub" id="sub-midi">These send notes on the MIDI channels set on your Circuit Tracks (Setup view), to play external gear.</p></div>
     </div>
     <div class="transpose" id="transpose"></div>
@@ -68,6 +72,11 @@
 
   <section class="panel" id="step-arrange" hidden>
     <h2><span class="num">4</span> Check the arrangement</h2>
+    <div class="shrink" id="shrink" hidden>
+      <div class="field check"><label><input type="checkbox" id="shrink-on" checked> Shrink the pack: keep only the patches and samples the song uses</label></div>
+      <p class="hint small" id="shrink-info"></p>
+      <ul class="warnings" id="shrink-warn"></ul>
+    </div>
     <div class="options">
       <div class="field"><label for="section-bars">Section length</label>
         <select id="section-bars"><option value="auto" selected>Auto (fewest projects)</option><option value="4">4 bars</option><option value="8">8 bars</option><option value="16">16 bars</option><option value="32">32 bars</option></select></div>

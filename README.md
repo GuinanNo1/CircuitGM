@@ -21,7 +21,7 @@ Sending the pack to the Tracks replaces the pack in that slot, so send it to a s
 
 ### Using it
 
-1. **Load a MIDI file.** The **Base pack** box at the top shows the pack the song is built on (*TracksGM_final* unless you change it). Then drop a `.mid` file on the page or choose one. Type 0 and type 1 files both work. Each MIDI track and channel becomes a separate part.
+1. **Load a MIDI file or Circuit pack.** The **Base pack** box at the top shows the pack the song is built on (*TracksGM_final* unless you change it). Then drop a `.mid` file on the page or choose one. Type 0 and type 1 files both work. Each MIDI track and channel becomes a separate part. A Circuit Tracks or Circuit Rhythm pack can be dropped there too: see [Converting a Circuit pack](#converting-a-circuit-tracks-or-circuit-rhythm-pack).
 2. **Choose the parts.** Give each part a Circuit Tracks track:
    - **S1 / S2** play on Synth 1 and Synth 2.
    - **M1 / M2** play external gear through MIDI 1 and MIDI 2.
@@ -56,9 +56,20 @@ Sending the pack to the Tracks replaces the pack in that slot, so send it to a s
 
    Open the pack in Novation Components and send it to your Circuit Tracks.
 
+### Converting a Circuit Tracks or Circuit Rhythm pack
+
+Drop a `.circuittrackspack` or `.circuitrhythmpack` on the song box in step 1 and pick a project. The project is played through as the Circuit plays it (scenes in saved order, pattern chains, step lengths, micro-steps, gates, ties, swing; read by the same code as Circuit2MIDI), and each Circuit track with notes becomes a part.
+
+- **Parts:** a Circuit Tracks project's parts go back to their own tracks. On a Circuit Rhythm, sample tracks at one pitch go to Drums and a track played at several pitches goes to a synth; any sample track can go to Drums.
+- **Drums:** the loaded pack's own samples, by sample slot (the kit list is hidden). Circuit Tracks drum parts keep their drum track; other samples go to Kick, Snare/Tom, Hi-hats or Perc by name. Drum tracks play one pitch per sample, so pitched Circuit Rhythm steps lose their pitch there.
+- **Patches:** a Circuit Tracks pack becomes the base pack, so the synths keep their own patches. A Circuit Rhythm pack has none, so the base pack supplies them.
+- **Shrink the pack** (step 4, on by default): only the two synth patches and the samples the song plays are kept; other slots are left empty, as Components stores them.
+- **Circuit Rhythm samples:** 128 slots into the Tracks' 64, so they are renumbered, the song's own first; samples that aren't 48 kHz 16-bit mono are converted. The converter warns when the samples pass the Tracks' 196.6 s.
+- **Not carried over:** mixer, effects, parameter locks and automation, and Circuit Rhythm sample settings other than the steps' pitch.
+
 ### Using a different base pack
 
-Click **Use another pack…** in step 1, or drop a `.circuittrackspack` on the Base pack box or the MIDI box, to build on another pack (an edited TracksGM Pack, or any pack exported from Components). **Back to TracksGM_final** switches back.
+Click **Use another pack…** in step 1, or drop a `.circuittrackspack` on the Base pack box, to build on another pack (an edited TracksGM Pack, or any pack exported from Components). **Back to TracksGM_final** switches back.
 
 - **Patches:** the synth lists show the pack's own patch names. Defaults still assume General MIDI order (slot = GM program, or the nearest filled slot below).
 - **Drums:** the 64 samples are read as 8 kits of 8, each in the order kick, snare, rim/clap, closed hat, open hat, tom, cymbal, percussion.
@@ -117,7 +128,8 @@ Click **Use another pack…** in step 1, or drop a `.circuittrackspack` on the B
 
 The project format is reverse-engineered. Confirmed on a Circuit Tracks (alpha 0.1): packs load, synth and drum parts play, and long held notes sustain correctly. Still to check:
 - the octave of notes sent on MIDI 1 and MIDI 2;
-- scenes playing through the song in order, each lasting as long as its longest pattern chain.
+- scenes playing through the song in order, each lasting as long as its longest pattern chain;
+- packs converted from a Circuit Rhythm pack (renumbered and converted samples) loading and playing on the Tracks.
 
 ## TracksGM Circuit Tracks to MIDI Converter (Circuit2MIDI) (alpha 0.1)
 
@@ -167,12 +179,13 @@ Then open <http://localhost:8765/> (MIDI2Circuit) or <http://localhost:8765/circ
 | `js/app.js` | The page logic: loading, part picker, sounds, arrangement view, build. |
 | `js/midifile.js` | MIDI file reader. |
 | `js/convert.js` | Quantising, drum mapping, and laying the song out as patterns, scenes and projects. |
-| `js/build.js` | Writes the `.ncs` projects and the pack. |
+| `js/build.js` | Writes the `.ncs` projects and the pack; with a Circuit pack as the song, combines its samples with the base pack's patches, shrinks and converts them. |
 | `js/player.js` | Preview playback (Web Audio), for both pages. |
 | `js/c2m.js` | Circuit2MIDI's page logic. |
 | `js/pack.js` | Reads Circuit Tracks and Circuit Rhythm packs, finds the samples and patches in use, writes compacted packs. |
 | `js/rhythm.js` | Circuit Rhythm project reader. |
 | `js/song.js` | Turns a project into scenes, chains and timed notes, and maps them to MIDI. |
+| `js/packsong.js` | MIDI2Circuit: a Circuit Tracks or Circuit Rhythm project as converter parts. |
 | `js/midiwrite.js` | Standard MIDI file writer. |
 | `docs/circuit-rhythm-format.md` | The Circuit Rhythm project format, as far as it is known. |
 | `js/vendor/ncs.js`, `js/vendor/zip.js` | Project file reader/writer and zip code from circuit-tracks-tools (MIT licence, see `js/vendor/LICENSE-circuit-tracks-tools.txt`). |
@@ -186,9 +199,10 @@ Running the tests needs Node.js 18 or later and some MIDI files, for example Gen
 node tests/build_test.mjs "path/to/song.mid" out     # build a pack, read every note back
 node tests/validate.mjs out/project_*.ncs            # range checks
 node tests/roundtrip.mjs                             # MIDI -> MIDI2Circuit -> Circuit2MIDI -> MIDI, every note compared
+node tests/pack2pack.mjs [out-dir]                   # Circuit Tracks / Rhythm pack -> MIDI2Circuit -> pack, every hit compared
 ```
 
-The browser tests use Playwright with the page served on port 8765: `tests/ui_test.cjs` and `tests/ui_mutes.cjs` for MIDI2Circuit, and `node tests/ui_c2m.cjs <screenshot dir> <pack> [<pack> ...]` for Circuit2MIDI.
+The browser tests use Playwright with the page served on port 8765: `tests/ui_test.cjs` and `tests/ui_mutes.cjs` for MIDI2Circuit, `node tests/ui_p2p.cjs <screenshot dir> <rhythm pack> <tracks pack> <midi file>` for MIDI2Circuit with a Circuit pack (`tests/pack2pack.mjs <out-dir>` writes suitable packs), and `node tests/ui_c2m.cjs <screenshot dir> <pack> [<pack> ...]` for Circuit2MIDI.
 
 ## Credits and licences
 

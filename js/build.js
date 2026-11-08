@@ -60,9 +60,16 @@ export function buildProjects(plan, base, settings) {
     proj.synth1Patch = base.patches[s1].data;
     proj.synth2Patch = base.patches[s2].data;
 
+    // Drum sounds: a kit part (MIDI files) or '#<slot>', a sample slot of the loaded Circuit
+    // pack, which settings.sampleMap renumbers into the built pack (missing = left out).
     const kitBase = settings.kit * 8;
-    const slotOf = (part) => kitBase + KIT_PARTS.indexOf(part);
-    const drumDefault = plan.drumDefaults.map(slotOf);
+    const map = settings.sampleMap;
+    const firstSlot = map ? Math.min(...map.values()) : 0;
+    const slotOf = (part) => {
+      if (typeof part === 'string' && part[0] === '#') return map ? map.get(Number(part.slice(1))) : Number(part.slice(1));
+      return map ? firstSlot : kitBase + KIT_PARTS.indexOf(part);
+    };
+    const drumDefault = plan.drumDefaults.map((p) => slotOf(p) ?? firstSlot);
 
     for (let t = 0; t < 8; t++) {
       if (!plan.active[t]) continue;
@@ -140,6 +147,7 @@ function drumSteps(content, slotOf, defaultSlot) {
   if (!content) return steps;
   for (const s of content.steps) {
     const slot = slotOf(s.part);
+    if (slot == null) continue;
     steps[s.step] = {
       active: true,
       velocity: s.vel,
@@ -172,6 +180,140 @@ export async function buildPack(base, projects, { name, color }) {
   }
   projects.forEach((p, i) => entries.push({ name: `projects/project_${i}.ncs`, data: p.bytes }));
   return writeZip(entries);
+}
+
+// ---------- Building on a loaded Circuit pack ----------
+
+export const SAMPLE_CAP_S = 196.6;       // Circuit Tracks: total sample time in a pack
+export const SAMPLE_MAX_S = 98.3;        // and the longest single sample
+const RATE = 48000;
+
+// The pack to build: the base pack's patches with the loaded Circuit pack's samples.
+//   src: the loaded pack (js/pack.js); slots: the sample slots the song plays.
+//   shrink: keep only the samples the song plays and the patches in keepPatches.
+// A Circuit Tracks pack's samples keep their slot numbers. A Circuit Rhythm pack has 128
+// slots and the Tracks 64, so its samples are renumbered: the song's own first, then (when
+// not shrinking) the others while slots and sample time last. Samples not already 48 kHz,
+// 16-bit mono are converted. Returns { base, sampleMap (old slot -> new), seconds, warnings }.
+export async function composePack(base, src, { slots, shrink = false, keepPatches = null }) {
+  const N = base.index.samples.length || 64;
+  const rhythm = src.product === 'circuit-rhythm';
+  const srcSamples = src.index.samples ?? [];
+  const present = (s) => !!(srcSamples[s]?.url && src.zip.get(srcSamples[s].url));
+  const used = slots.filter(present);
+  const warnings = [];
+  const missing = slots.filter((s) => !present(s));
+  if (missing.length) warnings.push(`${missing.length} sample slot${missing.length > 1 ? 's' : ''} the song plays ${missing.length > 1 ? 'are' : 'is'} empty in the loaded pack (${missing.map((s) => s + 1).join(', ')}).`);
+
+  const data = new Map();     // src slot -> { bytes, seconds }
+  const read = async (s) => {
+    if (!data.has(s)) data.set(s, toTracksWav(new Uint8Array(await src.zip.get(srcSamples[s].url)())));
+    return data.get(s);
+  };
+  const sampleMap = new Map();
+  let seconds = 0;
+  const take = async (s, dst, onlyIfFits) => {
+    const w = await read(s);
+    if (!w) { warnings.push(`Sample ${s + 1} (${srcSamples[s]?.name || 'no name'}) could not be read as a WAV file and was left out.`); return false; }
+    if (onlyIfFits && seconds + w.seconds > SAMPLE_CAP_S) return false;
+    sampleMap.set(s, dst);
+    seconds += w.seconds;
+    return true;
+  };
+  if (!rhythm) {
+    for (const s of used) if (s < N) await take(s, s, false);
+    if (!shrink) for (let s = 0; s < N; s++) if (!sampleMap.has(s) && present(s)) await take(s, s, false);
+  } else {
+    let dst = 0;
+    const over = [];
+    for (const s of used) {
+      if (dst >= N) { over.push(s); continue; }
+      if (await take(s, dst, false)) dst++;
+    }
+    if (over.length) warnings.push(`The song plays ${used.length} different samples, and a Circuit Tracks pack holds ${N}. The hits of ${over.length} sample${over.length > 1 ? 's' : ''} (${over.map((s) => srcSamples[s]?.name || `slot ${s + 1}`).join(', ')}) are left out.`);
+    if (!shrink) for (let s = 0; s < srcSamples.length && dst < N; s++) if (!sampleMap.has(s) && present(s) && await take(s, dst, true)) dst++;
+  }
+  if (seconds > SAMPLE_CAP_S) warnings.push(`The samples add up to ${seconds.toFixed(1)} s, more than the ${SAMPLE_CAP_S} s a Circuit Tracks pack holds. Components does not warn about this: check the pack on the Tracks, or use shorter samples.`);
+  const long = [...sampleMap.keys()].filter((s) => data.get(s).seconds > SAMPLE_MAX_S);
+  if (long.length) warnings.push(`${long.length} sample${long.length > 1 ? 's are' : ' is'} longer than the ${SAMPLE_MAX_S} s the Tracks plays.`);
+
+  const index = JSON.parse(JSON.stringify(base.index));
+  const byDst = new Map([...sampleMap].map(([s, d]) => [d, s]));
+  const files = new Map();
+  index.samples = Array.from({ length: N }, (_, d) => {
+    const url = base.index.samples[d]?.url ?? `samples/sample_${d}.wav`;
+    const s = byDst.get(d);
+    if (s == null) return { name: '', url };
+    files.set(url, data.get(s).bytes);
+    return { name: srcSamples[s].name ?? '', url };
+  });
+  const sampleUrls = new Set(index.samples.map((x) => x.url));
+  const dropPatch = new Set();
+  if (keepPatches) {
+    const keep = new Set(keepPatches);
+    index.patches.forEach((p, i) => { if (p && !keep.has(i)) { p.name = ''; dropPatch.add(p.url); } });
+  }
+  const zip = {
+    get(url) {
+      if (sampleUrls.has(url)) return files.has(url) ? async () => files.get(url).slice().buffer : null;
+      if (dropPatch.has(url)) return null;
+      return base.zip.get(url);
+    },
+  };
+  return { base: { ...base, index, zip }, sampleMap, seconds, warnings };
+}
+
+// A WAV file as the Circuit Tracks stores it (48 kHz, 16-bit, mono), plus its length.
+// Returns null for anything that isn't PCM or float WAV.
+export function toTracksWav(bytes) {
+  const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const tag = (o) => String.fromCharCode(bytes[o], bytes[o + 1], bytes[o + 2], bytes[o + 3]);
+  if (bytes.length < 12 || tag(0) !== 'RIFF' || tag(8) !== 'WAVE') return null;
+  let fmt = null, data = null;
+  for (let o = 12; o + 8 <= bytes.length;) {
+    const id = tag(o), size = dv.getUint32(o + 4, true);
+    if (id === 'fmt ') fmt = { format: dv.getUint16(o + 8, true), ch: dv.getUint16(o + 10, true), rate: dv.getUint32(o + 12, true), bits: dv.getUint16(o + 22, true), sub: size >= 26 ? dv.getUint16(o + 32, true) : null };
+    if (id === 'data') data = { at: o + 8, size: Math.min(size, bytes.length - o - 8) };
+    o += 8 + size + (size & 1);
+  }
+  if (!fmt || !data || !fmt.ch || !fmt.rate) return null;
+  const format = fmt.format === 0xfffe ? fmt.sub : fmt.format;   // WAVE_FORMAT_EXTENSIBLE: sub-format GUID
+  if (format !== 1 && format !== 3) return null;
+  const bps = fmt.bits / 8;
+  const frames = Math.floor(data.size / (bps * fmt.ch));
+  if (format === 1 && fmt.bits === 16 && fmt.ch === 1 && fmt.rate === RATE) {
+    return { bytes: bytes.slice(), seconds: frames / RATE };
+  }
+  const read = (i) => {
+    const o = data.at + i * bps;
+    if (format === 3) return bps === 8 ? dv.getFloat64(o, true) : dv.getFloat32(o, true);
+    if (fmt.bits === 8) return (bytes[o] - 128) / 128;
+    if (fmt.bits === 16) return dv.getInt16(o, true) / 32768;
+    if (fmt.bits === 24) return ((bytes[o] | bytes[o + 1] << 8 | bytes[o + 2] << 16) << 8 >> 8) / 8388608;
+    return dv.getInt32(o, true) / 2147483648;
+  };
+  const mono = new Float32Array(frames);
+  for (let f = 0; f < frames; f++) {
+    let v = 0;
+    for (let c = 0; c < fmt.ch; c++) v += read(f * fmt.ch + c);
+    mono[f] = v / fmt.ch;
+  }
+  const outFrames = Math.max(1, Math.round(frames * RATE / fmt.rate));
+  const out = new Uint8Array(44 + outFrames * 2);
+  const ov = new DataView(out.buffer);
+  const put = (o, s) => { for (let i = 0; i < 4; i++) out[o + i] = s.charCodeAt(i); };
+  put(0, 'RIFF'); ov.setUint32(4, 36 + outFrames * 2, true); put(8, 'WAVE');
+  put(12, 'fmt '); ov.setUint32(16, 16, true); ov.setUint16(20, 1, true); ov.setUint16(22, 1, true);
+  ov.setUint32(24, RATE, true); ov.setUint32(28, RATE * 2, true); ov.setUint16(32, 2, true); ov.setUint16(34, 16, true);
+  put(36, 'data'); ov.setUint32(40, outFrames * 2, true);
+  const step = fmt.rate / RATE;
+  for (let i = 0; i < outFrames; i++) {
+    const x = i * step, i0 = Math.floor(x), fr = x - i0;
+    const a = mono[Math.min(i0, frames - 1)] ?? 0, b = mono[Math.min(i0 + 1, frames - 1)] ?? a;
+    const v = Math.max(-1, Math.min(1, a + (b - a) * fr));
+    ov.setInt16(44 + i * 2, Math.round(v * 32767), true);
+  }
+  return { bytes: out, seconds: outFrames / RATE };
 }
 
 function asciiName(s, n) {

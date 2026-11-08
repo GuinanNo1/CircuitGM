@@ -34,6 +34,11 @@ export function gmDrum(note) {
   if ([49, 51, 52, 53, 55, 57, 59].includes(note)) return [3, 'cymbal'];
   return [3, 'perc'];
 }
+// A drum hit's track (0-3) and sound. Hits from a Circuit pack carry their own sample slot,
+// written '#<slot>' (js/build.js turns it back into the slot); MIDI hits use a kit part.
+// Circuit Tracks drum hits keep their drum track (`lane`); others go by their GM drum note.
+export function laneOf(n) { return n.lane ?? gmDrum(n.drumNote ?? n.note)[0]; }
+export function partOf(n) { return n.slot != null ? `#${n.slot}` : gmDrum(n.note)[1]; }
 // Project colours as stored in the .ncs header (0-13), with the RGB the Tracks shows
 // (circuit-tracks-tools docs/ncs-format.md, "Project Color Table").
 export const PROJECT_COLOURS = [
@@ -109,7 +114,7 @@ export function arrange(midi, assignment, options = {}) {
   });
   const drumSrcs = pick('DR');
   const drumHits = drumSrcs.length
-    ? drumSrcs.flatMap((s) => s.notes.filter((n) => !muted(s.id, n.tick) && !muted(`lane${4 + gmDrum(n.note)[0]}`, n.tick)).map(quant))
+    ? drumSrcs.flatMap((s) => s.notes.filter((n) => !muted(s.id, n.tick) && !muted(`lane${4 + laneOf(n)}`, n.tick)).map(quant))
     : null;
   const active = [...melodic.map(Boolean), ...[0, 1, 2, 3].map(() => !!drumHits)];
 
@@ -215,7 +220,7 @@ export function arrange(midi, assignment, options = {}) {
         const c = Math.floor(pos / chunkMicro);
         if (c >= totalChunks) continue;
         const local = pos - c * chunkMicro;
-        const [dt, part] = gmDrum(n.note);
+        const dt = laneOf(n), part = partOf(n);
         contents[4 + dt][c].items.push({ step: Math.floor(local / MICRO), tick: local % MICRO, part, vel: n.vel });
       }
     }

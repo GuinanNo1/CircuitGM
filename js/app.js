@@ -1,6 +1,8 @@
 import { parseMidi, GM_NAMES } from './midifile.js';
-import { arrange, playOrder, gmDrum, patternBars, projectColours, PROJECT_COLOURS, RATES, TRACKS, KITS, KIT_PARTS, MELODIC_ROLES } from './convert.js';
-import { loadBase, loadBaseFromBuffers, buildProjects, buildPack } from './build.js';
+import { arrange, playOrder, laneOf, partOf, patternBars, projectColours, PROJECT_COLOURS, RATES, TRACKS, KITS, KIT_PARTS, MELODIC_ROLES } from './convert.js';
+import { loadBase, loadBaseFromBuffers, buildProjects, buildPack, composePack, SAMPLE_CAP_S } from './build.js';
+import { loadPack, PRODUCTS } from './pack.js';
+import { packSong, projectChoices } from './packsong.js';
 import { Player } from './player.js';
 
 const $ = (s) => document.querySelector(s);
@@ -17,8 +19,10 @@ const state = {
   base: null,
   defaultBase: null,
   baseName: DEFAULT_PACK,
-  midi: null,
+  midi: null,               // the song: parsed MIDI, or a pack project (js/packsong.js)
   fileName: '',
+  songPack: null,           // the loaded Circuit pack when the song comes from one
+  songPackName: '',
   roleOf: new Map(),        // source id -> role
   patchTouched: [false, false],
   transpose: { S1: 0, S2: 0, M1: 0, M2: 0 },
@@ -51,11 +55,16 @@ async function init() {
   $('#grid').addEventListener('click', onGridClick);
   $('#build').addEventListener('click', build);
   $('#projcolors').addEventListener('change', () => state.plan && renderGrid(state.plan));
+  $('#project').addEventListener('change', () => selectProject(Number($('#project').value)));
+  $('#shrink-on').addEventListener('change', updateShrinkInfo);
+  $('#patch-s1').addEventListener('change', updateShrinkInfo);
+  $('#patch-s2').addEventListener('change', updateShrinkInfo);
   player.onEnd = () => { setPlanButton(false); setSourceButton(null); };
 }
 
-const isPack = (f) => /\.(circuittrackspack|zip)$/i.test(f.name);
-function routeFile(f) { if (isPack(f)) loadBaseFile(f); else loadFile(f); }
+const isPack = (f) => /\.(circuittrackspack|circuitrhythmpack|zip)$/i.test(f.name);
+function routeFile(f) { if (isPack(f)) loadSongPack(f); else loadFile(f); }
+const fromPack = () => state.midi?.format === 'pack';
 
 function wireLoad() {
   const drop = $('#drop');
@@ -81,6 +90,11 @@ function wireLoad() {
 async function loadBaseFile(file) {
   const status = $('#base-status');
   if (!state.defaultBase) return;
+  if (/\.circuitrhythmpack$/i.test(file.name)) {
+    status.textContent = `${file.name} is a Circuit Rhythm pack, which has no synth patches, so it can't be the base pack. Drop it on the song box below to convert one of its projects. Still using ${state.baseName}.`;
+    status.classList.add('error');
+    return;
+  }
   status.classList.remove('error');
   status.textContent = `Reading ${file.name}…`;
   try {
@@ -107,16 +121,27 @@ function setBase(base, name) {
   status.classList.remove('error');
   status.textContent = isDefault
     ? `TracksGM Pack: ${nPatch} patches, ${nSamp} drum samples.`
-    : `${base.index.name ? `“${base.index.name}”: ` : ''}${nPatch} patches, ${nSamp} drum samples.`
-      + (nProj ? ` Its ${nProj} project${nProj > 1 ? 's' : ''} will be replaced by the converted song.` : '');
+    : base.fromSong
+      ? `The loaded pack's own ${nPatch} patches. Its projects are not copied; the converted project replaces them.`
+      : `${base.index.name ? `“${base.index.name}”: ` : ''}${nPatch} patches, ${nSamp} drum samples.`
+        + (nProj ? ` Its ${nProj} project${nProj > 1 ? 's' : ''} will be replaced by the converted song.` : '');
   $('#base-reset').hidden = isDefault;
-  $('#base-summary').textContent = isDefault
-    ? `TracksGM Pack: ${nPatch} patches, ${nSamp} drum samples`
-    : `${name}: ${nPatch} patches, ${nSamp} drum samples`;
   fillPatchSelects();
   fillKitSelect();
   loadedKit = -1;
+  updateBaseSummary();
   if (state.midi) { rolesChanged(); }
+}
+
+function updateBaseSummary() {
+  if (!state.base) return;
+  const base = state.base;
+  const nPatch = base.patches.filter((p) => p.data).length;
+  const nSamp = base.samples.filter((s) => s.present).length;
+  const label = base === state.defaultBase ? 'TracksGM Pack' : state.baseName;
+  $('#base-summary').textContent = fromPack()
+    ? `${label}'s ${nPatch} patches, with the drum samples of ${state.songPackName}`
+    : `${label}: ${nPatch} patches, ${nSamp} drum samples`;
 }
 
 function fillPatchSelects() {
@@ -165,6 +190,21 @@ function fillKitSelect() {
 
 let loadedKit = -1;
 async function loadKitSamples() {
+  if (fromPack()) {
+    // Preview with the loaded pack's own samples, keyed '#<slot>' as in the arrangement.
+    const key = `pack:${state.midi.entry.slot}`;
+    if (loadedKit === key) return;
+    loadedKit = key;
+    const map = new Map();
+    const pk = state.songPack;
+    for (const slot of state.midi.sampleSlots) {
+      const s = pk.index.samples?.[slot];
+      const get = s?.url && pk.zip.get(s.url);
+      if (get) map.set(`#${slot}`, await get());
+    }
+    try { await player.setDrumSamples(map); } catch { /* audio not available yet */ }
+    return;
+  }
   if (!state.base) return;
   const kit = Number($('#kit').value);
   if (kit === loadedKit) return;
@@ -179,32 +219,114 @@ async function loadKitSamples() {
 }
 
 // ---------- step 1: file ----------
+const STEPS_AFTER = ['#step-tracks', '#step-sounds', '#step-arrange', '#step-build'];
+function loadError(msg) {
+  const info = $('#fileinfo');
+  info.hidden = false;
+  info.innerHTML = `<span class="status error">${esc(msg)}</span>`;
+  $('#projpick').hidden = true;
+  for (const id of STEPS_AFTER) $(id).hidden = true;
+}
+
 async function loadFile(file) {
   player.stop();
   setPlanButton(false);
   try {
     const midi = parseMidi(await file.arrayBuffer());
     if (!midi.sources.length) throw new Error('The file has no notes.');
+    await leavePackSong();
     state.midi = midi;
     state.fileName = file.name.replace(/\.(mid|midi|rmi|kar)$/i, '');
   } catch (e) {
-    const info = $('#fileinfo');
-    info.hidden = false;
-    info.innerHTML = `<span class="status error">${esc(e.message)}</span>`;
-    for (const id of ['#step-tracks', '#step-sounds', '#step-arrange', '#step-build']) $(id).hidden = true;
+    loadError(e.message);
     return;
   }
+  $('#projpick').hidden = true;
+  songLoaded([['File', esc(file.name)]]);
+}
+
+// A Circuit Tracks or Circuit Rhythm pack as the song: pick one of its projects. Its drum
+// samples go into the converted pack; a Circuit Tracks pack also becomes the base pack, so
+// its own synth patches are used (the Base pack box can still change that).
+async function loadSongPack(file) {
+  player.stop();
+  setPlanButton(false);
+  let pack;
+  try {
+    const buf = await file.arrayBuffer();
+    pack = await loadPack(buf, file.name);
+    if (!projectChoices(pack).length) throw new Error(`${file.name} has no saved projects with notes to convert.`);
+    await leavePackSong();
+    state.songPack = pack;
+    state.songPackName = file.name.replace(/\.(circuittrackspack|circuitrhythmpack|zip)$/i, '');
+    if (pack.product === 'circuit-tracks' && state.defaultBase) {
+      try {
+        const base = await loadBaseFromBuffers(buf, state.defaultBase.template);
+        base.fromSong = true;
+        setBase(base, state.songPackName);
+      } catch { /* no patches: keep the current base pack */ }
+    }
+  } catch (e) {
+    loadError(e.message.replace('Circuit2MIDI reads', 'MIDI2Circuit reads'));
+    return;
+  }
+  const choices = projectChoices(pack);
+  const sel = $('#project');
+  sel.innerHTML = choices.map((p) => `<option value="${p.slot}">${p.slot + 1}. ${esc(p.name || `Project ${p.slot + 1}`)}</option>`).join('');
+  $('#projpick').hidden = false;
+  const label = PRODUCTS[pack.product].label;
+  $('#project-hint').textContent = choices.length > 1
+    ? `${choices.length} projects in this ${label} pack have notes. Changing the project starts the parts and mutes again.`
+    : `This ${label} pack has one project with notes.`;
+  selectProject(choices[0].slot);
+}
+
+// Back to a MIDI song (or a new pack): a base pack taken from the old song pack goes back to TracksGM.
+async function leavePackSong() {
+  if (fromPack()) state.midi = null;
+  state.songPack = null;
+  if (state.base?.fromSong && state.defaultBase) setBase(state.defaultBase, DEFAULT_PACK);
+  state.songPackName = '';
+  loadedKit = -1;
+}
+
+function selectProject(slot) {
+  const pack = state.songPack;
+  const entry = pack.projects[slot];
+  player.stop();
+  setPlanButton(false);
+  try {
+    state.midi = packSong(pack, entry);
+    if (!state.midi.sources.length) throw new Error('This project has no notes to convert.');
+  } catch (e) {
+    state.midi = null;
+    loadError(`Could not read project ${slot + 1}: ${e.message}`);
+    $('#projpick').hidden = false;
+    return;
+  }
+  $('#project').value = String(slot);
+  state.fileName = state.midi.song.name;
+  loadedKit = -1;
+  songLoaded([
+    ['Pack', `${esc(state.songPackName)} (${PRODUCTS[pack.product].label})`],
+    ['Project', esc(state.midi.song.name)],
+    ['Scenes', state.midi.scenes],
+  ]);
+}
+
+function songLoaded(firstRows) {
   const m = state.midi;
   const bars = m.lengthTicks / (m.ppq * 4 * m.timeSig.num / m.timeSig.den);
   const info = $('#fileinfo');
   info.hidden = false;
   info.innerHTML = [
-    ['File', esc(file.name)],
+    ...firstRows,
     ['Tempo', `${round1(m.tempo)} BPM${m.tempoChanges ? ` (+${m.tempoChanges} changes)` : ''}`],
     ['Time', `${m.timeSig.num}/${m.timeSig.den}`],
     ['Length', `${Math.ceil(bars)} bars`],
     ['Parts', m.sources.length],
   ].map(([k, v]) => `<span><span class="k">${k}</span><b>${v}</b></span>`).join('');
+  renderSongPackParts();
 
   defaultRoles();
   state.mutes = { all: new Set(), bars: new Map() };
@@ -215,13 +337,64 @@ async function loadFile(file) {
   $('#title').value = ascii(state.fileName).slice(0, 28);
   $('#packname').value = `TracksGM ${ascii(state.fileName)}`.slice(0, 40);
   renderTracks();
-  for (const id of ['#step-tracks', '#step-sounds', '#step-arrange', '#step-build']) $(id).hidden = false;
+  for (const id of STEPS_AFTER) $(id).hidden = false;
   rolesChanged();
+}
+
+// Steps 3 and 4 when the song is a pack project: drums are its own samples, and the pack
+// can be shrunk.
+function renderSongPackParts() {
+  const pk = fromPack();
+  $('#kit').hidden = pk;
+  $('#kit-pack').hidden = !pk;
+  $('#shrink').hidden = !pk;
+  $('#kit-sub').textContent = pk
+    ? 'The drum tracks play the loaded pack\'s own samples. Circuit Tracks drum parts keep their drum track; other samples go to Kick, Snare/Tom, Hi-hats or Perc by their name.'
+    : 'Drum 1 kick · Drum 2 snare/toms · Drum 3 hi-hats · Drum 4 percussion';
+  $('label[for="kit"]').textContent = pk ? 'Drums' : 'Drum kit';
+  updateBaseSummary();
+}
+
+// The sample slots the drum tracks play (unmuted parts only are not tracked: mutes can
+// change bar by bar, so every sample of the parts sent to Drums is kept).
+function drumSlots() {
+  if (!fromPack()) return [];
+  return [...new Set(sourcesFor('DR').flatMap((s) => s.notes.map((n) => n.slot)))].filter((x) => x != null).sort((a, b) => a - b);
+}
+
+let shrinkRun = 0;
+async function updateShrinkInfo() {
+  if (!fromPack() || !state.base) return;
+  const run = ++shrinkRun;
+  const slots = drumSlots();
+  $('#kit-pack').textContent = slots.length
+    ? `${slots.length} sample${slots.length > 1 ? 's' : ''} from ${state.songPackName}`
+    : 'No part is on the drum tracks';
+  const shrink = $('#shrink-on').checked;
+  const patches = [Number($('#patch-s1').value), Number($('#patch-s2').value)];
+  let res;
+  try {
+    res = await composePack(state.base, state.songPack, { slots, shrink, keepPatches: shrink ? patches : null });
+  } catch (e) {
+    if (run === shrinkRun) $('#shrink-info').textContent = `Could not read the pack's samples: ${e.message}`;
+    return;
+  }
+  if (run !== shrinkRun) return;
+  const nS = res.sampleMap.size;
+  const nP = state.base.patches.filter((p) => p.data).length;
+  const keptP = shrink ? new Set(patches).size : nP;
+  const rhythm = state.songPack.product === 'circuit-rhythm';
+  $('#shrink-info').textContent = `The pack will hold ${keptP} patch${keptP === 1 ? '' : 'es'} and ${nS} sample${nS === 1 ? '' : 's'} (${res.seconds.toFixed(1)} s of the ${SAMPLE_CAP_S} s a Circuit Tracks pack holds).`
+    + (rhythm ? ' A Circuit Rhythm pack has 128 sample slots and the Tracks 64, so the samples are renumbered, the song\'s own first.' : '')
+    + (shrink ? '' : ' Tick the box to leave out what the song doesn\'t use.');
+  $('#shrink-warn').innerHTML = res.warnings.map((w) => `<li>${esc(w)}</li>`).join('');
 }
 
 function defaultRoles() {
   state.roleOf.clear();
   const src = state.midi.sources;
+  // A Circuit Tracks project's parts go back to their own tracks.
+  if (src.some((s) => s.role)) { for (const s of src) if (s.role) state.roleOf.set(s.id, s.role); return; }
   for (const s of src) if (s.isDrum) state.roleOf.set(s.id, 'DR');
   const mel = src.filter((s) => !s.isDrum).sort((a, b) => b.notes.length - a.notes.length);
   ['S1', 'S2', 'M1', 'M2'].forEach((r, i) => { if (mel[i]) state.roleOf.set(mel[i].id, r); });
@@ -235,13 +408,13 @@ function renderTracks() {
   for (const s of state.midi.sources) {
     const tr = document.createElement('tr');
     const ch = `ch ${s.channel + 1}`;
-    const sub = s.isDrum ? `GM drums · ${ch}` : `${GM_NAMES[s.program] ?? 'Unknown'} · ${ch}`;
+    const sub = s.sub ?? (s.isDrum ? `GM drums · ${ch}` : `${GM_NAMES[s.program] ?? 'Unknown'} · ${ch}`);
     tr.innerHTML = `
       <td class="c-play"><button class="playbtn" type="button" aria-label="Play ${esc(s.name)}">${PLAY_ICON}</button></td>
       <td><div class="pname">${esc(s.name)}</div><div class="psub">${esc(sub)}</div></td>
       <td class="c-num">${s.notes.length}</td>
       <td class="c-roll"><canvas class="roll" width="400" height="56"></canvas></td>
-      <td class="c-roles"><div class="roles">${ROLES.map((r) => `<button type="button" class="role" data-role="${r}" title="${ROLE_LABEL[r]}" ${r === 'DR' && !s.isDrum ? 'disabled' : ''}>${r === 'DR' ? 'Drums' : r}</button>`).join('')}</div></td>`;
+      <td class="c-roles"><div class="roles">${ROLES.map((r) => `<button type="button" class="role" data-role="${r}" title="${ROLE_LABEL[r]}" ${r === 'DR' && !s.isDrum && !s.canDrum ? 'disabled' : ''}>${r === 'DR' ? 'Drums' : r}</button>`).join('')}</div></td>`;
     tr.querySelector('.playbtn').addEventListener('click', (e) => toggleSourcePlay(s, e.currentTarget));
     for (const b of tr.querySelectorAll('.role')) {
       b.addEventListener('click', () => {
@@ -298,7 +471,9 @@ function rolesChanged() {
   // other packs are assumed to be too).
   ['S1', 'S2'].forEach((r, i) => {
     const first = sourcesFor(r)[0];
-    if (!state.patchTouched[i] && first && !first.isDrum) setPatch($(`#patch-${r.toLowerCase()}`), first.program);
+    // A Circuit Tracks synth part keeps its own patch when its pack is the base pack.
+    const slot = first?.patchSlot != null && state.base?.fromSong ? first.patchSlot : first?.program;
+    if (!state.patchTouched[i] && first && !first.isDrum) setPatch($(`#patch-${r.toLowerCase()}`), slot);
     const list = sourcesFor(r).map((s) => s.name);
     $(`#sub-${r.toLowerCase()}`).textContent = list.length ? `Playing: ${list.join(' + ')}` : 'No part chosen; this track stays empty.';
   });
@@ -306,6 +481,7 @@ function rolesChanged() {
   $('#sub-midi').textContent = `${m}. These send notes on the MIDI channels set on your Circuit Tracks, to play external gear.`;
   renderTranspose();
   rearrange();
+  updateShrinkInfo();
 }
 
 function renderTranspose() {
@@ -419,7 +595,7 @@ function notesBars(key) {
   const set = new Set();
   if (key.startsWith('lane')) {
     const lane = Number(key.slice(4)) - 4;
-    for (const s of sourcesFor('DR')) for (const n of s.notes) if (gmDrum(n.note)[0] === lane) set.add(Math.floor(n.tick / bt + 1e-9));
+    for (const s of sourcesFor('DR')) for (const n of s.notes) if (laneOf(n) === lane) set.add(Math.floor(n.tick / bt + 1e-9));
   } else {
     const s = state.midi.sources.find((x) => x.id === key);
     for (const n of s?.notes ?? []) set.add(Math.floor(n.tick / bt + 1e-9));
@@ -483,7 +659,7 @@ function renderGrid(plan, stale = false) {
   });
   if (plan.active[4]) {
     for (let t = 4; t < 8; t++) rows.push({ kind: 'lane', t, name: TRACK_NAMES[t], keys: [`lane${t}`] });
-    for (const s of sourcesFor('DR')) rows.push({ kind: 'src', t: 4, name: s.name, sub: 'GM drums', keys: [s.id] });
+    for (const s of sourcesFor('DR')) rows.push({ kind: 'src', t: 4, name: s.name, sub: s.sub ?? 'GM drums', keys: [s.id] });
   }
   state.gridRows = rows;
 
@@ -584,6 +760,12 @@ function renderWarnings(plan) {
   if (m.tempoChanges) out.push(`The file has ${m.tempoChanges} tempo changes; the project uses the first tempo throughout.`);
   if (plan.tempoClamped) out.push(`The tempo was limited to the Circuit Tracks range of 40–240 BPM.`);
   if (m.timeSigChanges) out.push(`The file changes time signature; it is arranged as ${m.timeSig.num}/${m.timeSig.den} throughout.`);
+  if (fromPack()) {
+    const pitched = sourcesFor('DR').filter((s) => s.pitched);
+    if (pitched.length) out.push(`${pitched.map((s) => s.name).join(', ')} ${pitched.length > 1 ? 'play' : 'plays'} samples at different pitches. The Circuit Tracks drum tracks play each sample at one pitch, so those steps lose their pitch. Sending ${pitched.length > 1 ? 'them' : 'it'} to Synth 1, Synth 2 or MIDI plays the pitches with a patch instead.`);
+    const mel = MELODIC_ROLES.flatMap((r) => sourcesFor(r)).filter((s) => s.kind === 'sample');
+    if (mel.length) out.push(`${mel.map((s) => s.name).join(', ')}: sample parts on a synth or MIDI track play the notes with a patch or external gear, not the samples.`);
+  }
   $('#warnings').innerHTML = out.map((x) => `<li>${esc(x)}</li>`).join('');
 }
 
@@ -656,9 +838,8 @@ async function toggleSourcePlay(s, btn) {
   const track = role && role !== 'DR' ? ROLE_TRACK[role] : 0;
   const shift = role && role !== 'DR' ? state.transpose[role] : 0;
   const ev = s.notes.map((n) => {
-    if (s.isDrum) {
-      const [dt, part] = gmDrum(n.note);
-      return { t: sec(n.tick), d: 0.1, track: 4 + dt, part, vel: n.vel };
+    if (role === 'DR' || (!role && s.isDrum)) {
+      return { t: sec(n.tick), d: 0.1, track: 4 + laneOf(n), part: partOf(n), vel: n.vel };
     }
     return { t: sec(n.tick), d: sec(n.dur), track, note: n.note + shift, vel: n.vel, program: s.program };
   });
@@ -689,13 +870,21 @@ async function build() {
   try {
     const title = ascii($('#title').value).trim() || 'TracksGM Song';
     const packName = ascii($('#packname').value).trim() || `TracksGM ${title}`;
+    const synthPatch = [Number($('#patch-s1').value), Number($('#patch-s2').value)];
+    // A pack project as the song: the base pack's patches with the loaded pack's samples.
+    let base = state.base, sampleMap = null;
+    if (fromPack()) {
+      const shrink = $('#shrink-on').checked;
+      ({ base, sampleMap } = await composePack(state.base, state.songPack, { slots: drumSlots(), shrink, keepPatches: shrink ? synthPatch : null }));
+    }
     const projects = buildProjects(state.plan, state.base, {
       title,
-      synthPatch: [Number($('#patch-s1').value), Number($('#patch-s2').value)],
+      synthPatch,
       kit: Number($('#kit').value),
+      sampleMap,
       colors: projectColours(state.plan.projects.length, $('#projcolors').value),
     });
-    const blob = await buildPack(state.base, projects.slice(0, 64), { name: packName, color: $('#packcolor').value });
+    const blob = await buildPack(base, projects.slice(0, 64), { name: packName, color: $('#packcolor').value });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `${packName.replace(/[^A-Za-z0-9 _-]+/g, '').trim() || 'TracksGM'}.circuittrackspack`;

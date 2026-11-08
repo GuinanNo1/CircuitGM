@@ -31,6 +31,7 @@
       <li><a href="#tracks">On the Circuit Tracks</a></li>
       <li><a href="#notes">The notes under the grid</a></li>
       <li><a href="#drums">How drums are mapped</a></li>
+      <li><a href="#circuit-pack">Converting a Circuit Tracks or Circuit Rhythm pack</a></li>
       <li><a href="#base-pack">Using a different base pack</a></li>
       <li><a href="#limits">Limits and alpha status</a></li>
       <li><a href="#trouble">Troubleshooting</a></li>
@@ -40,7 +41,7 @@
   <section class="panel" id="quickstart">
     <h2>Quickstart</h2>
     <ol class="steps">
-      <li><b>Load a song.</b> Open the <a href="./">converter</a> and drop a Standard MIDI file (<code>.mid</code>) onto step 1.</li>
+      <li><b>Load a song.</b> Open the <a href="./">converter</a> and drop a Standard MIDI file (<code>.mid</code>) onto step 1. You can also drop a Circuit Tracks or Circuit Rhythm pack and pick one of its projects: see <a href="#circuit-pack">converting a Circuit pack</a>.</li>
       <li><b>Check the parts.</b> The converter has already put the two busiest parts on Synth 1 and Synth 2, the next two on MIDI 1 and MIDI 2, and the drum part on Drums. Press ▶ next to a part to hear it, and click the S1, S2, M1, M2 or Drums buttons to change where it goes.</li>
       <li><b>Pick the sounds.</b> Each synth gets the patch for its General MIDI instrument from the TracksGM Universal Circuit Tracks Pack (TracksGM Pack); change it if you like, and pick a drum kit. (To use your own pack instead of the TracksGM Pack, drop it on the <b>Base pack</b> box first: see <a href="#base-pack">using a different base pack</a>.)</li>
       <li><b>Preview.</b> Press <b>Play preview</b> in step 4. Click a coloured dot to mute a part, or a box to mute some bars. If the summary says the song needs several projects, see <a href="#fewer">getting a song into fewer projects</a>.</li>
@@ -53,7 +54,7 @@
     <h2>What you need</h2>
     <ul>
       <li>A Novation Circuit Tracks, and Novation Components (web or desktop) to send packs to it. Packs are kept on the Tracks' microSD card.</li>
-      <li>A Standard MIDI file, type 0 or type 1. General MIDI files work best, because the patches and drum mapping follow General MIDI.</li>
+      <li>A Standard MIDI file, type 0 or type 1. General MIDI files work best, because the patches and drum mapping follow General MIDI. Or a Circuit Tracks or Circuit Rhythm pack saved from Components.</li>
       <li>A current browser (Chrome, Edge, Firefox or Safari). Everything happens in the browser: your file is not uploaded anywhere.</li>
     </ul>
   </section>
@@ -61,9 +62,10 @@
   <section class="panel" id="steps">
     <h2>The five steps in detail</h2>
 
-    <h3>1. Load a MIDI file</h3>
-    <p><b>Base pack.</b> The box at the top of step 1 shows the pack the converter builds on: <i>TracksGM_final</i>, the TracksGM Pack, unless you change it. Click <b>Use another pack…</b>, or drop a <code>.circuittrackspack</code> on the box (or on the MIDI box below it), to use a different one; <b>Back to TracksGM_final</b> switches back. See <a href="#base-pack">using a different base pack</a>.</p>
+    <h3>1. Load a MIDI file or Circuit pack</h3>
+    <p><b>Base pack.</b> The box at the top of step 1 shows the pack the converter builds on: <i>TracksGM_final</i>, the TracksGM Pack, unless you change it. Click <b>Use another pack…</b>, or drop a <code>.circuittrackspack</code> on the box, to use a different one; <b>Back to TracksGM_final</b> switches back. See <a href="#base-pack">using a different base pack</a>.</p>
     <p><b>MIDI file.</b> Drop a file onto the box or click it to choose one. The line under the box shows the file's tempo, time signature, length and number of parts. Each MIDI track and channel becomes a separate <em>part</em>. Where several parts share a name (common in type 0 files), they are named by instrument and channel instead, for example <i>Saw Lead (ch 4)</i>.</p>
+    <p><b>Circuit pack.</b> Drop a <code>.circuittrackspack</code> or <code>.circuitrhythmpack</code> on the same box to convert one of its projects, chosen in the <b>Project</b> list that appears. See <a href="#circuit-pack">converting a Circuit Tracks or Circuit Rhythm pack</a>.</p>
 
     <h3>2. Choose the parts</h3>
     <p>Each row is one part of the song, with its General MIDI instrument, channel, note count and a picture of where it plays. The buttons on the right send it to a Circuit Tracks track:</p>
@@ -174,6 +176,20 @@
     </table>
   </section>
 
+  <section class="panel" id="circuit-pack">
+    <h2>Converting a Circuit Tracks or Circuit Rhythm pack</h2>
+    <p>Step 1 also takes a pack saved from Novation Components: a Circuit Tracks pack (<code>.circuittrackspack</code>) or a Circuit Rhythm pack (<code>.circuitrhythmpack</code>). The converter rebuilds one of its projects as a Circuit Tracks project, so you can re-arrange it, move it from a Circuit Rhythm to a Circuit Tracks, or put it in a smaller pack.</p>
+    <ul>
+      <li><b>Project.</b> Pick the project under the file details; only saved projects with notes are listed. The project is played through as the Circuit plays it (scenes in their saved order, pattern chains, step lengths, micro-steps, gates, ties and swing), and each Circuit track with notes becomes a part. Changing the project starts the parts and mutes again.</li>
+      <li><b>Parts.</b> The parts of a Circuit Tracks project go back to their own tracks. On a Circuit Rhythm, sample tracks played at one pitch go to Drums, and a track played at several pitches goes to a synth; any sample track can be sent to Drums.</li>
+      <li><b>Drums.</b> The drum tracks play the loaded pack's own samples, so step 3 shows how many it uses instead of the kit list. Circuit Tracks drum parts keep their drum track; other samples go to Kick, Snare/Tom, Hi-hats or Perc by their names. Each drum track plays a sample at one pitch, so pitched Circuit Rhythm steps lose their pitch on the drum tracks (the notes under the grid say so).</li>
+      <li><b>Patches.</b> A Circuit Tracks pack becomes the base pack, so Synth 1 and Synth 2 keep their own patches. A Circuit Rhythm pack has no synth patches, so the base pack (the TracksGM Pack unless you change it) supplies them. You can still choose another base pack for the patches; the drums stay the loaded pack's.</li>
+      <li><b>Shrink the pack</b> (step 4, on by default) keeps only the two synth patches and the samples the song plays; unused slots are left empty, as Components stores them. Untick it to keep every patch of the base pack and every sample of the loaded pack. The line under the box shows what the pack will hold and its total sample time.</li>
+      <li><b>Circuit Rhythm samples.</b> A Circuit Rhythm pack has 128 sample slots and a Circuit Tracks pack 64, so the samples are renumbered, the song's own first. Samples that aren't 48 kHz, 16-bit mono are converted. A Circuit Tracks pack holds 196.6 s of samples in all, and Components doesn't warn when a pack is over; the converter does.</li>
+      <li><b>Not carried over:</b> mixer levels, effects, parameter locks and automation, and Circuit Rhythm sample settings (slice, tune, reverse) other than the steps' own pitch.</li>
+    </ul>
+  </section>
+
   <section class="panel" id="base-pack">
     <h2>Using a different base pack</h2>
     <p>Every converted pack is built on a <em>base pack</em>: its synth patches and drum samples are copied into your pack unchanged, and the converted song goes into its project slots. The default is <i>TracksGM_final</i>, the <a href="https://github.com/GuinanNo1/TracksGM/tree/pack-build">TracksGM Pack</a>, which is still being tuned by ear; the converter always uses the latest version. You can use any other Circuit Tracks pack instead, such as your own edit of the TracksGM Pack or a pack exported from Components.</p>
@@ -207,6 +223,10 @@
       <dd>The page needs to be opened from the website (or a local web server), not as a file on disk. Check your connection and reload.</dd>
       <dt>"Could not use <i>pack</i>: …".</dt>
       <dd>The file you chose as a base pack isn't a Circuit Tracks pack, or it has no patches or samples. The converter keeps using the previous pack.</dd>
+      <dt>"… has no saved projects with notes to convert".</dt>
+      <dd>Every project in the pack is empty. Save a project on the Circuit, then save the pack again from Components.</dd>
+      <dt>"… is a Circuit Rhythm pack, which has no synth patches, so it can't be the base pack".</dt>
+      <dd>A Circuit Rhythm pack dropped on the Base pack box. Drop it on the song box instead.</dd>
       <dt>The drums sound wrong with my own pack.</dt>
       <dd>Its samples are probably not in the kick, snare, rim/clap, closed hat, open hat, tom, cymbal, percussion order per group of eight. See <a href="#base-pack">using a different base pack</a>.</dd>
       <dt>"This is not a standard MIDI file".</dt>
