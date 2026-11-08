@@ -30,6 +30,14 @@ const ok = (cond, msg) => { console.log(`${cond ? 'ok  ' : 'FAIL'} ${msg}`); if 
     ok((await text('#base-name')) === 'TracksGM_final', `${label}: Rhythm pack leaves the base pack on TracksGM`);
     const parts = await page.$$eval('#tracks tbody tr', (rows) => rows.map((r) => `${r.querySelector('.pname').textContent}=${r.querySelector('.role[aria-pressed="true"]')?.dataset.role ?? '-'}`));
     ok(parts.join() === 'Track 1: Kick 909=DR,Track 2: Snare Crack=DR,Track 3: Closed Hat=DR,Track 4: Bass Pluck=S1', `${label}: parts ${parts.join(', ')}`);
+    const lanes = await page.$$eval('#tracks tbody tr select.lane', (s) => s.map((x) => (x.hidden ? '-' : x.value)));
+    ok(lanes.join() === '1,2,0,-', `${label}: drum tracks per Rhythm track, busiest first (${lanes.join()})`);
+    ok((await page.inputValue('#rate')) === 'track', `${label}: packs start on Per track`);
+    // Move the snare to D4 and back: the arrangement follows.
+    await page.selectOption('#tracks tbody tr:nth-child(2) select.lane', '3');
+    await page.waitForFunction(() => [...document.querySelectorAll('.row-label')].some((r) => /Drum 4/.test(r.textContent)));
+    ok(await page.evaluate(() => window.tracksgm.state.plan.projects[0].patternCounts[7] > 0), `${label}: snare moved to D4`);
+    await page.selectOption('#tracks tbody tr:nth-child(2) select.lane', '2');
     await page.uncheck('#shrink-on');
     await page.waitForFunction(() => /6 samples/.test(document.querySelector('#shrink-info').textContent));
     ok(/128 patches and 6 samples/.test(await text('#shrink-info')), `${label}: not shrinking keeps the rest`);
@@ -70,6 +78,7 @@ const ok = (cond, msg) => { console.log(`${cond ? 'ok  ' : 'FAIL'} ${msg}`); if 
     await page.waitForFunction(() => /File/.test(document.querySelector('#fileinfo').textContent));
     ok((await text('#base-name')) === 'TracksGM_final', `${label}: MIDI file puts the base pack back to TracksGM`);
     ok(!(await visible('#projpick')) && !(await visible('#shrink')) && await visible('#kit'), `${label}: picker and shrink hidden for MIDI, kit list back`);
+    ok((await page.inputValue('#rate')) === 'auto' && !(await page.$('#rate option[value="track"]')), `${label}: MIDI file: Per track not offered, back to Auto`);
     ok(errors.length === 0, `${label}: no page errors ${errors.join(' | ')}`);
     await page.close();
   }

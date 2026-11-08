@@ -147,7 +147,8 @@ function rhythmProject(tracks) {
   const lanes = {};
   for (const s of midi.sources) if (s.isDrum) for (const n of s.notes) lanes[names[n.slot]] = n.lane ?? null;
   const want = [];
-  const laneOfName = { 'Kick 909': 4, 'Snare Crack': 5, 'Closed Hat': 6, 'Open Hat': 6 };
+  // One drum track per Rhythm track, busiest first: hats (8 hits) D1, kick (4) D2, snare (2) D3.
+  const laneOfName = { 'Closed Hat': 4, 'Open Hat': 4, 'Kick 909': 5, 'Snare Crack': 6 };
   const rh = hitsOf(rpack);
   const rsong = songOf(rpack, projectChoices(rpack)[0]);
   const rr = renderSong(rsong, { order: sceneOrder(rsong, defaultOrderKind(rsong)) });

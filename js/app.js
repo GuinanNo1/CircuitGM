@@ -2,7 +2,7 @@ import { parseMidi, GM_NAMES } from './midifile.js';
 import { arrange, playOrder, laneOf, partOf, patternBars, projectColours, PROJECT_COLOURS, RATES, TRACKS, KITS, KIT_PARTS, MELODIC_ROLES } from './convert.js';
 import { loadBase, loadBaseFromBuffers, buildProjects, buildPack, composePack, SAMPLE_CAP_S } from './build.js';
 import { loadPack, PRODUCTS } from './pack.js';
-import { packSong, projectChoices } from './packsong.js';
+import { packSong, projectChoices, setLane } from './packsong.js';
 import { Player } from './player.js';
 
 const $ = (s) => document.querySelector(s);
@@ -15,6 +15,11 @@ const PLAY_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1l9 5
 const STOP_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="2" width="8" height="8"/></svg>';
 
 const DEFAULT_PACK = 'TracksGM_final';
+// The test version of the page (index.html?lab): per-track step rates for MIDI files too.
+const LAB = new URLSearchParams(location.search).has('lab');
+const TRACK_OPT = document.querySelector('#rate option[value="track"]');   // added only when offered (Safari ignores hidden options)
+TRACK_OPT.hidden = false;
+TRACK_OPT.remove();
 const state = {
   base: null,
   defaultBase: null,
@@ -345,6 +350,15 @@ function songLoaded(firstRows) {
 // can be shrunk.
 function renderSongPackParts() {
   const pk = fromPack();
+  // Step rate per track: offered for Circuit packs (their tracks have their own rates), and
+  // for MIDI files too on the test version (?lab). Packs start on it.
+  const show = pk || LAB;
+  if (show && !TRACK_OPT.parentNode) $('#rate').prepend(TRACK_OPT);
+  if (!show && $('#rate').value === 'track') $('#rate').value = 'auto';
+  if (!show) TRACK_OPT.remove();
+  if (pk) $('#rate').value = 'track';
+  else if (LAB) $('#rate').value = 'track';
+  else if ($('#rate').value === 'track') $('#rate').value = 'auto';
   $('#kit').hidden = pk;
   $('#kit-pack').hidden = !pk;
   $('#shrink').hidden = !pk;
@@ -352,6 +366,9 @@ function renderSongPackParts() {
     ? 'The drum tracks play the loaded pack\'s own samples. Circuit Tracks drum parts keep their drum track; other samples go to Kick, Snare/Tom, Hi-hats or Perc by their name.'
     : 'Drum 1 kick · Drum 2 snare/toms · Drum 3 hi-hats · Drum 4 percussion';
   $('label[for="kit"]').textContent = pk ? 'Drums' : 'Drum kit';
+  $('#parts-hint').textContent = pk
+    ? 'Give each part a Circuit Tracks track. Synth 1 and Synth 2 play on the Tracks itself; MIDI 1 and MIDI 2 play external gear; Drums plays the part\'s own samples on the drum track chosen beside it (one sound per step on each drum track).'
+    : 'Give each part a Circuit Tracks track. You can send several MIDI parts to the same track to combine them. Synth 1 and Synth 2 play on the Tracks itself; MIDI 1 and MIDI 2 play external gear; Drums uses the GM drum part (channel 10).';
   updateBaseSummary();
 }
 
@@ -414,8 +431,12 @@ function renderTracks() {
       <td><div class="pname">${esc(s.name)}</div><div class="psub">${esc(sub)}</div></td>
       <td class="c-num">${s.notes.length}</td>
       <td class="c-roll"><canvas class="roll" width="400" height="56"></canvas></td>
-      <td class="c-roles"><div class="roles">${ROLES.map((r) => `<button type="button" class="role" data-role="${r}" title="${ROLE_LABEL[r]}" ${r === 'DR' && !s.isDrum && !s.canDrum ? 'disabled' : ''}>${r === 'DR' ? 'Drums' : r}</button>`).join('')}</div></td>`;
+      <td class="c-roles"><div class="roles">${ROLES.map((r) => `<button type="button" class="role" data-role="${r}" title="${ROLE_LABEL[r]}" ${r === 'DR' && !s.isDrum && !s.canDrum ? 'disabled' : ''}>${r === 'DR' ? 'Drums' : r}</button>`).join('')}${s.canDrum ? laneSelect(s) : ''}</div></td>`;
     tr.querySelector('.playbtn').addEventListener('click', (e) => toggleSourcePlay(s, e.currentTarget));
+    tr.querySelector('.lane')?.addEventListener('change', (e) => {
+      setLane(s, e.target.value === 'name' ? null : Number(e.target.value));
+      rolesChanged();
+    });
     for (const b of tr.querySelectorAll('.role')) {
       b.addEventListener('click', () => {
         const r = b.dataset.role;
@@ -435,7 +456,17 @@ function syncRoleButtons() {
   for (const tr of $('#tracks tbody').children) {
     const r = state.roleOf.get(tr.dataset.id);
     for (const b of tr.querySelectorAll('.role')) b.setAttribute('aria-pressed', String(b.dataset.role === r));
+    const lane = tr.querySelector('.lane');
+    if (lane) lane.hidden = r !== 'DR';
   }
+}
+
+// Which Circuit Tracks drum track a pack part's samples go to: one of the four, or by each
+// sample's name.
+function laneSelect(s) {
+  const opts = [0, 1, 2, 3].map((l) => `<option value="${l}" ${s.lane === l ? 'selected' : ''}>Drum ${l + 1}</option>`);
+  opts.push(`<option value="name" ${s.lane == null ? 'selected' : ''}>By sample name</option>`);
+  return `<select class="lane" aria-label="Drum track for ${esc(s.name)}" title="Circuit Tracks drum track for this part">${opts.join('')}</select>`;
 }
 
 function drawRoll(canvas, s, len) {
@@ -467,6 +498,7 @@ function sourcesFor(role) {
 
 function rolesChanged() {
   state.barCache.delete('lane4'); state.barCache.delete('lane5'); state.barCache.delete('lane6'); state.barCache.delete('lane7');
+  syncRoleButtons();
   // Default each synth patch to the GM program of the first part on it (the TracksGM Pack is in GM order;
   // other packs are assumed to be too).
   ['S1', 'S2'].forEach((r, i) => {
@@ -543,7 +575,7 @@ function updateRateLabels() {
   const m = state.midi;
   const div = Number($('#tempo-div').value);
   for (const o of $('#rate').options) {
-    if (o.value === 'auto') continue;
+    if (o.value === 'auto' || o.value === 'track') continue;
     const bars = patternBars(Number(o.value), div, m.timeSig);
     o.textContent = bars ? `${bars} bar${bars > 1 ? 's' : ''} · ${RATES[o.value].label}` : `${RATES[o.value].label} (doesn't fit this time signature)`;
     o.disabled = !bars;
@@ -669,7 +701,8 @@ function renderGrid(plan, stale = false) {
     for (const s of srcs) rows.push({ kind: 'src', t, name: s.name, sub: s.instrument, keys: [s.id] });
   });
   if (plan.active[4]) {
-    for (let t = 4; t < 8; t++) rows.push({ kind: 'lane', t, name: TRACK_NAMES[t], keys: [`lane${t}`] });
+    // A pack's samples keep their own drum tracks, so those rows are named Drum 1-4.
+    for (let t = 4; t < 8; t++) rows.push({ kind: 'lane', t, name: fromPack() ? `Drum ${t - 3}` : TRACK_NAMES[t], keys: [`lane${t}`] });
     for (const s of sourcesFor('DR')) rows.push({ kind: 'src', t: 4, name: s.name, sub: s.sub ?? 'GM drums', keys: [s.id] });
   }
   state.gridRows = rows;
@@ -777,6 +810,7 @@ function renderWarnings(plan) {
   if (w.similarPatterns) out.push(`${w.similarPatterns} patterns were replaced by a similar earlier one, changing ${w.similarNotes} notes (${Math.round(100 * w.similarNotes / Math.max(1, w.total))}%).`);
   if (plan.leadBars) out.push(`Sections start ${plan.leadBars} bar${plan.leadBars > 1 ? 's' : ''} before the first note so that repeats line up, which saves a project; the song begins after ${plan.leadBars} empty bar${plan.leadBars > 1 ? 's' : ''}.`);
   if (w.dropped) out.push(`${w.dropped} notes were left out where more than 6 notes start on one step (the lowest and highest notes are kept).`);
+  if (w.merged) out.push(`${w.merged} notes were merged with a note of the same pitch in the same step (a step holds each pitch once; the longer note is kept).${plan.mixed || plan.rate !== 16 ? ' Shorter steps (a finer pattern length) keep them apart.' : ''}`);
   if (w.drumDropped) out.push(`${w.drumDropped} drum hits were left out where two sounds land on the same step of one drum track (the louder one is kept).`);
   if (w.held) out.push(`${w.held} long notes run past the end of a pattern; they are struck again at the start of the next pattern.`);
   if (m.tempoChanges) out.push(`The file has ${m.tempoChanges} tempo changes; the project uses the first tempo throughout.`);

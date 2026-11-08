@@ -315,3 +315,4 @@ select, input[type="text"], input:not([type]) {
 /* A column where a track plays several shorter patterns (step rate per track) */
 .grid .cell.multi { font-size: 0.62rem; letter-spacing: -0.02em; }
 .row-label .rtag { color: var(--muted); font-size: 0.7rem; font-weight: 500; }
+.roles .lane { margin-left: 6px; font-size: 0.8rem; padding: 3px 4px; max-width: 9.5em; }
