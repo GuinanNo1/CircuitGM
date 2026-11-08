@@ -50,7 +50,7 @@
 
   <section class="panel" id="step-tracks" hidden>
     <h2><span class="num">2</span> Choose the parts</h2>
-    <p class="hint">Give each part a Circuit Tracks track. You can send several MIDI parts to the same track to combine them. Synth 1 and Synth 2 play on the Tracks itself; MIDI 1 and MIDI 2 play external gear; Drums uses the GM drum part (channel 10).</p>
+    <p class="hint" id="parts-hint">Give each part a Circuit Tracks track. You can send several MIDI parts to the same track to combine them. Synth 1 and Synth 2 play on the Tracks itself; MIDI 1 and MIDI 2 play external gear; Drums uses the GM drum part (channel 10).</p>
     <div class="tablewrap">
       <table class="tracks" id="tracks">
         <thead><tr><th class="c-play"></th><th>Part</th><th class="c-num">Notes</th><th class="c-roll">Activity</th><th class="c-roles">Track</th></tr></thead>
@@ -82,6 +82,7 @@
         <select id="section-bars"><option value="auto" selected>Auto (fewest projects)</option><option value="4">4 bars</option><option value="8">8 bars</option><option value="16">16 bars</option><option value="32">32 bars</option></select></div>
       <div class="field"><label for="rate">Pattern length</label>
         <select id="rate">
+          <option value="track" hidden>Per track (each track its own step rate)</option>
           <option value="auto" selected>Auto (fewest projects, timing kept)</option>
           <option value="16">1/16 steps</option>
           <option value="8">1/8 steps</option>

@@ -2,7 +2,7 @@ import { parseMidi, GM_NAMES } from './midifile.js';
 import { arrange, playOrder, laneOf, partOf, patternBars, projectColours, PROJECT_COLOURS, RATES, TRACKS, KITS, KIT_PARTS, MELODIC_ROLES } from './convert.js';
 import { loadBase, loadBaseFromBuffers, buildProjects, buildPack, composePack, SAMPLE_CAP_S } from './build.js';
 import { loadPack, PRODUCTS } from './pack.js';
-import { packSong, projectChoices } from './packsong.js';
+import { packSong, projectChoices, setLane } from './packsong.js';
 import { Player } from './player.js';
 
 const $ = (s) => document.querySelector(s);
@@ -15,6 +15,11 @@ const PLAY_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1l9 5
 const STOP_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="2" width="8" height="8"/></svg>';
 
 const DEFAULT_PACK = 'TracksGM_final';
+// The test version of the page (index.html?lab): per-track step rates for MIDI files too.
+const LAB = new URLSearchParams(location.search).has('lab');
+const TRACK_OPT = document.querySelector('#rate option[value="track"]');   // added only when offered (Safari ignores hidden options)
+TRACK_OPT.hidden = false;
+TRACK_OPT.remove();
 const state = {
   base: null,
   defaultBase: null,
@@ -36,7 +41,21 @@ const state = {
 const player = new Player();
 
 // ---------- startup ----------
+if (LAB) markLab();
 init();
+
+// The test version: a banner, a title mark, and kept out of search results.
+function markLab() {
+  document.title = `TEST · ${document.title}`;
+  const meta = document.createElement('meta');
+  meta.name = 'robots';
+  meta.content = 'noindex, nofollow';
+  document.head.append(meta);
+  const p = document.createElement('p');
+  p.className = 'lab';
+  p.innerHTML = '<b>Test version.</b> Pattern length <i>Per track</i> is offered for MIDI files too (it is the default here): each track gets the longest step rate that keeps its notes, which often keeps more notes at the cost of more projects. Compare it with the other pattern lengths, or with the <a href="./">public page</a>.';
+  document.querySelector('.masthead .wrap').append(p);
+}
 
 async function init() {
   wireLoad();
@@ -345,6 +364,15 @@ function songLoaded(firstRows) {
 // can be shrunk.
 function renderSongPackParts() {
   const pk = fromPack();
+  // Step rate per track: offered for Circuit packs (their tracks have their own rates), and
+  // for MIDI files too on the test version (?lab). Packs start on it.
+  const show = pk || LAB;
+  if (show && !TRACK_OPT.parentNode) $('#rate').prepend(TRACK_OPT);
+  if (!show && $('#rate').value === 'track') $('#rate').value = 'auto';
+  if (!show) TRACK_OPT.remove();
+  if (pk) $('#rate').value = 'track';
+  else if (LAB) $('#rate').value = 'track';
+  else if ($('#rate').value === 'track') $('#rate').value = 'auto';
   $('#kit').hidden = pk;
   $('#kit-pack').hidden = !pk;
   $('#shrink').hidden = !pk;
@@ -352,6 +380,9 @@ function renderSongPackParts() {
     ? 'The drum tracks play the loaded pack\'s own samples. Circuit Tracks drum parts keep their drum track; other samples go to Kick, Snare/Tom, Hi-hats or Perc by their name.'
     : 'Drum 1 kick · Drum 2 snare/toms · Drum 3 hi-hats · Drum 4 percussion';
   $('label[for="kit"]').textContent = pk ? 'Drums' : 'Drum kit';
+  $('#parts-hint').textContent = pk
+    ? 'Give each part a Circuit Tracks track. Synth 1 and Synth 2 play on the Tracks itself; MIDI 1 and MIDI 2 play external gear; Drums plays the part\'s own samples on the drum track chosen beside it (one sound per step on each drum track).'
+    : 'Give each part a Circuit Tracks track. You can send several MIDI parts to the same track to combine them. Synth 1 and Synth 2 play on the Tracks itself; MIDI 1 and MIDI 2 play external gear; Drums uses the GM drum part (channel 10).';
   updateBaseSummary();
 }
 
@@ -414,8 +445,12 @@ function renderTracks() {
       <td><div class="pname">${esc(s.name)}</div><div class="psub">${esc(sub)}</div></td>
       <td class="c-num">${s.notes.length}</td>
       <td class="c-roll"><canvas class="roll" width="400" height="56"></canvas></td>
-      <td class="c-roles"><div class="roles">${ROLES.map((r) => `<button type="button" class="role" data-role="${r}" title="${ROLE_LABEL[r]}" ${r === 'DR' && !s.isDrum && !s.canDrum ? 'disabled' : ''}>${r === 'DR' ? 'Drums' : r}</button>`).join('')}</div></td>`;
+      <td class="c-roles"><div class="roles">${ROLES.map((r) => `<button type="button" class="role" data-role="${r}" title="${ROLE_LABEL[r]}" ${r === 'DR' && !s.isDrum && !s.canDrum ? 'disabled' : ''}>${r === 'DR' ? 'Drums' : r}</button>`).join('')}${s.canDrum ? laneSelect(s) : ''}</div></td>`;
     tr.querySelector('.playbtn').addEventListener('click', (e) => toggleSourcePlay(s, e.currentTarget));
+    tr.querySelector('.lane')?.addEventListener('change', (e) => {
+      setLane(s, e.target.value === 'name' ? null : Number(e.target.value));
+      rolesChanged();
+    });
     for (const b of tr.querySelectorAll('.role')) {
       b.addEventListener('click', () => {
         const r = b.dataset.role;
@@ -435,7 +470,17 @@ function syncRoleButtons() {
   for (const tr of $('#tracks tbody').children) {
     const r = state.roleOf.get(tr.dataset.id);
     for (const b of tr.querySelectorAll('.role')) b.setAttribute('aria-pressed', String(b.dataset.role === r));
+    const lane = tr.querySelector('.lane');
+    if (lane) lane.hidden = r !== 'DR';
   }
+}
+
+// Which Circuit Tracks drum track a pack part's samples go to: one of the four, or by each
+// sample's name.
+function laneSelect(s) {
+  const opts = [0, 1, 2, 3].map((l) => `<option value="${l}" ${s.lane === l ? 'selected' : ''}>Drum ${l + 1}</option>`);
+  opts.push(`<option value="name" ${s.lane == null ? 'selected' : ''}>By sample name</option>`);
+  return `<select class="lane" aria-label="Drum track for ${esc(s.name)}" title="Circuit Tracks drum track for this part">${opts.join('')}</select>`;
 }
 
 function drawRoll(canvas, s, len) {
@@ -467,6 +512,7 @@ function sourcesFor(role) {
 
 function rolesChanged() {
   state.barCache.delete('lane4'); state.barCache.delete('lane5'); state.barCache.delete('lane6'); state.barCache.delete('lane7');
+  syncRoleButtons();
   // Default each synth patch to the GM program of the first part on it (the TracksGM Pack is in GM order;
   // other packs are assumed to be too).
   ['S1', 'S2'].forEach((r, i) => {
@@ -543,7 +589,7 @@ function updateRateLabels() {
   const m = state.midi;
   const div = Number($('#tempo-div').value);
   for (const o of $('#rate').options) {
-    if (o.value === 'auto') continue;
+    if (o.value === 'auto' || o.value === 'track') continue;
     const bars = patternBars(Number(o.value), div, m.timeSig);
     o.textContent = bars ? `${bars} bar${bars > 1 ? 's' : ''} · ${RATES[o.value].label}` : `${RATES[o.value].label} (doesn't fit this time signature)`;
     o.disabled = !bars;
@@ -566,11 +612,22 @@ function renderSummary(plan) {
       ? [scenes.reduce((a, b) => a + b, 0), 'scenes, each 1–8 patterns long']
       : [plan.nSections, `sections of ${plan.sectionBars} bars`],
     [scenes.join(' + '), 'scenes per project (max 16)'],
-    [`${plan.chunkBars} bar${plan.chunkBars > 1 ? 's' : ''}`, `per pattern (${plan.rateLabel})`],
+    plan.mixed ? patternRange(plan) : [`${plan.chunkBars} bar${plan.chunkBars > 1 ? 's' : ''}`, `per pattern (${plan.rateLabel})`],
     [`${maxPat} of 8`, 'most patterns used on a track'],
     [plan.tempo, tempoNote],
   ];
   $('#summary').innerHTML = stats.map(([v, k]) => `<div class="stat"><div class="v">${esc(String(v))}</div><div class="k">${esc(k)}</div></div>`).join('');
+}
+
+// Step rate per track: the range of pattern lengths, and each track's rate.
+function patternRange(plan) {
+  const act = plan.trackRates.filter((_, t) => plan.active[t]);
+  const bars = act.map((x) => x.patBars);
+  const lo = Math.min(...bars), hi = Math.max(...bars);
+  return [`${lo === hi ? lo : `${lo}–${hi}`} bars`, `per pattern (step rate per track${plan.tempoDiv > 1 ? `, tempo ÷${plan.tempoDiv}` : ''})`];
+}
+function rateTag(plan, t) {
+  return plan.mixed ? plan.trackRates[t].label.replace(' steps', '') : '';
 }
 
 // ---------- mutes ----------
@@ -658,7 +715,8 @@ function renderGrid(plan, stale = false) {
     for (const s of srcs) rows.push({ kind: 'src', t, name: s.name, sub: s.instrument, keys: [s.id] });
   });
   if (plan.active[4]) {
-    for (let t = 4; t < 8; t++) rows.push({ kind: 'lane', t, name: TRACK_NAMES[t], keys: [`lane${t}`] });
+    // A pack's samples keep their own drum tracks, so those rows are named Drum 1-4.
+    for (let t = 4; t < 8; t++) rows.push({ kind: 'lane', t, name: fromPack() ? `Drum ${t - 3}` : TRACK_NAMES[t], keys: [`lane${t}`] });
     for (const s of sourcesFor('DR')) rows.push({ kind: 'src', t: 4, name: s.name, sub: s.sub ?? 'GM drums', keys: [s.id] });
   }
   state.gridRows = rows;
@@ -680,6 +738,13 @@ function renderGrid(plan, stale = false) {
     const name = document.createElement('span');
     name.className = 'nm';
     name.textContent = row.name;
+    if (row.kind !== 'src' && rateTag(plan, row.t)) {
+      const tag = document.createElement('small');
+      tag.className = 'rtag';
+      tag.textContent = rateTag(plan, row.t);
+      tag.title = `${plan.trackRates[row.t].label}: ${plan.trackRates[row.t].patBars} bar${plan.trackRates[row.t].patBars > 1 ? 's' : ''} per pattern`;
+      name.append(' ', tag);
+    }
     if (row.sub) name.title = `${row.name} · ${row.sub}`;
     d.append(dot, name);
     if (row.kind !== 'src') {
@@ -719,12 +784,16 @@ function renderGrid(plan, stale = false) {
         const cls = !ms.has ? 'empty' : ms.muted ? 'muted' : ms.partial ? 'on part' : 'on';
         html += `<button type="button" class="cell src ${cls}" data-row="${ri}" data-col="${k}" style="--c:var(${TRACK_VAR[row.t]})" title="${esc(row.name)}, ${range}${ms.has ? (ms.muted ? ' (muted): click to unmute' : ms.partial ? ' (partly muted): click to mute all' : ': click to mute') : ' (no notes)'}"></button>`;
       } else {
-        const p = o.patterns[row.t];
-        const content = proj.patterns[row.t][p];
-        const empty = !content || !content.steps.length;
+        // A track with a shorter step rate plays several patterns in one column.
+        const subs = o.sub?.[row.t] ?? [o.patterns[row.t]];
+        const p = subs[0];
+        const empty = subs.every((i) => !proj.patterns[row.t][i]?.steps.length);
         const mix = 100 - (p % 8) * 8;
         const cls = ms.muted ? 'muted' : empty ? 'empty' : '';
-        html += `<button type="button" class="cell ${cls}" data-row="${ri}" data-col="${k}" style="${empty ? '' : `background:color-mix(in srgb, var(${TRACK_VAR[row.t]}) ${mix}%, #000)`}" title="${row.name}: pattern ${p + 1}, ${range}${ms.muted ? ' (muted): click to unmute' : ms.has ? ': click to mute' : ' (empty)'}">${p + 1}</button>`;
+        const same = subs.every((i) => i === p);
+        const txt = same ? `${p + 1}` : subs.every((i, j) => i === p + j) ? `${p + 1}–${subs[subs.length - 1] + 1}` : subs.map((i) => i + 1).join('·');
+        const what = same ? `pattern ${p + 1}${subs.length > 1 ? ` ×${subs.length}` : ''}` : `patterns ${subs.map((i) => i + 1).join(', ')}`;
+        html += `<button type="button" class="cell ${cls}${txt.length > 2 ? ' multi' : ''}" data-row="${ri}" data-col="${k}" style="${empty ? '' : `background:color-mix(in srgb, var(${TRACK_VAR[row.t]}) ${mix}%, #000)`}" title="${row.name}: ${what}, ${range}${ms.muted ? ' (muted): click to unmute' : ms.has ? ': click to mute' : ' (empty)'}">${txt}</button>`;
       }
     });
     col.innerHTML = html;
@@ -755,6 +824,7 @@ function renderWarnings(plan) {
   if (w.similarPatterns) out.push(`${w.similarPatterns} patterns were replaced by a similar earlier one, changing ${w.similarNotes} notes (${Math.round(100 * w.similarNotes / Math.max(1, w.total))}%).`);
   if (plan.leadBars) out.push(`Sections start ${plan.leadBars} bar${plan.leadBars > 1 ? 's' : ''} before the first note so that repeats line up, which saves a project; the song begins after ${plan.leadBars} empty bar${plan.leadBars > 1 ? 's' : ''}.`);
   if (w.dropped) out.push(`${w.dropped} notes were left out where more than 6 notes start on one step (the lowest and highest notes are kept).`);
+  if (w.merged) out.push(`${w.merged} notes were merged with a note of the same pitch in the same step (a step holds each pitch once; the longer note is kept).${plan.mixed || plan.rate !== 16 ? ' Shorter steps (a finer pattern length) keep them apart.' : ''}`);
   if (w.drumDropped) out.push(`${w.drumDropped} drum hits were left out where two sounds land on the same step of one drum track (the louder one is kept).`);
   if (w.held) out.push(`${w.held} long notes run past the end of a pattern; they are struck again at the start of the next pattern.`);
   if (m.tempoChanges) out.push(`The file has ${m.tempoChanges} tempo changes; the project uses the first tempo throughout.`);
@@ -771,25 +841,30 @@ function renderWarnings(plan) {
 
 // ---------- preview ----------
 function planEvents(plan) {
-  const stepSec = (60 / plan.tempo) * plan.syncQuarters;
-  const micro = stepSec / 6;
-  const chunkSec = plan.patLen * stepSec;
+  const chunkSec = plan.patLen * (60 / plan.tempo) * plan.syncQuarters;
   const programs = MELODIC_ROLES.map((r) => sourcesFor(r)[0]?.program ?? 0);
   const ev = [];
   state.order.forEach((o, k) => {
-    const t0 = k * chunkSec;
     const proj = plan.projects[o.project];
     for (let t = 0; t < 8; t++) {
       if (!plan.active[t]) continue;
-      const pat = proj.patterns[t][o.patterns[t]];
-      if (!pat) continue;
-      for (const s of pat.steps) {
-        if (t < 4) {
-          for (const n of s.notes) ev.push({ t: t0 + (s.step * 6 + n.delay) * micro, d: n.len * micro, track: t, note: n.note - 12, vel: n.vel, program: programs[t] });
-        } else {
-          for (let b = 0; b < 6; b++) if (s.mask >> b & 1) ev.push({ t: t0 + (s.step * 6 + b) * micro, d: 0.1, track: t, part: s.part, vel: s.vel });
+      // Each track at its own step rate: k shorter patterns per column when finer.
+      const tr = plan.trackRates?.[t] ?? plan;
+      const stepSec = (60 / plan.tempo) * tr.syncQuarters;
+      const micro = stepSec / 6;
+      const subs = o.sub?.[t] ?? [o.patterns[t]];
+      subs.forEach((pi, j) => {
+        const pat = proj.patterns[t][pi];
+        if (!pat) return;
+        const t0 = k * chunkSec + j * tr.patLen * stepSec;
+        for (const s of pat.steps) {
+          if (t < 4) {
+            for (const n of s.notes) ev.push({ t: t0 + (s.step * 6 + n.delay) * micro, d: n.len * micro, track: t, note: n.note - 12, vel: n.vel, program: programs[t] });
+          } else {
+            for (let b = 0; b < 6; b++) if (s.mask >> b & 1) ev.push({ t: t0 + (s.step * 6 + b) * micro, d: 0.1, track: t, part: s.part, vel: s.vel });
+          }
         }
-      }
+      });
     }
   });
   ev.sort((a, b) => a.t - b.t);

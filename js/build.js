@@ -75,7 +75,8 @@ export function buildProjects(plan, base, settings) {
       if (!plan.active[t]) continue;
       for (let i = 0; i < 8; i++) {
         const content = p.patterns[t][i];
-        const settingsBlock = { playbackEnd: plan.patLen - 1, playbackStart: 0, syncRate: plan.syncRate, direction: 0 };
+        const tr = plan.trackRates?.[t] ?? plan;     // each track's own step rate and pattern length
+        const settingsBlock = { playbackEnd: tr.patLen - 1, playbackStart: 0, syncRate: tr.syncRate, direction: 0 };
         proj.patterns[t][i] = t < 4
           ? { kind: 'synth', steps: synthSteps(content), settings: settingsBlock }
           : { kind: 'drum', steps: drumSteps(content, slotOf, drumDefault[t - 4]), settings: settingsBlock };
