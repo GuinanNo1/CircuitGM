@@ -41,7 +41,21 @@ const state = {
 const player = new Player();
 
 // ---------- startup ----------
+if (LAB) markLab();
 init();
+
+// The test version: a banner, a title mark, and kept out of search results.
+function markLab() {
+  document.title = `TEST · ${document.title}`;
+  const meta = document.createElement('meta');
+  meta.name = 'robots';
+  meta.content = 'noindex, nofollow';
+  document.head.append(meta);
+  const p = document.createElement('p');
+  p.className = 'lab';
+  p.innerHTML = '<b>Test version.</b> Pattern length <i>Per track</i> is offered for MIDI files too (it is the default here): each track gets the longest step rate that keeps its notes, which often keeps more notes at the cost of more projects. Compare it with the other pattern lengths, or with the <a href="./">public page</a>.';
+  document.querySelector('.masthead .wrap').append(p);
+}
 
 async function init() {
   wireLoad();
