@@ -37,7 +37,7 @@ Sending the pack to the Tracks replaces the pack in that slot, so send it to a s
    - **Muting:** click a coloured dot to mute or unmute a whole row, or a box to mute or unmute those bars. On a drum row (Kick, Snare/Tom, Hi-hats, Perc) the dot mutes just that sound. Mutes apply to both the preview and the pack, and muting can bring the number of projects down.
    - **Options:**
      - **Section length:** Auto, or 4 to 32 bars.
-     - **Pattern length:** Auto, or 1/16, 1/8 or 1/4 steps.
+     - **Pattern length:** Auto, or 1/16, 1/8 or 1/4 steps; for a Circuit pack, also *Per track* (the default there): each track its own step rate.
      - **Tempo:** original, ÷2 or ÷4.
      - **Repeats:** exact, ignoring velocity, or ≥90% / ≥75% similar.
      - **Quantise:** off, 1/16, 1/8 or 1/16 triplet.
@@ -60,8 +60,9 @@ Sending the pack to the Tracks replaces the pack in that slot, so send it to a s
 
 Drop a `.circuittrackspack` or `.circuitrhythmpack` on the song box in step 1 and pick a project. The project is played through as the Circuit plays it (scenes in saved order, pattern chains, step lengths, micro-steps, gates, ties, swing; read by the same code as Circuit2MIDI), and each Circuit track with notes becomes a part.
 
-- **Parts:** a Circuit Tracks project's parts go back to their own tracks. On a Circuit Rhythm, sample tracks at one pitch go to Drums and a track played at several pitches goes to a synth; any sample track can go to Drums.
-- **Drums:** the loaded pack's own samples, by sample slot (the kit list is hidden). Circuit Tracks drum parts keep their drum track; other samples go to Kick, Snare/Tom, Hi-hats or Perc by name. Drum tracks play one pitch per sample, so pitched Circuit Rhythm steps lose their pitch there.
+- **Parts:** a Circuit Tracks project's parts go back to their own tracks. On a Circuit Rhythm, sample tracks at one pitch go to Drums and tracks played at several pitches go to Synth 1 and Synth 2; any sample track can go to Drums.
+- **Drums:** the loaded pack's own samples, by sample slot (the kit list is hidden). A **Drum 1–4** menu beside each drum part picks its drum track: Circuit Tracks drum parts keep theirs; Circuit Rhythm drum parts get one each, busiest first, and a fifth shares the one it clashes with least (or *By sample name*). Drum tracks play one pitch per sample, so pitched Circuit Rhythm steps lose their pitch there.
+- **Step rate per track:** Pattern length *Per track* (the default for packs) gives each track its own sync rate, as the Circuit does, so an 8-bar phrase at 1/4 steps stays one pattern while the beat runs at 1/16. The scene grid is cut at the longest pattern; shorter-step tracks play several patterns per grid column. A track only gets longer steps when that loses no notes (moved, or merged: a step holds each pitch once).
 - **Patches:** a Circuit Tracks pack becomes the base pack, so the synths keep their own patches. A Circuit Rhythm pack has none, so the base pack supplies them.
 - **Shrink the pack** (step 4, on by default): only the two synth patches and the samples the song plays are kept; other slots are left empty, as Components stores them.
 - **Circuit Rhythm samples:** 128 slots into the Tracks' 64, so they are renumbered, the song's own first; samples that aren't 48 kHz 16-bit mono are converted. The converter warns when the samples pass the Tracks' 196.6 s.
@@ -129,7 +130,10 @@ Click **Use another pack…** in step 1, or drop a `.circuittrackspack` on the B
 The project format is reverse-engineered. Confirmed on a Circuit Tracks (alpha 0.1): packs load, synth and drum parts play, and long held notes sustain correctly. Still to check:
 - the octave of notes sent on MIDI 1 and MIDI 2;
 - scenes playing through the song in order, each lasting as long as its longest pattern chain;
-- packs converted from a Circuit Rhythm pack (renumbered and converted samples) loading and playing on the Tracks.
+- packs converted from a Circuit Rhythm pack (renumbered and converted samples) loading and playing on the Tracks;
+- tracks with different step rates in one scene (Per track): each looping its own chain, the scene lasting as long as its longest chain in time.
+
+**Test version:** `index.html?lab` (https://guinanno1.github.io/TracksGM/?lab, not linked from the site) also offers Pattern length *Per track* for MIDI files, as its default, to compare with Auto.
 
 ## TracksGM Circuit Tracks to MIDI Converter (Circuit2MIDI) (alpha 0.1)
 
@@ -200,6 +204,7 @@ node tests/build_test.mjs "path/to/song.mid" out     # build a pack, read every 
 node tests/validate.mjs out/project_*.ncs            # range checks
 node tests/roundtrip.mjs                             # MIDI -> MIDI2Circuit -> Circuit2MIDI -> MIDI, every note compared
 node tests/pack2pack.mjs [out-dir]                   # Circuit Tracks / Rhythm pack -> MIDI2Circuit -> pack, every hit compared
+node tests/pack_compare.mjs <pack> [track|auto|16|8|4] # any pack: convert each project, play it back, account for every hit
 ```
 
 The browser tests use Playwright with the page served on port 8765: `tests/ui_test.cjs` and `tests/ui_mutes.cjs` for MIDI2Circuit, `node tests/ui_p2p.cjs <screenshot dir> <rhythm pack> <tracks pack> <midi file>` for MIDI2Circuit with a Circuit pack (`tests/pack2pack.mjs <out-dir>` writes suitable packs), and `node tests/ui_c2m.cjs <screenshot dir> <pack> [<pack> ...]` for Circuit2MIDI.
