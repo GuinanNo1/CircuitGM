@@ -142,11 +142,13 @@ The project format is reverse-engineered. Confirmed on a Circuit Tracks (alpha 0
 The reverse of MIDI2Circuit. A web page that opens a Novation Components pack for the **Circuit Tracks** (`.circuittrackspack`) or **Circuit Rhythm** (`.circuitrhythmpack`), and:
 
 1. **Compacts the pack** (optional): saves a copy without the samples and patches no project uses. Slot numbers are kept, so projects are copied unchanged; unused slots stay as empty slots, as Components stores them. Packs without projects can't be compacted.
+   **Keep** can be *Every project* or *Only project N*: the other project slots are emptied and just that project's samples and patches are kept.
 2. **Converts one project at a time** to a type 1 Standard MIDI file:
    - **Scenes:** the saved scene chain, every used scene in order, or a custom order (`1-4, 2, 5x2`). Each scene lasts as long as its longest pattern chain; shorter chains repeat.
    - **Patterns:** start and end steps, step length (1/32 to 1/4, triplets included), direction, micro-step timing, gates, velocities, ties, rolls and swing. Steps with a chance below 100% can be kept or left out.
    - **Tracks:** each Circuit track becomes a MIDI track. Melodic tracks get a channel, a GM program and an octave shift; drum tracks get one note per sample, guessed from the sample names and editable.
    - A grid shows each scene's pattern chains per track, with track mutes and solo, and a preview that plays the pack's own samples.
+3. **Converts a project to Circuit Tracks:** *Convert to Circuit Tracks (MIDI2Circuit)* in step 3 opens the chosen project in MIDI2Circuit (the pack is passed through the browser's IndexedDB, `js/handoff.js`).
 
 It runs entirely in the browser. The Circuit Rhythm project format was worked out for this page from a hardware-saved project; see [`docs/circuit-rhythm-format.md`](docs/circuit-rhythm-format.md).
 
@@ -203,9 +205,10 @@ node tests/validate.mjs out/project_*.ncs            # range checks
 node tests/roundtrip.mjs                             # MIDI -> MIDI2Circuit -> Circuit2MIDI -> MIDI, every note compared
 node tests/pack2pack.mjs [out-dir]                   # Circuit Tracks / Rhythm pack -> MIDI2Circuit -> pack, every hit compared
 node tests/pack_compare.mjs <pack> [track|auto|16|8|4] # any pack: convert each project, play it back, account for every hit
+node tests/compact_only.mjs [save-two-project-pack]  # Circuit2MIDI: Keep only project N
 ```
 
-The browser tests use Playwright with the page served on port 8765: `tests/ui_test.cjs` and `tests/ui_mutes.cjs` for MIDI2Circuit, `node tests/ui_p2p.cjs <screenshot dir> <rhythm pack> <tracks pack> <midi file>` for MIDI2Circuit with a Circuit pack (`tests/pack2pack.mjs <out-dir>` writes suitable packs), and `node tests/ui_c2m.cjs <screenshot dir> <pack> [<pack> ...]` for Circuit2MIDI.
+The browser tests use Playwright with the page served on port 8765: `tests/ui_test.cjs` and `tests/ui_mutes.cjs` for MIDI2Circuit, `node tests/ui_p2p.cjs <screenshot dir> <rhythm pack> <tracks pack> <midi file>` for MIDI2Circuit with a Circuit pack (`tests/pack2pack.mjs <out-dir>` writes suitable packs), `node tests/ui_c2m.cjs <screenshot dir> <pack> [<pack> ...]` for Circuit2MIDI (single-project packs), and `node tests/ui_handoff.cjs <two-project tracks pack> <rhythm pack>` for Convert to Circuit Tracks.
 
 ## Credits and licences
 
