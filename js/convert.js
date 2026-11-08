@@ -156,11 +156,13 @@ export function arrange(midi, assignment, options = {}) {
     return { error: `These settings don't fit a ${midi.timeSig.num}/${midi.timeSig.den} bar in whole steps, or the pattern is longer than the section. Try a different pattern length, tempo or section length.` };
   }
   // Auto: fewest projects among the rates that keep timing (<= 2% of notes moved), finest first.
-  const keep = results.filter((r) => r.warnings.movedRatio <= MOVED_LIMIT);
+  // Per track: also count notes lost to the step grid (merged, or dropped from a full step).
+  const lost = (r) => (opt.rate === 'track' ? (r.warnings.merged + r.warnings.dropped + r.warnings.drumDropped) / Math.max(1, r.warnings.total) : 0);
+  const keep = results.filter((r) => r.warnings.movedRatio + lost(r) <= MOVED_LIMIT);
   const pool = keep.length ? keep : results;
   pool.sort((a, b) => score(a) - score(b) || b.fineness - a.fineness);
   const best = pool[0];
-  best.alternatives = results.map((r) => ({ rate: r.mixed ? 'track' : r.rate, rates: r.trackRates.map((x) => x.rate), projects: r.projects.length }));
+  best.alternatives = results.map((r) => ({ rate: r.mixed ? 'track' : r.rate, rates: r.trackRates.map((x) => x.rate), projects: r.projects.length, moved: r.warnings.moved, lost: r.warnings.merged + r.warnings.dropped + r.warnings.drumDropped }));
   return best;
 
   // The longest (coarsest) step rate among the active tracks.
@@ -180,18 +182,36 @@ export function arrange(midi, assignment, options = {}) {
     });
     if (own.some((x, t) => active[t] && x)) plans.push(own.map((x) => x ?? 16));
     const notesOf = (t) => (t < 4 ? melodic[t] ?? [] : (drumHits ?? []).filter((n) => laneOf(n) === t - 4));
-    const keeps = (t, rate) => {
+    // What a rate costs a track: notes moved off their time, and notes lost (two of one
+    // pitch in a step on a synth, two different sounds in a step on a drum track).
+    const cost = (t, rate) => {
       const ns = notesOf(t);
-      if (!ns.length) return true;
-      const micro = midi.ppq * RATES[rate].syncQuarters * tempoDiv / MICRO;
+      if (!ns.length) return 0;
+      const step = midi.ppq * RATES[rate].syncQuarters * tempoDiv;
+      const micro = step / MICRO;
       let moved = 0;
+      const seen = new Map();
       for (const n of ns) {
         const x = n.tick - baseStart;
-        if (Math.abs(Math.round(x / micro) * micro - x) > midi.ppq / 16) moved++;
+        const pos = Math.round(x / micro);
+        if (Math.abs(pos * micro - x) > midi.ppq / 16) moved++;
+        const s = Math.floor(pos / MICRO);
+        const key = t < 4 ? `${s}:${n.note}` : `${s}`;
+        const what = t < 4 ? 1 : partOf(n);
+        if (!seen.has(key)) seen.set(key, new Set());
+        seen.get(key).add(t < 4 ? seen.get(key).size : what);
       }
-      return moved / ns.length <= MOVED_LIMIT;
+      let lostN = 0;
+      for (const v of seen.values()) lostN += v.size - 1;
+      return moved + lostN;
     };
-    plans.push(Array.from({ length: 8 }, (_, t) => [4, 8, 16].find((rate) => keeps(t, rate)) ?? 16));
+    // Per track: the longest rate that costs at most 2% of its notes more than the finest
+    // rate does (some losses, such as two sounds sharing a drum track, happen at any rate).
+    plans.push(Array.from({ length: 8 }, (_, t) => {
+      const n = notesOf(t).length;
+      const best = cost(t, 16);
+      return [4, 8, 16].find((rate) => cost(t, rate) - best <= MOVED_LIMIT * n) ?? 16;
+    }));
     return plans;
   }
 
@@ -229,7 +249,7 @@ export function arrange(midi, assignment, options = {}) {
     const nChunks = Math.max(1, Math.ceil((lastTick - startTick) / (chunkBars * barTicks) - 1e-9));
     const nSections = Math.ceil(nChunks / perSection);
     const totalChunks = nSections * perSection;
-    const warn = { dropped: 0, drumDropped: 0, held: 0, beforeStart: 0, moved: 0, total: 0, similarNotes: 0, similarPatterns: 0 };
+    const warn = { dropped: 0, drumDropped: 0, merged: 0, held: 0, beforeStart: 0, moved: 0, total: 0, similarNotes: 0, similarPatterns: 0 };
     const MOVE_TOL = midi.ppq / 16;    // a 1/64 note
     const countMove = (n, pos, mt) => {
       warn.total++;
@@ -258,7 +278,7 @@ export function arrange(midi, assignment, options = {}) {
           const local = pos - c * chunkMicro;
           const room = chunkMicro - local;
           const l = Math.min(len, room);
-          contents[t][c].items.push({ step: Math.floor(local / MICRO), delay: local % MICRO, note: clamp(n.note + 12, 1, 127), vel: clamp(n.vel, 1, 127), len: l });
+          contents[t][c].items.push({ step: Math.floor(local / MICRO), delay: local % MICRO, note: clamp(n.note + 12, 1, 127), vel: clamp(n.vel, 1, 127), len: l, cont: !first });
           if (!first) warn.held++;
           first = false;
           len -= l;
@@ -503,10 +523,11 @@ function normaliseSynth(ch, warn, loose) {
   }
   const steps = [];
   for (const [step, list] of [...bySteps].sort((a, b) => a[0] - b[0])) {
-    // One slot per pitch per step: keep the longest.
+    // One slot per pitch per step: keep the longest (counted as merged).
     const uniq = new Map();
     for (const it of list) {
       const prev = uniq.get(it.note);
+      if (prev && !it.cont && !prev.cont) warn.merged++;
       if (!prev || it.len > prev.len) uniq.set(it.note, it);
     }
     let notes = [...uniq.values()];
