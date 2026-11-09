@@ -1,37 +1,220 @@
 # TracksGM
 Could General MIDI files be converted to play on a Novation Circuit Tracks? Research, and public projects
 
-TracksGM is three projects:
+This branch holds the two converter pages, served by GitHub Pages:
+- **MIDI2Circuit** (the site root): a MIDI file to a Circuit Tracks pack.
+- **Circuit2MIDI** (`circuit2midi/`): a Circuit Tracks or Circuit Rhythm pack to a MIDI file, and pack compacting.
 
-1. **[TracksGM Universal Circuit Tracks Pack (TracksGM Pack)](https://github.com/GuinanNo1/TracksGM/tree/pack-build)**: a General MIDI sound set for the Circuit Tracks. [Download the pack](https://github.com/GuinanNo1/TracksGM/raw/pack-build/TracksGM_final.circuittrackspack) · [details below](#1-tracksgm-universal-circuit-tracks-pack-tracksgm-pack)
-2. **[TracksGM MIDI to Circuit Tracks Converter (MIDI2Circuit)](https://github.com/GuinanNo1/TracksGM/tree/web-converter)**: a web page that turns Standard MIDI files, or projects from Circuit Tracks and Circuit Rhythm packs, into Circuit Tracks projects using the TracksGM Pack. [Open the converter](https://guinanno1.github.io/TracksGM/) · [details below](#2-tracksgm-midi-to-circuit-tracks-converter-midi2circuit)
-3. **[TracksGM Circuit Tracks to MIDI Converter (Circuit2MIDI)](https://github.com/GuinanNo1/TracksGM/tree/web-converter/circuit2midi)**: the reverse, a web page that turns a project from a Circuit Tracks or Circuit Rhythm pack into a Standard MIDI file, and can compact the pack. [Open Circuit2MIDI](https://guinanno1.github.io/TracksGM/circuit2midi/) · [details below](#3-tracksgm-circuit-tracks-to-midi-converter-circuit2midi)
+## TracksGM MIDI to Circuit Tracks Converter (MIDI2Circuit) (alpha 0.1)
 
-## 1. TracksGM Universal Circuit Tracks Pack (TracksGM Pack)
-A Novation Components pack with 128 synth patches in General MIDI order, voiced and loudness-matched on hardware, plus 64 drum samples (8 kits) from GeneralUser GS. It works as a general-purpose pack on its own.
+**Try it:** https://guinanno1.github.io/TracksGM/
 
-The final TracksGM Pack will be further manually tuned to improve the patches. The final pack is used in the [TracksGM MIDI to Circuit Tracks Converter (MIDI2Circuit)](https://guinanno1.github.io/TracksGM/) (though alternate packs can be uploaded into the converter).
+**Help:** [Quickstart](https://guinanno1.github.io/TracksGM/help.html#quickstart) · [User guide](https://guinanno1.github.io/TracksGM/help.html)
 
-- **Download:** [TracksGM_final.circuittrackspack](https://github.com/GuinanNo1/TracksGM/raw/pack-build/TracksGM_final.circuittrackspack)
-- **How it was made:** [`pack-build` branch](https://github.com/GuinanNo1/TracksGM/tree/pack-build). It holds the pack, the code that generates every patch from calibrated settings, the drum renderer, and a write-up of the calibration method and file-format research (start with `PACK.md`).
+A web page that turns a General MIDI file (`.mid`) into a Circuit Tracks pack (`.circuittrackspack`) you can load with Novation Components. It runs entirely in the browser: nothing is uploaded, and there is no server.
 
-## 2. TracksGM MIDI to Circuit Tracks Converter (MIDI2Circuit)
-A web page that turns a Standard MIDI file (`.mid`) into a Circuit Tracks pack built on the TracksGM Pack (or another pack you upload). It can also take a project from a Circuit Tracks or Circuit Rhythm pack and rebuild it as a Circuit Tracks project with that pack's own samples, optionally shrinking the pack to just what the song uses. You choose the parts for Synth 1/2, MIDI 1/2 and the four drum tracks, preview and mute them, and download a `.circuittrackspack` for Novation Components. It runs in the browser, with nothing uploaded.
+The pack it makes contains:
+- a **base pack**'s patches and drum samples. By default this is the **TracksGM Universal Circuit Tracks Pack (TracksGM Pack)** (`TracksGM_final.circuittrackspack`): 128 synth patches in General MIDI order, and 64 drum samples (8 kits) from GeneralUser GS. You can drop in another pack instead (see below);
+- one or more **projects** holding the converted song, in project slots 1 onwards.
 
-- **Try it:** https://guinanno1.github.io/TracksGM/
-- **Help:** [Quickstart](https://guinanno1.github.io/TracksGM/help.html#quickstart) · [User guide](https://guinanno1.github.io/TracksGM/help.html)
-- **Code and documentation:** [`web-converter` branch](https://github.com/GuinanNo1/TracksGM/tree/web-converter)
+Sending the pack to the Tracks replaces the pack in that slot, so send it to a spare pack slot.
 
-Alpha 0.1 is for testing. Please report problems in [Issues](https://github.com/GuinanNo1/TracksGM/issues).
+### Using it
 
-## 3. TracksGM Circuit Tracks to MIDI Converter (Circuit2MIDI)
-A web page that opens a Novation Components pack for the Circuit Tracks (`.circuittrackspack`) or Circuit Rhythm (`.circuitrhythmpack`). It can save a compacted copy of the pack, without the samples and patches none of its projects use, and it turns one project at a time into a Standard MIDI file: scenes in order, pattern chains, step timing, gates and velocities, on the MIDI channels and instruments you choose, with drum samples mapped to notes. A preview plays the pack's own samples. It runs in the browser, with nothing uploaded.
+1. **Load a MIDI file or Circuit pack.** The **Base pack** box at the top shows the pack the song is built on (*TracksGM_final* unless you change it). Then drop a `.mid` file on the page or choose one. Type 0 and type 1 files both work. Each MIDI track and channel becomes a separate part. A Circuit Tracks or Circuit Rhythm pack can be dropped there too: see [Converting a Circuit pack](#converting-a-circuit-tracks-or-circuit-rhythm-pack).
+2. **Choose the parts.** Give each part a Circuit Tracks track:
+   - **S1 / S2** play on Synth 1 and Synth 2.
+   - **M1 / M2** play external gear through MIDI 1 and MIDI 2.
+   - **Drums** takes the General MIDI drum part (channel 10).
+   
+   Send several parts to the same track to combine them. Parts that share a name (as in type 0 files) are named by instrument and channel. The ▶ button plays a single part on its own. By default, the two busiest parts go to Synth 1 and Synth 2, the next two to MIDI 1 and MIDI 2, and channel 10 to Drums.
+3. **Pick the sounds.**
+   - **Synth patches:** choose a TracksGM Pack patch for each synth. The default is the GM instrument of the first part on that track (TracksGM Pack slot = GM program number).
+   - **Drum kit:** choose a kit (Std, Room, Power, Elec, 808, Jazz, Brush, Orch).
+   - **Octave:** each melodic track can be shifted up or down an octave.
+4. **Check the arrangement.**
+   - **Grid:** each Circuit Tracks track has a row showing which pattern it plays, section by section and across projects if the song needs more than one. Under it is a row for each MIDI part feeding that track.
+   - **Muting:** click a coloured dot to mute or unmute a whole row, or a box to mute or unmute those bars. On a drum row (Kick, Snare/Tom, Hi-hats, Perc) the dot mutes just that sound. Mutes apply to both the preview and the pack, and muting can bring the number of projects down.
+   - **Options:**
+     - **Section length:** Auto, or 4 to 32 bars.
+     - **Pattern length:** *Per track: keep notes* (the default; each track its own step rate, longer only where no notes are lost), *Auto: fewest projects* (one rate for all; can merge quick repeated notes), or 1/16, 1/8 or 1/4 steps.
+     - **Tempo:** original, ÷2 or ÷4.
+     - **Repeats:** exact, ignoring velocity, or ≥90% / ≥75% similar.
+     - **Quantise:** off, 1/16, 1/8 or 1/16 triplet.
+     - **Line up sections with repeats** and **Skip empty bars at the start** (on/off).
+     
+     The sections below explain each one.
+   
+   **Play preview** plays the converted parts:
+   - melodic parts use simple synth voices, as a sketch of the part rather than the Tracks patch;
+   - drums use the real samples of the chosen kit.
+   
+   S solos a track in the preview only. Changing a mute or option while the preview plays carries on from the same spot. Notes about anything that had to change (dropped or moved notes, tempo changes and so on) appear under the grid.
+5. **Build the pack.** Name the project and the pack, choose the project colours, then **Download pack**.
+   - **Repeating rainbow** (the default) colours the projects Red, Orange, Yellow, Green, Cyan, Blue, Purple, then repeats.
+   - **One colour**: pick a colour from the list to give every project the same colour.
 
-- **Try it:** https://guinanno1.github.io/TracksGM/circuit2midi/
-- **Help:** [Quickstart](https://guinanno1.github.io/TracksGM/circuit2midi/help.html#quickstart) · [User guide](https://guinanno1.github.io/TracksGM/circuit2midi/help.html)
-- **Code and documentation:** [`web-converter` branch](https://github.com/GuinanNo1/TracksGM/tree/web-converter), in `circuit2midi/` and `js/`; the Circuit Rhythm project format is written up in [`docs/circuit-rhythm-format.md`](https://github.com/GuinanNo1/TracksGM/blob/web-converter/docs/circuit-rhythm-format.md)
+   Open the pack in Novation Components and send it to your Circuit Tracks.
 
-Alpha 0.1 is for testing. Please report problems in [Issues](https://github.com/GuinanNo1/TracksGM/issues).
+### Converting a Circuit Tracks or Circuit Rhythm pack
 
-## Credits
-Drum samples: [GeneralUser GS](https://github.com/mrbumpy409/GeneralUser-GS) by S. Christian Collins. Project-format code and research: [circuit-tracks-tools](https://github.com/namirsab/circuit-tracks-tools) by Namir Sayed-Ahmad Baraza, and [ncstool](https://github.com/Ondrysak/ncstool). Not affiliated with Novation or Focusrite; "Circuit Tracks", "Circuit Rhythm" and "Components" are their trademarks.
+Drop a `.circuittrackspack` or `.circuitrhythmpack` on the song box in step 1 and pick a project. The project is played through as the Circuit plays it (scenes in saved order, pattern chains, step lengths, micro-steps, gates, ties, swing; read by the same code as Circuit2MIDI), and each Circuit track with notes becomes a part.
+
+- **Parts:** a Circuit Tracks project's parts go back to their own tracks. On a Circuit Rhythm, sample tracks at one pitch go to Drums and tracks played at several pitches go to Synth 1 and Synth 2; any sample track can go to Drums.
+- **Drums:** the loaded pack's own samples, by sample slot (the kit list is hidden). A **Drum 1–4** menu beside each drum part picks its drum track: Circuit Tracks drum parts keep theirs; Circuit Rhythm drum parts get one each, busiest first, and a fifth shares the one it clashes with least (or *By sample name*). Drum tracks play one pitch per sample, so pitched Circuit Rhythm steps lose their pitch there.
+- **Step rate per track:** Pattern length *Per track* (the default) gives each track its own sync rate, as the Circuit does, so an 8-bar phrase at 1/4 steps stays one pattern while the beat runs at 1/16. The scene grid is cut at the longest pattern; shorter-step tracks play several patterns per grid column. A track only gets longer steps when that loses no notes (moved, or merged: a step holds each pitch once).
+- **Patches:** a Circuit Tracks pack becomes the base pack, so the synths keep their own patches. A Circuit Rhythm pack has none, so the base pack supplies them.
+- **Shrink the pack** (step 4, on by default): only the two synth patches and the samples the song plays are kept; other slots are left empty, as Components stores them.
+- **Circuit Rhythm samples:** 128 slots into the Tracks' 64, so they are renumbered, the song's own first; samples that aren't 48 kHz 16-bit mono are converted. The converter warns when the samples pass the Tracks' 196.6 s.
+- **Not carried over:** mixer, effects, parameter locks and automation, and Circuit Rhythm sample settings other than the steps' pitch.
+
+### Using a different base pack
+
+Click **Use another pack…** in step 1, or drop a `.circuittrackspack` on the Base pack box, to build on another pack (an edited TracksGM Pack, or any pack exported from Components). **Back to TracksGM_final** switches back.
+
+- **Patches:** the synth lists show the pack's own patch names. Defaults still assume General MIDI order (slot = GM program, or the nearest filled slot below).
+- **Drums:** the 64 samples are read as 8 kits of 8, each in the order kick, snare, rim/clap, closed hat, open hat, tom, cymbal, percussion.
+- **Projects:** the pack's own projects are replaced by the converted song; its patches and samples are copied unchanged.
+- **Checks:** the file must open as a pack with at least one patch and 8 sample slots, otherwise the page keeps the previous pack.
+
+### How a song becomes Circuit Tracks projects
+
+- **Steps and patterns.** A Circuit Tracks pattern has up to 32 steps, and the converter places every note on a step plus one of 6 micro-steps. Two settings decide how much of the song (in 4/4) a pattern holds:
+  - **Pattern length**, the pattern's step rate: 1/16 steps hold 2 bars, 1/8 steps 4 bars, 1/4 steps 8 bars.
+  - **Tempo:** ÷2 or ÷4 lowers the project tempo, so each step covers 2× or 4× as much of the song (up to 32 bars per pattern).
+
+  Longer patterns mean fewer projects but coarser timing:
+
+  | Song per step | Timing grid |
+  |---|---|
+  | 1/16 note | 1/96 note |
+  | 1/8 note | 1/48 note (16ths and 16th triplets exact) |
+  | 1/4 note | 1/24 note (16ths fall between micro-steps) |
+  | 1/2 note | 1/12 note |
+  | whole note | 1/6 note |
+
+  The page reports how many notes moved by more than a 64th.
+  - **Tempo division side effects:** the project tempo must stay at 40 BPM or above. The song plays at its own speed, but tempo-synced effects, arpeggios and MIDI clock run slower.
+  - **Auto** picks the step rate that needs the fewest projects without moving more than 2% of notes.
+- **Sections and scenes.** The song is cut into sections, and each section becomes a scene; the scenes are chained in song order. *Auto* tries three layouts and keeps whichever needs the fewest projects:
+  - 8-bar sections;
+  - one-pattern sections, which let any pattern be reused anywhere but use up the 16 scenes faster;
+  - variable scenes, where consecutive patterns share a scene whenever that costs no extra patterns.
+- **Reusing repeats.**
+  - **Within a section:** a track that repeats a cycle (A A A A, or A B A B) loops just those patterns. Otherwise it chains the section's patterns.
+  - **Repeated sections** reuse their patterns.
+  - **Repeats setting:** *Match ignoring velocity* (the default) treats parts that differ only in velocity as repeats. The *similar* settings also treat a pattern that shares at least 90% or 75% of its notes with an earlier one as a repeat. That changes a few notes, and the page reports how many.
+  - **Line up sections with repeats** tries starting sections up to 8 bars earlier, to catch phrases that begin after a pickup or intro. It only does this when it saves a project, since the song then starts after a few empty bars.
+  - **Quantise** snaps notes to a grid first, so loosely played repeats match.
+- **How far repeats go:** on the GeneralUser GS demo songs, most sections are genuinely different (fills, variations, new parts). At 4-bar patterns, 8 of 9 songs already reach the smallest project count their number of different patterns allows. Longer patterns, muting parts, or the *similar* settings are the ways to go lower.
+- **Projects.** Each track holds 8 patterns per project, and a project has 16 scenes. When the song has more distinct material than that, it carries on in the next project (up to 64).
+- **Drums.** The GM drum part is spread across the four drum tracks, using the chosen kit's samples:
+
+  | Track | Plays | Samples used |
+  |---|---|---|
+  | Drum 1 | Kick | kick |
+  | Drum 2 | Snare / Tom | snare and tom, chosen per step |
+  | Drum 3 | Hi-hats | closed and open hat, chosen per step |
+  | Drum 4 | Percussion | rim/clap, cymbals and other percussion, chosen per step |
+
+  Each drum step plays one sample. Where two sounds land on the same step of one track, the louder one is kept. Repeated hits within a step become flams and rolls.
+- **Limits.** These apply on top of the Tracks' own rules:
+  - At most 6 notes can start on one step; the top and bottom notes are always kept.
+  - Notes longer than 16 steps are tied.
+  - Notes that run past the end of a pattern are struck again at the start of the next one.
+  - The project uses the file's first tempo (40–240 BPM) and first time signature.
+- **Project settings.** Projects use the Chromatic scale so notes play exactly as written. Synth 1 and Synth 2 point at the chosen pack patches, and also carry their own copies of them. MIDI 1 and MIDI 2 send on the MIDI channels set on the Tracks (Setup view).
+
+### Still to confirm on hardware
+
+The project format is reverse-engineered. Confirmed on a Circuit Tracks (alpha 0.1): packs load, synth and drum parts play, and long held notes sustain correctly. Still to check:
+- the octave of notes sent on MIDI 1 and MIDI 2;
+- scenes playing through the song in order, each lasting as long as its longest pattern chain;
+- packs converted from a Circuit Rhythm pack (renumbered and converted samples) loading and playing on the Tracks;
+- tracks with different step rates in one scene (Per track): each looping its own chain, the scene lasting as long as its longest chain in time.
+
+## TracksGM Circuit Tracks to MIDI Converter (Circuit2MIDI) (alpha 0.1)
+
+**Try it:** https://guinanno1.github.io/TracksGM/circuit2midi/
+
+**Help:** [Quickstart](https://guinanno1.github.io/TracksGM/circuit2midi/help.html#quickstart) · [User guide](https://guinanno1.github.io/TracksGM/circuit2midi/help.html)
+
+The reverse of MIDI2Circuit. A web page that opens a Novation Components pack for the **Circuit Tracks** (`.circuittrackspack`) or **Circuit Rhythm** (`.circuitrhythmpack`), and:
+
+1. **Compacts the pack** (optional): saves a copy without the samples and patches no project uses. Slot numbers are kept, so projects are copied unchanged; unused slots stay as empty slots, as Components stores them. Packs without projects can't be compacted.
+   **Keep** can be *Every project* or *Only project N*: the other project slots are emptied and just that project's samples and patches are kept.
+2. **Converts one project at a time** to a type 1 Standard MIDI file:
+   - **Scenes:** the saved scene chain, every used scene in order, or a custom order (`1-4, 2, 5x2`). Each scene lasts as long as its longest pattern chain; shorter chains repeat.
+   - **Patterns:** start and end steps, step length (1/32 to 1/4, triplets included), direction, micro-step timing, gates, velocities, ties, rolls and swing. Steps with a chance below 100% can be kept or left out.
+   - **Tracks:** each Circuit track becomes a MIDI track. Melodic tracks get a channel, a GM program and an octave shift; drum tracks get one note per sample, guessed from the sample names and editable.
+   - A grid shows each scene's pattern chains per track, with track mutes and solo, and a preview that plays the pack's own samples.
+3. **Converts a project to Circuit Tracks:** *Convert to Circuit Tracks (MIDI2Circuit)* in step 3 opens the chosen project in MIDI2Circuit (the pack is passed through the browser's IndexedDB, `js/handoff.js`).
+
+It runs entirely in the browser. The Circuit Rhythm project format was worked out for this page from a hardware-saved project; see [`docs/circuit-rhythm-format.md`](docs/circuit-rhythm-format.md).
+
+**Still to confirm on hardware:** the triplet step lengths, what the per-track bit mask in each Circuit Rhythm scene does (offered as an unconfirmed option), and that scene length follows the longest chain.
+
+## Hosting on GitHub Pages
+
+The page is static (HTML, CSS and JavaScript modules), with no build step.
+
+1. Make the repository public. GitHub Pages on a private repository needs a paid plan.
+2. In the repository, open **Settings → Pages**.
+3. Under **Build and deployment**, set **Source** to *Deploy from a branch*, choose the branch that holds the page (`web-converter`, or `main` once it's merged) and the `/ (root)` folder, then click **Save**.
+4. After a minute or two the page is live at `https://<your-user-name>.github.io/TracksGM/`.
+
+## Running it on your own computer
+
+Browsers block JavaScript modules and file loading when a page is opened straight from disk, so serve the folder instead:
+
+```sh
+cd TracksGM
+python3 -m http.server 8765
+```
+
+Then open <http://localhost:8765/> (MIDI2Circuit) or <http://localhost:8765/circuit2midi/> (Circuit2MIDI).
+
+## Files
+
+| Path | What it is |
+|---|---|
+| `index.html`, `help.html`, `css/app.css` | MIDI2Circuit's page and help. |
+| `circuit2midi/index.html`, `circuit2midi/help.html`, `css/c2m.css` | Circuit2MIDI's page and help. |
+| `js/app.js` | The page logic: loading, part picker, sounds, arrangement view, build. |
+| `js/midifile.js` | MIDI file reader. |
+| `js/convert.js` | Quantising, drum mapping, and laying the song out as patterns, scenes and projects. |
+| `js/build.js` | Writes the `.ncs` projects and the pack; with a Circuit pack as the song, combines its samples with the base pack's patches, shrinks and converts them. |
+| `js/player.js` | Preview playback (Web Audio), for both pages. |
+| `js/c2m.js` | Circuit2MIDI's page logic. |
+| `js/pack.js` | Reads Circuit Tracks and Circuit Rhythm packs, finds the samples and patches in use, writes compacted packs. |
+| `js/rhythm.js` | Circuit Rhythm project reader. |
+| `js/song.js` | Turns a project into scenes, chains and timed notes, and maps them to MIDI. |
+| `js/packsong.js` | MIDI2Circuit: a Circuit Tracks or Circuit Rhythm project as converter parts. |
+| `js/midiwrite.js` | Standard MIDI file writer. |
+| `docs/circuit-rhythm-format.md` | The Circuit Rhythm project format, as far as it is known. |
+| `js/vendor/ncs.js`, `js/vendor/zip.js` | Project file reader/writer and zip code from circuit-tracks-tools (MIT licence, see `js/vendor/LICENSE-circuit-tracks-tools.txt`). |
+| `data/TracksGM_final.circuittrackspack` | The TracksGM Pack, the default base pack. Replace this file to update the default when the pack is retuned. |
+| `data/Empty.ncs` | Blank project used as the template (from circuit-tracks-tools). |
+| `tests/` | Node scripts: parse MIDI files, plan arrangements, build packs and read them back, and check projects against the Components validator's ranges. |
+
+Running the tests needs Node.js 18 or later and some MIDI files, for example GeneralUser GS's `demo MIDIs` folder:
+
+```sh
+node tests/build_test.mjs "path/to/song.mid" out     # build a pack, read every note back
+node tests/validate.mjs out/project_*.ncs            # range checks
+node tests/roundtrip.mjs                             # MIDI -> MIDI2Circuit -> Circuit2MIDI -> MIDI, every note compared
+node tests/pack2pack.mjs [out-dir]                   # Circuit Tracks / Rhythm pack -> MIDI2Circuit -> pack, every hit compared
+node tests/pack_compare.mjs <pack> [track|auto|16|8|4] # any pack: convert each project, play it back, account for every hit
+node tests/compact_only.mjs [save-two-project-pack]  # Circuit2MIDI: Keep only project N
+```
+
+The browser tests use Playwright with the page served on port 8765: `tests/ui_test.cjs` and `tests/ui_mutes.cjs` for MIDI2Circuit, `node tests/ui_p2p.cjs <screenshot dir> <rhythm pack> <tracks pack> <midi file>` for MIDI2Circuit with a Circuit pack (`tests/pack2pack.mjs <out-dir>` writes suitable packs), `node tests/ui_c2m.cjs <screenshot dir> <pack> [<pack> ...]` for Circuit2MIDI (single-project packs), and `node tests/ui_handoff.cjs <two-project tracks pack> <rhythm pack>` for Convert to Circuit Tracks.
+
+## Credits and licences
+
+- **TracksGM Universal Circuit Tracks Pack (TracksGM Pack):** Ian Guinan. How it was made is described on the [`pack-build` branch](https://github.com/GuinanNo1/TracksGM/tree/pack-build).
+- **Drum samples:** [GeneralUser GS](https://github.com/mrbumpy409/GeneralUser-GS) by S. Christian Collins. Licence in `data/LICENSE-GeneralUser-GS.txt`; keep it with any shared pack and credit "Drum samples: GeneralUser GS by S. Christian Collins".
+- **Project-format code and blank project:** [circuit-tracks-tools](https://github.com/namirsab/circuit-tracks-tools) by Namir Sayed-Ahmad Baraza (MIT).
+- **Format research:** circuit-tracks-tools and [ncstool](https://github.com/Ondrysak/ncstool).
+- **Other code:** this repository's licence (MPL-2.0, see `LICENSE`).
+- Not affiliated with Novation or Focusrite. "Circuit Tracks", "Circuit Rhythm" and "Components" are their trademarks.

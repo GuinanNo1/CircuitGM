@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Circuit2MIDI Help</title>
+<meta name="description" content="Quickstart and user guide for the TracksGM Circuit Tracks to MIDI Converter (Circuit2MIDI).">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../css/app.css">
+</head>
+<body>
+<header class="masthead">
+  <div class="wrap">
+    <p class="crumbs"><a href="./">← Back to Circuit2MIDI</a></p>
+    <h1>Help <span>TracksGM Circuit Tracks to MIDI Converter (Circuit2MIDI)</span> <em class="badge">alpha 0.1</em></h1>
+    <p class="lede">How to tidy a Circuit Tracks or Circuit Rhythm pack and turn one of its projects into a Standard MIDI file. Going the other way, from a MIDI file to a Circuit Tracks pack, is <a href="../">MIDI2Circuit</a>.</p>
+  </div>
+</header>
+
+<main class="wrap doc">
+  <nav class="panel toc" aria-label="Contents">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#quickstart">Quickstart</a></li>
+      <li><a href="#steps">The six steps in detail</a></li>
+      <li><a href="#compact">What compacting removes</a></li>
+      <li><a href="#timing">How a project becomes MIDI</a></li>
+      <li><a href="#rhythm">Circuit Rhythm projects</a></li>
+      <li><a href="#limits">Limits and alpha status</a></li>
+      <li><a href="#trouble">Troubleshooting</a></li>
+    </ol>
+  </nav>
+
+  <section class="panel" id="quickstart">
+    <h2>Quickstart</h2>
+    <ol class="steps">
+      <li>In Novation Components, open your Circuit Tracks or Circuit Rhythm and save the pack to your computer (a <code>.circuittrackspack</code> or <code>.circuitrhythmpack</code> file).</li>
+      <li>Drop the pack on <b>Load a pack</b>. Nothing leaves your computer.</li>
+      <li>If you want a smaller pack, press <b>Download compacted pack</b>. This step is optional.</li>
+      <li>Pick a project. If the pack has only one project with notes, it is picked for you.</li>
+      <li>Press <b>Play preview</b> to hear it, then <b>Download .mid</b>.</li>
+    </ol>
+  </section>
+
+  <section class="panel" id="steps">
+    <h2>The six steps in detail</h2>
+    <h3>1. Load a pack</h3>
+    <p>The page reads the pack's list of projects, samples and (for the Circuit Tracks) synth patches, and every project in it. Empty project slots are skipped.</p>
+    <h3>2. Compact the pack</h3>
+    <p>Shows how many samples and patches the pack's projects use and how many they don't, with a list of what would go. <b>Download compacted pack</b> saves a copy without the unused ones, under the pack name you give (up to 16 characters, as Components allows). Your original file is not changed. <b>Keep</b> chooses what stays: <i>Every project</i>, or <i>Only project N</i>, which empties the other project slots and keeps just that project's samples and patches; the project stays in its own slot. See <a href="#compact">What compacting removes</a>.</p>
+    <h3>3. Choose a project</h3>
+    <p>One project is converted at a time. Each card shows the project's number on the Circuit, its name, how many scenes it uses, its length and tempo.</p>
+    <p><b>Convert to Circuit Tracks (MIDI2Circuit)</b> opens the chosen project in <a href="../">MIDI2Circuit</a> instead, to build a Circuit Tracks pack from it with the pack's own samples (and, from a Circuit Tracks pack, its patches). The pack is handed over inside your browser and kept only for the few moments the other page takes to open.</p>
+    <h3>4. Check the scenes</h3>
+    <dl>
+      <dt>Scene order</dt>
+      <dd><b>Saved scene chain</b> plays the scenes chained when the project was saved. <b>Every used scene in order</b> plays every scene that has something saved in it, from scene 1 up; it is chosen for you when the saved chain is a single scene but more are used. <b>Custom order</b> takes scene numbers, ranges and repeats, for example <code>1-4, 2, 5x2</code>.</dd>
+      <dt>Steps with a chance below 100%</dt>
+      <dd>Steps set to play only some of the time are kept by default. Choose <b>Leave them out</b> to drop them.</dd>
+      <dt>Apply the project's swing</dt>
+      <dd>Moves every second step later, as the Circuit does.</dd>
+      <dt>Use scene track masks (unconfirmed)</dt>
+      <dd>Only shown for projects whose scenes carry a per-track bit mask. It probably mutes tracks in that scene, but that isn't confirmed yet, so it is off by default.</dd>
+      <dt>The grid</dt>
+      <dd>One column per scene in playing order, one row per Circuit track. Each cell shows the pattern chain that track plays in that scene; grey cells have no notes. The dot leaves a track out of both the preview and the MIDI file, and S solos a track in the preview only.</dd>
+    </dl>
+    <h3>5. Set the MIDI tracks</h3>
+    <dl>
+      <dt>Play as</dt>
+      <dd><b>Melodic</b> writes each step's note as stored. <b>Drums</b> writes one note per sample, set in the <b>Drum notes</b> table, so each sample gets its own key.</dd>
+      <dt>Channel, Instrument, Octave</dt>
+      <dd>Each track's MIDI channel, its General MIDI program change (or none) and an octave shift. Drum tracks default to channel 10, the General MIDI drum channel.</dd>
+      <dt>Drum notes</dt>
+      <dd>One row per sample the drum tracks play. Notes are guessed from the sample names (kick, snare, hat and so on); samples with no recognisable name get spare percussion notes, so no two samples share a note unless you choose that.</dd>
+    </dl>
+    <h3>6. Save the MIDI file</h3>
+    <p>A type 1 Standard MIDI file: one MIDI track for each Circuit track with notes, the project's tempo, and a marker named after each scene where it starts.</p>
+  </section>
+
+  <section class="panel" id="compact">
+    <h2>What compacting removes</h2>
+    <p>A sample counts as used when any project with notes plays it on a step or has it as a track's default sample. A patch counts as used when a project has it on Synth 1 or Synth 2. Everything else is left out.</p>
+    <p>Every sample and patch keeps its slot number, so the projects are copied byte for byte and still find their sounds. Removed slots stay in the pack as empty slots, which is how Components stores them. Projects, grid effects and everything else are kept.</p>
+    <p>A pack with no projects (such as the TracksGM Universal Circuit Tracks Pack (TracksGM Pack) itself) can't be compacted, because every sound in it would count as unused.</p>
+    <p>The compacted pack replaces the whole pack on your Circuit when you send it from Components, as any pack does.</p>
+  </section>
+
+  <section class="panel" id="timing">
+    <h2>How a project becomes MIDI</h2>
+    <ul>
+      <li>Each scene lasts as long as its longest pattern chain. Shorter chains repeat until the scene ends, and every chain starts again at the next scene.</li>
+      <li>Each pattern plays from its start step to its end step at its own step length (1/32 to 1/4, including triplets), forwards, backwards or ping-pong. Random order is written forwards.</li>
+      <li>Notes keep their micro-step timing, gate length and velocity. On the Circuit Tracks, a long note tied across steps becomes one MIDI note. Drum rolls (several hits in one step) become separate notes.</li>
+      <li>Stored notes are converted with the same rule MIDI2Circuit uses to write them (stored note = MIDI note + 12), so a file taken through MIDI2Circuit and back comes out the same at 1/16 steps.</li>
+      <li>Automation (parameter locks), mixer levels, effects and the synth patches' sound are not written; the MIDI file holds the notes.</li>
+    </ul>
+  </section>
+
+  <section class="panel" id="rhythm">
+    <h2>Circuit Rhythm projects</h2>
+    <p>Each of the eight Circuit Rhythm tracks plays samples. A track whose steps are all at the sample's own pitch starts as a Drums track, with a note for each sample it plays; a track with transposed steps starts as Melodic, playing the step pitches with the sample's natural pitch as middle C (MIDI 60).</p>
+    <p>A Melodic track that switches samples on some steps plays them all on one MIDI instrument; the page warns you when that happens. Play it as Drums instead to give each sample its own note.</p>
+    <p>The preview plays the pack's own samples, transposed as the steps set, one sound at a time per track as on the Circuit.</p>
+  </section>
+
+  <section class="panel" id="limits">
+    <h2>Limits and alpha status</h2>
+    <ul>
+      <li>The Circuit Rhythm project format was worked out from one hardware-saved project. Tempo, swing, scenes, chains, steps, sample choices and pattern settings are read with confidence; the triplet step lengths and the scene track masks are not yet confirmed on hardware.</li>
+      <li>Which octave MIDI 1 and MIDI 2 on the Circuit Tracks send at is not yet confirmed.</li>
+      <li>The project's own scene chain may be a single scene even when more are used, because the Circuit saves the chain that was playing. Use <b>Every used scene in order</b> or a custom order.</li>
+    </ul>
+  </section>
+
+  <section class="panel" id="trouble">
+    <h2>Troubleshooting</h2>
+    <dl>
+      <dt>"This file has no index.json".</dt>
+      <dd>The file isn't a Components pack. Save the pack from Components, not a single project or sample.</dd>
+      <dt>The project is listed but plays nothing.</dt>
+      <dd>Check the scene order: the saved scene chain may point at an empty scene. Try <b>Every used scene in order</b>.</dd>
+      <dt>The drums are on the wrong sounds.</dt>
+      <dd>Change the notes in the <b>Drum notes</b> table; the guess goes by sample names.</dd>
+      <dt>Compacting is greyed out.</dt>
+      <dd>Either every sample and patch is in use, or the pack has no projects with notes.</dd>
+    </dl>
+  </section>
+</main>
+
+<footer class="wrap foot">
+  <p><a href="./">Back to Circuit2MIDI</a> · <a href="../">MIDI2Circuit</a> · Project format code from <a href="https://github.com/namirsab/circuit-tracks-tools">circuit-tracks-tools</a> (MIT). Not affiliated with Novation or Focusrite.</p>
+</footer>
+</body>
+</html>
