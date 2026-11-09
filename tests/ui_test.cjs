@@ -7,6 +7,7 @@ const fs = require('fs');
   for (const [name, opts] of [['desktop', { viewport: { width: 1280, height: 900 } }], ['dark', { viewport: { width: 1280, height: 900 }, colorScheme: 'dark' }], ['phone', { viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 }]]) {
     const ctx = await browser.newContext({ ...opts, acceptDownloads: true });
     const page = await ctx.newPage();
+    await page.addInitScript(() => { try { localStorage.setItem('circuitgm-advanced-m2c', '1'); localStorage.setItem('circuitgm-advanced-c2m', '1'); } catch {} });   // these tests drive every control: Advanced mode
     page.on('console', (m) => { if (m.type() === 'error') errors.push(`${name}: ${m.text()}`); });
     page.on('pageerror', (e) => errors.push(`${name}: ${e.message}`));
     await page.goto('http://localhost:8765/midi2circuit/index.html');

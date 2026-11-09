@@ -11,6 +11,7 @@ const ok = (cond, msg) => { console.log(`${cond ? 'ok  ' : 'FAIL'} ${msg}`); if 
   const browser = await chromium.launch({ channel: 'chrome' });
   for (const [label, viewport, scheme] of [['desktop', { width: 1280, height: 900 }, 'light'], ['phone', { width: 390, height: 844 }, 'dark']]) {
     const page = await browser.newPage({ viewport, colorScheme: scheme, acceptDownloads: true });
+    await page.addInitScript(() => { try { localStorage.setItem('circuitgm-advanced-m2c', '1'); localStorage.setItem('circuitgm-advanced-c2m', '1'); } catch {} });   // these tests drive every control: Advanced mode
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto('http://localhost:8765/midi2circuit/');

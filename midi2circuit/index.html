@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="../css/app.css">
+<script>(function(){var r=document.documentElement;try{if(localStorage.getItem('circuitgm-advanced-m2c')!=='1')r.classList.add('simple')}catch(e){r.classList.add('simple')}})();</script>
 </head>
 <body>
 <nav class="sitenav" aria-label="CircuitGM">
@@ -27,16 +28,18 @@
 <header class="masthead">
   <div class="wrap">
     <h1>MIDI2Circuit <span>MIDI to Circuit Tracks converter</span> <em class="badge">alpha 0.1</em></h1>
-    <p class="helplinks"><a href="help.html#quickstart">Quickstart</a> · <a href="help.html">User guide</a></p>
+    <p class="helplinks"><a href="help.html#quickstart">Quickstart</a> · <a href="help.html">User guide</a> <label class="modeswitch" title="Show every setting"><input type="checkbox" id="advanced" role="switch"> Advanced</label></p>
     <p class="lede">Turn a General MIDI file, or a project from a Circuit Tracks or Circuit Rhythm pack, into a Novation Circuit Tracks pack. Pick the parts you want, hear how they'll play, and download a <code>.circuittrackspack</code> for Novation Components, built on the <a href="../tracksgm/">TracksGM pack</a> or a pack of your own.</p>
     <p class="alpha">Alpha 0.1, for testing. Packs load and play on the Circuit Tracks, but the project format is reverse-engineered: keep a backup of your packs, and please report anything odd on <a href="https://github.com/GuinanNo1/CircuitGM/issues">GitHub</a>.</p>
+    <p class="modenote simple-only">You're in <b>simple mode</b>: the main choices, with settings that suit most songs. Switch on <b>Advanced</b> for detailed control over how the song is laid out, the base pack, trimming and warnings. Tuning those settings can give better, more compact results, but may take some experimenting.</p>
+    <p class="modenote changed" id="mode-changed" hidden></p>
   </div>
 </header>
 
 <main class="wrap">
   <section class="panel" id="step-load">
     <h2><span class="num">1</span> Load a MIDI file or Circuit pack</h2>
-    <div class="basepack" id="basepack">
+    <div class="basepack adv" id="basepack">
       <div class="bp-info">
         <span class="k">Base pack</span>
         <b id="base-name">TracksGM_final</b>
@@ -79,17 +82,17 @@
       <div class="field role-dr"><label for="kit">Drum kit</label><select id="kit"></select><b class="packdrums" id="kit-pack" hidden></b><span class="sub" id="kit-sub">Drum 1 kick · Drum 2 snare/toms · Drum 3 hi-hats · Drum 4 percussion</span></div>
       <div class="field role-m"><label>MIDI 1 &amp; 2</label><p class="sub" id="sub-midi">These send notes on the MIDI channels set on your Circuit Tracks (Setup view), to play external gear.</p></div>
     </div>
-    <div class="transpose" id="transpose"></div>
+    <div class="transpose adv" id="transpose"></div>
   </section>
 
   <section class="panel" id="step-arrange" hidden>
     <h2><span class="num">4</span> Check the arrangement</h2>
-    <div class="shrink" id="shrink" hidden>
-      <div class="field check"><label><input type="checkbox" id="shrink-on" checked> Shrink the pack: keep only the patches and samples the song uses</label></div>
+    <div class="shrink adv" id="shrink" hidden>
+      <div class="field check"><label><input type="checkbox" id="shrink-on" checked> Trim the pack: keep only the patches and samples the song uses</label></div>
       <p class="hint small" id="shrink-info"></p>
       <ul class="warnings" id="shrink-warn"></ul>
     </div>
-    <div class="options">
+    <div class="options adv" id="arrange-options">
       <div class="field"><label for="section-bars">Section length</label>
         <select id="section-bars"><option value="auto" selected>Auto (fewest projects)</option><option value="4">4 bars</option><option value="8">8 bars</option><option value="16">16 bars</option><option value="32">32 bars</option></select></div>
       <div class="field"><label for="rate">Pattern length</label>
@@ -122,17 +125,18 @@
     </div>
     <p class="hint">Click a coloured dot to mute or unmute a whole row, or a box to mute or unmute those bars. Mutes change the preview and the pack. The numbers are the pattern each Circuit Tracks track plays; the rows under it are the MIDI parts feeding it. S solos a track in the preview only.</p>
     <div class="gridwrap" id="gridwrap"><div class="grid" id="grid"></div></div>
-    <ul class="warnings" id="warnings"></ul>
+    <ul class="warnings errors" id="errors"></ul>
+    <ul class="warnings adv" id="warnings"></ul>
   </section>
 
   <section class="panel" id="step-build" hidden>
     <h2><span class="num">5</span> Build the pack</h2>
     <div class="options">
-      <div class="field grow"><label for="title">Project name</label><input id="title" maxlength="16" autocomplete="off" title="Up to 16 characters, as Components allows"></div>
-      <div class="field grow"><label for="packname">Pack name</label><input id="packname" maxlength="16" autocomplete="off" title="Up to 16 characters, as Components allows"></div>
-      <div class="field"><label for="projcolors">Project colours</label>
+      <div class="field grow"><label for="title">Project name</label><input id="title" maxlength="16" autocomplete="off" title="Up to 16 characters, as Components allows"><span class="sub count" id="title-count"></span></div>
+      <div class="field grow"><label for="packname">Pack name</label><input id="packname" maxlength="16" autocomplete="off" title="Up to 16 characters, as Components allows"><span class="sub count" id="packname-count"></span></div>
+      <div class="field adv"><label for="projcolors">Project colours</label>
         <select id="projcolors"><option value="rainbow" selected>Repeating rainbow</option><optgroup label="One colour"><option value="0">Red</option><option value="1">Rose</option><option value="2">Peach</option><option value="3">Orange</option><option value="4">Sand</option><option value="5">Yellow</option><option value="6">Khaki</option><option value="7">Lime</option><option value="8">Green</option><option value="9">Teal</option><option value="10">Cyan</option><option value="11">Blue</option><option value="12">Purple</option><option value="13">Pink</option></optgroup></select></div>
-      <div class="field"><label for="packcolor">Pack colour</label>
+      <div class="field adv"><label for="packcolor">Pack colour</label>
         <select id="packcolor"><option>blue</option><option>green</option><option>orange</option><option>red</option></select></div>
     </div>
     <div class="buildrow">

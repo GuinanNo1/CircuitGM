@@ -1,5 +1,7 @@
 // Circuit2MIDI page: load a Circuit Tracks / Circuit Rhythm pack, compact it, pick a project,
 // check its scenes, map its tracks to MIDI, preview it and save a .mid file.
+import { setupMode } from './mode.js';
+import { fitName } from './names.js';
 import { loadPack, compactPack, findUsage } from './pack.js';
 import {
   songOf, renderSong, sceneOrder, defaultOrderKind, usedScenes, sceneTicks, defaultMapping,
@@ -34,6 +36,13 @@ const TRACK_COLOURS = {
 
 const state = { pack: null, entry: null, song: null, mapping: null, rendered: null, order: [] };
 const player = new Player();
+setupMode('c2m');
+// Solo is an Advanced control: switching to simple mode drops a solo.
+$('advanced')?.addEventListener('change', (e) => {
+  if (e.target.checked || player.solo < 0) return;
+  player.setSolo(player.solo);
+  if (state.rendered) drawGrid();
+});
 
 // ---------- 1. Load ----------
 
@@ -121,14 +130,14 @@ async function showCompact(pack, keepChoice = true) {
   list('Patches', u.unusedPatches);
   $('unused-list').hidden = !(u.unusedSamples.length || u.unusedPatches.length || goneProjects.length);
 
-  $('compact-name').value = asciiName(pack.name, 16).trim();     // Components allows 16 characters
+  $('compact-name').value = fitName(pack.name);     // Components allows 16 characters
   const btn = $('compact');
   const others = only != null && pack.projects.some((p) => !p.empty && p.slot !== only);
   const nothing = !u.unusedSamples.length && !u.unusedPatches.length && !others;
   btn.disabled = !u.projectsWithContent || nothing;
   $('compact-options').hidden = !u.projectsWithContent || (nothing && sel.options.length < 3);
   setStatus('compact-status', !u.projectsWithContent
-    ? 'This pack has no projects with content, so every sample and patch counts as unused. Compacting is off for packs like this.'
+    ? 'This pack has no projects with content, so every sample and patch counts as unused. Trimming is off for packs like this.'
     : nothing ? 'Nothing to remove: every sample and patch is used by a project.' : '');
   $('step-compact').hidden = false;
 }
@@ -137,11 +146,11 @@ $('compact').addEventListener('click', async () => {
   const pack = state.pack;
   const btn = $('compact');
   btn.disabled = true;
-  setStatus('compact-status', 'Compacting…');
+  setStatus('compact-status', 'Trimming…');
   try {
     const name = $('compact-name').value.trim() || pack.name;
     const only = $('compact-only').value === 'all' ? null : Number($('compact-only').value);
-    const blob = await compactPack(pack, { name: asciiName(name, 16).trim(), only });
+    const blob = await compactPack(pack, { name: fitName(name), only });
     download(blob, `${fileSafe(name)}${pack.info.ext}`);
     setStatus('compact-status', `Saved ${fileSafe(name)}${pack.info.ext} (${mb(blob.size)}, was ${mb(pack.size)}).`);
   } catch (err) {
@@ -311,7 +320,7 @@ function drawGrid() {
     });
     dot.style.setProperty('--c', `var(${colours[t]})`);
     const solo = el('button', {
-      class: `solo${player.solo === t ? ' on' : ''}`, type: 'button', text: 'S', title: 'Solo in the preview',
+      class: `solo adv${player.solo === t ? ' on' : ''}`, type: 'button', text: 'S', title: 'Solo in the preview',
       'aria-pressed': String(player.solo === t), onclick: () => { player.setSolo(t); drawGrid(); },
     });
     labels.append(el('div', { class: 'row-label' }, dot,
@@ -529,7 +538,6 @@ function download(blob, name) {
 
 function fmtBars(b) { const r = Math.round(b * 100) / 100; return `${r} bar${r === 1 ? '' : 's'}`; }
 function fileSafe(s) { return (s || 'Circuit').replace(/[\\/:*?"<>|]+/g, '').trim() || 'Circuit'; }
-function asciiName(s, n) { return (s || '').normalize('NFKD').replace(/[^\x20-\x7e]/g, '').slice(0, n); }
 function rangeText(list) {
   const nums = list.map((s) => s + 1);
   const out = [];

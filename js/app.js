@@ -4,6 +4,8 @@ import { loadBase, loadBaseFromBuffers, buildProjects, buildPack, composePack, S
 import { loadPack, PRODUCTS } from './pack.js';
 import { packSong, projectChoices, setLane } from './packsong.js';
 import { takeHandoff } from './handoff.js';
+import { setupMode } from './mode.js';
+import { fitName, numbered } from './names.js';
 import { Player } from './player.js';
 
 const $ = (s) => document.querySelector(s);
@@ -38,10 +40,19 @@ const state = {
 const player = new Player();
 
 // ---------- startup ----------
+const mode = setupMode('m2c');
+// Solo is an Advanced control: switching to simple mode drops a solo, so the preview isn't
+// left playing one track with no visible way to undo it.
+document.getElementById('advanced')?.addEventListener('change', (e) => {
+  if (e.target.checked || player.solo < 0) return;
+  player.setSolo(player.solo);
+  for (const b of document.querySelectorAll('button[data-solo]')) b.classList.remove('on');
+});
 init();
 
 
 async function init() {
+  for (const id of ['#title', '#packname']) $(id).addEventListener('input', updateNameCounts);
   wireLoad();
   try {
     state.defaultBase = await loadBase();
@@ -347,8 +358,10 @@ function songLoaded(firstRows) {
   state.transpose = { S1: 0, S2: 0, M1: 0, M2: 0 };
   // Components allows 16 characters for pack and project names (it accepts longer ones
   // in a file but then won't let them be edited).
-  $('#title').value = ascii(state.fileName).trim().slice(0, NAME_MAX).trim();
-  $('#packname').value = `TracksGM ${ascii(state.fileName)}`.slice(0, NAME_MAX).trim();
+  // Shortened without cutting words (js/names.js). The pack is named after the song too.
+  $('#title').value = fitName(state.fileName);
+  $('#packname').value = fitName(state.fileName);
+  updateNameCounts();
   renderTracks();
   for (const id of STEPS_AFTER) $(id).hidden = false;
   rolesChanged();
@@ -404,6 +417,8 @@ async function updateShrinkInfo() {
     + (rhythm ? ' A Circuit Rhythm pack has 128 sample slots and the Tracks 64, so the samples are renumbered, the song\'s own first.' : '')
     + (shrink ? '' : ' Tick the box to leave out what the song doesn\'t use.');
   $('#shrink-warn').innerHTML = res.warnings.map((w) => `<li>${esc(w)}</li>`).join('');
+  state.packErrors = res.errors ?? [];
+  renderErrors();
 }
 
 function defaultRoles() {
@@ -465,7 +480,7 @@ function syncRoleButtons() {
 function laneSelect(s) {
   const opts = [0, 1, 2, 3].map((l) => `<option value="${l}" ${s.lane === l ? 'selected' : ''}>Drum ${l + 1}</option>`);
   opts.push(`<option value="name" ${s.lane == null ? 'selected' : ''}>By sample name</option>`);
-  return `<select class="lane" aria-label="Drum track for ${esc(s.name)}" title="Circuit Tracks drum track for this part">${opts.join('')}</select>`;
+  return `<select class="lane adv" aria-label="Drum track for ${esc(s.name)}" title="Circuit Tracks drum track for this part">${opts.join('')}</select>`;
 }
 
 function drawRoll(canvas, s, len) {
@@ -557,6 +572,8 @@ function rearrange() {
   if (plan.error) {
     $('#summary').innerHTML = `<p class="status error">${esc(plan.error)}</p>`;
     $('#warnings').innerHTML = '';
+    state.planErrors = [];
+    renderErrors();
     // Keep the grid so muted parts can be unmuted again.
     if (state.lastPlan) renderGrid(state.lastPlan, true); else $('#grid').innerHTML = '';
     return;
@@ -734,7 +751,7 @@ function renderGrid(plan, stale = false) {
     d.append(dot, name);
     if (row.kind !== 'src') {
       const s = document.createElement('button');
-      s.type = 'button'; s.textContent = 'S'; s.className = `solo${player.solo === row.t ? ' on' : ''}`;
+      s.type = 'button'; s.textContent = 'S'; s.className = `solo adv${player.solo === row.t ? ' on' : ''}`;
       s.title = `Solo ${row.name} in the preview`;
       s.dataset.solo = row.t;
       s.addEventListener('click', () => {
@@ -803,7 +820,6 @@ function renderWarnings(plan) {
   const out = [];
   const m = state.midi;
   if (plan.projects.length > 1) out.push(`The song needs ${plan.projects.length} projects: each track holds 8 patterns per project, and this song has more distinct material than that. On the Circuit Tracks, queue the next project to carry on (projects 1–${plan.projects.length}). Longer patterns or muting parts can bring this down.`);
-  if (w.tooLong) out.push('The song is longer than 64 projects; only the first 64 fit in a pack.');
   if (w.moved) out.push(`${w.moved} of ${w.total} notes (${Math.round(w.movedRatio * 100)}%) moved by more than a 64th note to fit the step grid. Each step has 6 micro-steps, so longer patterns place notes less precisely.`);
   if (plan.tempoDiv > 1) out.push(`The project tempo is ${plan.tempo} BPM, ${plan.tempoDiv === 2 ? 'half' : 'a quarter of'} the song's ${round1(plan.sourceTempo)} BPM, so each step covers ${plan.tempoDiv}× as much of the song. The song plays at its own speed, but tempo-synced effects (delay, synced LFOs, arpeggios) and MIDI clock run ${plan.tempoDiv === 2 ? 'at half' : 'at a quarter of the'} speed.`);
   if (w.similarPatterns) out.push(`${w.similarPatterns} patterns were replaced by a similar earlier one, changing ${w.similarNotes} notes (${Math.round(100 * w.similarNotes / Math.max(1, w.total))}%).`);
@@ -822,6 +838,28 @@ function renderWarnings(plan) {
     if (mel.length) out.push(`${mel.map((s) => s.name).join(', ')}: sample parts on a synth or MIDI track play the notes with a patch or external gear, not the samples.`);
   }
   $('#warnings').innerHTML = out.map((x) => `<li>${esc(x)}</li>`).join('');
+  // Problems that change what the pack can hold show in simple mode too; the rest are
+  // optimisation notes, shown in Advanced.
+  state.planErrors = w.tooLong ? ['The song is longer than 64 projects; only the first 64 fit in a pack.'] : [];
+  renderErrors();
+  updateNameCounts();
+}
+
+// Live character counts under the name fields (Components allows 16). With more than one
+// project, the project number is added to the name and the name is shortened to make room.
+function updateNameCounts() {
+  for (const id of ['title', 'packname']) {
+    const el = $(`#${id}`), out = $(`#${id}-count`);
+    if (!el || !out) continue;
+    const n = el.value.length;
+    const projects = id === 'title' ? state.plan?.projects.length ?? 1 : 1;
+    out.textContent = `${n} of ${NAME_MAX} characters` + (projects > 1 ? ` · projects are numbered, e.g. "${numbered(el.value, projects)}"` : '');
+  }
+}
+
+function renderErrors() {
+  const all = [...(state.planErrors ?? []), ...(fromPack() ? state.packErrors ?? [] : [])];
+  $('#errors').innerHTML = all.map((x) => `<li>${esc(x)}</li>`).join('');
 }
 
 // ---------- preview ----------
@@ -929,7 +967,7 @@ async function build() {
   status.textContent = 'Building…';
   try {
     const title = ascii($('#title').value).trim() || 'TracksGM Song';
-    const packName = ascii($('#packname').value).trim() || `TracksGM ${title}`;
+    const packName = ascii($('#packname').value).trim() || title;
     const synthPatch = [Number($('#patch-s1').value), Number($('#patch-s2').value)];
     // A pack project as the song: the base pack's patches with the loaded pack's samples.
     let base = state.base, sampleMap = null;

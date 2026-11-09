@@ -350,3 +350,19 @@ a.btn { text-decoration: none; display: inline-block; }
 .patchlist li::marker { font-family: var(--mono); font-size: 0.85em; color: var(--muted); }
 .sitefoot { color: var(--muted); font-size: 0.85rem; padding-block: 8px 28px; }
 .sitefoot p { margin: 0 0 6px; max-width: 90ch; }
+
+/* Simple / Advanced mode (js/mode.js). html.simple hides .adv; hidden settings still apply. */
+html.simple .adv { display: none !important; }
+html:not(.simple) .simple-only { display: none !important; }
+.modeswitch { display: inline-flex; align-items: center; gap: 8px; margin-left: 14px; font: 600 0.95rem var(--head); color: var(--ink); cursor: pointer; white-space: nowrap; vertical-align: middle; }
+.modeswitch input { appearance: none; -webkit-appearance: none; width: 34px; height: 20px; margin: 0; border-radius: 999px; background: color-mix(in srgb, var(--muted) 45%, transparent); position: relative; cursor: pointer; transition: background 0.15s; flex: none; }
+.modeswitch input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform 0.15s; box-shadow: 0 1px 2px rgb(0 0 0 / 0.25); }
+.modeswitch input:checked { background: var(--accent); }
+.modeswitch input:checked::after { transform: translateX(14px); }
+.modeswitch input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.modenote { margin: 12px 0 0; max-width: 78ch; font-size: 0.92rem; color: var(--muted); border-left: 3px solid var(--accent); padding: 2px 0 2px 10px; }
+.modenote.changed { border-left-color: var(--warn); color: var(--warn); }
+.warnings.errors li { color: #a5281b; background: #fdecea; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .warnings.errors li { color: #ff9a8c; background: #3a1f1c; } }
+:root[data-theme="dark"] .warnings.errors li { color: #ff9a8c; background: #3a1f1c; }
+.warnings.errors:empty { display: none; }

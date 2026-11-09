@@ -28,7 +28,7 @@
   <div class="wrap">
     <p class="crumbs"><a href="./">← Back to Circuit2MIDI</a></p>
     <h1>Circuit2MIDI help <span>CircuitGM Circuit to MIDI Converter</span> <em class="badge">alpha 0.1</em></h1>
-    <p class="lede">How to tidy a Circuit Tracks or Circuit Rhythm pack and turn one of its projects into a Standard MIDI file. Going the other way, from a MIDI file to a Circuit Tracks pack, is <a href="../midi2circuit/">MIDI2Circuit</a>.</p>
+    <p class="lede">How to trim a Circuit Tracks or Circuit Rhythm pack and turn one of its projects into a Standard MIDI file. Going the other way, from a MIDI file to a Circuit Tracks pack, is <a href="../midi2circuit/">MIDI2Circuit</a>.</p>
   </div>
 </header>
 
@@ -37,8 +37,9 @@
     <h2>Contents</h2>
     <ol>
       <li><a href="#quickstart">Quickstart</a></li>
+      <li><a href="#modes">Simple and Advanced mode</a></li>
       <li><a href="#steps">The six steps in detail</a></li>
-      <li><a href="#compact">What compacting removes</a></li>
+      <li><a href="#trim">What trimming removes</a></li>
       <li><a href="#timing">How a project becomes MIDI</a></li>
       <li><a href="#rhythm">Circuit Rhythm projects</a></li>
       <li><a href="#limits">Limits and alpha status</a></li>
@@ -46,12 +47,18 @@
     </ol>
   </nav>
 
+  <section class="panel" id="modes">
+    <h2>Simple and Advanced mode</h2>
+    <p>Circuit2MIDI opens in <b>simple mode</b>: load a pack, trim it if you like, choose a project, check the scenes and save the MIDI file. Scenes play in the saved chain, swing is applied, chance steps are kept, and each track gets a MIDI channel, instrument and drum notes guessed from the pack.</p>
+    <p>Switch on <b>Advanced</b> (beside the help links at the top) to change those: the trimmed pack's name, Scene order (including a custom order), chance steps, swing, scene track masks, the solo buttons and notes in step 4, and the whole MIDI track and drum note tables. Hidden settings keep their values, and the page remembers your choice in this browser.</p>
+  </section>
+
   <section class="panel" id="quickstart">
     <h2>Quickstart</h2>
     <ol class="steps">
       <li>In Novation Components, open your Circuit Tracks or Circuit Rhythm and save the pack to your computer (a <code>.circuittrackspack</code> or <code>.circuitrhythmpack</code> file).</li>
       <li>Drop the pack on <b>Load a pack</b>. Nothing leaves your computer.</li>
-      <li>If you want a smaller pack, press <b>Download compacted pack</b>. This step is optional.</li>
+      <li>If you want a smaller pack, press <b>Download trimmed pack</b>. This step is optional.</li>
       <li>Pick a project. If the pack has only one project with notes, it is picked for you.</li>
       <li>Press <b>Play preview</b> to hear it, then <b>Download .mid</b>.</li>
     </ol>
@@ -61,8 +68,8 @@
     <h2>The six steps in detail</h2>
     <h3>1. Load a pack</h3>
     <p>The page reads the pack's list of projects, samples and (for the Circuit Tracks) synth patches, and every project in it. Empty project slots are skipped.</p>
-    <h3>2. Compact the pack</h3>
-    <p>Shows how many samples and patches the pack's projects use and how many they don't, with a list of what would go. <b>Download compacted pack</b> saves a copy without the unused ones, under the pack name you give (up to 16 characters, as Components allows). Your original file is not changed. <b>Keep</b> chooses what stays: <i>Every project</i>, or <i>Only project N</i>, which empties the other project slots and keeps just that project's samples and patches; the project stays in its own slot. See <a href="#compact">What compacting removes</a>.</p>
+    <h3>2. Trim the pack</h3>
+    <p>Shows how many samples and patches the pack's projects use and how many they don't, with a list of what would go. <b>Download trimmed pack</b> saves a copy without the unused ones, under the pack name you give (up to 16 characters, as Components allows). Your original file is not changed. <b>Keep</b> chooses what stays: <i>Every project</i>, or <i>Only project N</i>, which empties the other project slots and keeps just that project's samples and patches; the project stays in its own slot. See <a href="#trim">What trimming removes</a>.</p>
     <h3>3. Choose a project</h3>
     <p>One project is converted at a time. Each card shows the project's number on the Circuit, its name, how many scenes it uses, its length and tempo.</p>
     <p><b>Convert to Circuit Tracks (MIDI2Circuit)</b> opens the chosen project in <a href="../midi2circuit/">MIDI2Circuit</a> instead, to build a Circuit Tracks pack from it with the pack's own samples (and, from a Circuit Tracks pack, its patches). The pack is handed over inside your browser and kept only for the few moments the other page takes to open.</p>
@@ -92,12 +99,12 @@
     <p>A type 1 Standard MIDI file: one MIDI track for each Circuit track with notes, the project's tempo, and a marker named after each scene where it starts.</p>
   </section>
 
-  <section class="panel" id="compact">
-    <h2>What compacting removes</h2>
+  <section class="panel" id="trim">
+    <h2>What trimming removes</h2>
     <p>A sample counts as used when any project with notes plays it on a step or has it as a track's default sample. A patch counts as used when a project has it on Synth 1 or Synth 2. Everything else is left out.</p>
     <p>Every sample and patch keeps its slot number, so the projects are copied byte for byte and still find their sounds. Removed slots stay in the pack as empty slots, which is how Components stores them. Projects, grid effects and everything else are kept.</p>
-    <p>A pack with no projects (such as the TracksGM pack itself) can't be compacted, because every sound in it would count as unused.</p>
-    <p>The compacted pack replaces the whole pack on your Circuit when you send it from Components, as any pack does.</p>
+    <p>A pack with no projects (such as the TracksGM pack itself) can't be trimmed, because every sound in it would count as unused.</p>
+    <p>The trimmed pack replaces the whole pack on your Circuit when you send it from Components, as any pack does.</p>
   </section>
 
   <section class="panel" id="timing">
@@ -136,7 +143,7 @@
       <dd>Check the scene order: the saved scene chain may point at an empty scene. Try <b>Every used scene in order</b>.</dd>
       <dt>The drums are on the wrong sounds.</dt>
       <dd>Change the notes in the <b>Drum notes</b> table; the guess goes by sample names.</dd>
-      <dt>Compacting is greyed out.</dt>
+      <dt>Trimming is greyed out.</dt>
       <dd>Either every sample and patch is in use, or the pack has no projects with notes.</dd>
     </dl>
   </section>

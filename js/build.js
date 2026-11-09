@@ -1,5 +1,6 @@
 // Arrangement -> .ncs projects -> .circuittrackspack (the base pack's patches and samples,
 // TracksGM_final by default, plus the new projects).
+import { fitName, numbered } from './names.js';
 import { parseNCS, serializeNCS } from './vendor/ncs.js';
 import { readZip, writeZip } from './vendor/zip.js';
 import { KIT_PARTS, MAX_NOTES, MICRO } from './convert.js';
@@ -48,9 +49,9 @@ export function buildProjects(plan, base, settings) {
   const n = plan.projects.length;
   for (const p of plan.projects) {
     const proj = parseNCS(base.template.slice(0));
-    // Names of up to 16 characters, as Components allows; a numbered project keeps its number.
-    const num = n > 1 ? ` ${p.index + 1}` : '';
-    proj.name = asciiName(settings.title, NAME_MAX - num.length).trim() + num;
+    // Names of up to 16 characters, as Components allows, shortened without cutting words
+    // (js/names.js); a numbered project keeps its number.
+    proj.name = n > 1 ? numbered(settings.title, p.index + 1) : fitName(settings.title);
     // settings.colors: one project colour (0-13) per project, or settings.color for all.
     proj.color = (settings.colors?.[p.index] ?? settings.color ?? 8) % 14;
     proj.tempo = plan.tempo;
@@ -165,7 +166,7 @@ function drumSteps(content, slotOf, defaultSlot) {
 // Pack = the base pack (patches + samples, untouched) + the new projects in slots 0..n-1.
 export async function buildPack(base, projects, { name, color }) {
   const index = JSON.parse(JSON.stringify(base.index));
-  index.name = asciiName(name, NAME_MAX).trim() || 'TracksGM';
+  index.name = fitName(name) || 'TracksGM';
   index.color = color;
   index.projects = Array.from({ length: 64 }, (_, i) => ({
     name: projects[i]?.name ?? '',
@@ -236,7 +237,8 @@ export async function composePack(base, src, { slots, shrink = false, keepPatche
     if (over.length) warnings.push(`The song plays ${used.length} different samples, and a Circuit Tracks pack holds ${N}. The hits of ${over.length} sample${over.length > 1 ? 's' : ''} (${over.map((s) => srcSamples[s]?.name || `slot ${s + 1}`).join(', ')}) are left out.`);
     if (!shrink) for (let s = 0; s < srcSamples.length && dst < N; s++) if (!sampleMap.has(s) && present(s) && await take(s, dst, true)) dst++;
   }
-  if (seconds > SAMPLE_CAP_S) warnings.push(`The samples add up to ${seconds.toFixed(1)} s, more than the ${SAMPLE_CAP_S} s a Circuit Tracks pack holds. Components does not warn about this: check the pack on the Tracks, or use shorter samples.`);
+  const errors = [];
+  if (seconds > SAMPLE_CAP_S) errors.push(`The samples add up to ${seconds.toFixed(1)} s, more than the ${SAMPLE_CAP_S} s a Circuit Tracks pack holds. Components does not warn about this: check the pack on the Tracks, or use shorter samples.`);
   const long = [...sampleMap.keys()].filter((s) => data.get(s).seconds > SAMPLE_MAX_S);
   if (long.length) warnings.push(`${long.length} sample${long.length > 1 ? 's are' : ' is'} longer than the ${SAMPLE_MAX_S} s the Tracks plays.`);
 
@@ -263,7 +265,7 @@ export async function composePack(base, src, { slots, shrink = false, keepPatche
       return base.zip.get(url);
     },
   };
-  return { base: { ...base, index, zip }, sampleMap, seconds, warnings };
+  return { base: { ...base, index, zip }, sampleMap, seconds, warnings, errors };
 }
 
 // A WAV file as the Circuit Tracks stores it (48 kHz, 16-bit, mono), plus its length.
@@ -319,6 +321,3 @@ export function toTracksWav(bytes) {
   return { bytes: out, seconds: outFrames / RATE };
 }
 
-function asciiName(s, n) {
-  return (s || '').normalize('NFKD').replace(/[^\x20-\x7e]/g, '').slice(0, n);
-}

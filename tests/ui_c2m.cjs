@@ -14,6 +14,7 @@ const fs = require('fs');
     for (const [name, opts] of views) {
       const ctx = await browser.newContext({ ...opts, acceptDownloads: true });
       const page = await ctx.newPage();
+      await page.addInitScript(() => { try { localStorage.setItem('circuitgm-advanced-m2c', '1'); localStorage.setItem('circuitgm-advanced-c2m', '1'); } catch {} });   // these tests drive every control: Advanced mode
       page.on('console', (m) => { if (m.type() === 'error') errors.push(`${tag}/${name}: ${m.text()}`); });
       page.on('pageerror', (e) => errors.push(`${tag}/${name}: ${e.message}`));
       await page.goto('http://localhost:8765/circuit2midi/index.html');
