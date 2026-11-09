@@ -3,3 +3,5 @@ node_modules/
 tests/out/
 __pycache__/
 rhythmgm/samples/
+rhythmgm/inst_samples/
+rhythmgm/drum_samples/

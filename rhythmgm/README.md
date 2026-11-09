@@ -1,43 +1,61 @@
 # RhythmGM (beta)
 
-A General MIDI sample pack for the Novation Circuit Rhythm, filling all 128 sample slots:
+General MIDI sample packs for the Novation Circuit Rhythm, in two packs that each fill all 128 sample slots from GeneralUser GS:
 
-- **Slots 1–64:** the 64 [TracksGM](../tracksgm/) drum hits, unchanged and in the same order (8 kits × kick, snare, rim/clap, closed hat, open hat, tom, cymbal, percussion: Std, Room, Power, Elec, 808, Jazz, Brush, Orch).
-- **Slots 65–128:** 64 pitched General MIDI instruments, four from each GM family, in GM order. Each is one note rendered from GeneralUser GS, about two seconds long. The name ends with the root note (`Grand Piano C4`, `Finger Bass C2`): a step at that note plays the sample at its own pitch.
+- **RhythmInstGM:** all 128 General MIDI instruments, **slot = GM program** (slot 1 Grand Piano … slot 128 Gunshot). Each is one note, up to 2 s. The name ends with the root note (`Grand Piano C4`, `Finger Bass C2`): play that note and the sample sounds at its own pitch.
+- **RhythmDrumGM:** the eight GS kits (Std, Room, Power, Elec, 808, Jazz, Brush, Orch), 16 hits each, every kit in the same order:
 
-Total sample time 208.3 s of the Circuit Rhythm's 228.1 s; every sample is 48 kHz, 16-bit, mono.
+  | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 |
+  |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+  | Kick | Kick 2 | Snare | Snare 2 | Rim | Clap | CH | Pedal HH | OH | Tom Lo | Tom Mid | Tom Hi | Crash | Ride | extra | extra |
 
-**Page and sample list:** https://guinanno1.github.io/CircuitGM/rhythmgm/
+  Kit k is in slots 16k+1 to 16k+16. The two extras are percussion that differs by kit (Std Tamb/Cowbell, Room Conga Hi/Lo, Power Cowbell/Tamb, Elec Cabasa/Maracas, 808 Cowbell/Claves, Jazz Shaker/Ride Bell, Brush Cabasa/Tamb, Orch Castanets/Triangle). The Orch kit's toms are timpani. Hits that TracksGM also has are copied byte for byte from `../tracksgm/drums`.
 
-Beta: built and checked in software (the site's own pack reader loads it; pitch and level checked per sample), not yet loaded in Components or on a Circuit Rhythm.
+**Instruments plus drums.** Slots 113–128 of RhythmInstGM are GM's Percussive and Sound Effects families. When MIDI2Circuit builds Circuit Rhythm packs (planned), it puts one RhythmDrumGM kit in those 16 slots, so slots 1–112 keep their GM numbers. Slots 1–112 plus the longest kit (Orch) is 211.8 s, inside the 228.1 s limit.
+
+Sample time: RhythmInstGM 211.0 s, RhythmDrumGM 136.8 s, of the Circuit Rhythm's 228.1 s; every sample is 48 kHz, 16-bit, mono.
+
+**Page and sample lists:** https://guinanno1.github.io/CircuitGM/rhythmgm/
+
+Beta: built and checked in software (`tests/rhythm_packs.mjs`; pitch checked per instrument), not yet loaded in Components or on a Circuit Rhythm.
+
+## Pack layout
+
+Copied from Components-saved Rhythm packs (see `tools/rhythm_pack.py`): 64 project files of 169,092 bytes, slot 0 named "User Session" and every one Components' blank template; 16 Grid FX files with `effectType` 127 (the Rhythm's defaults; edited pads use 0–6 = Beat Repeat, Reverser, Gater, Auto Filter, Digitise, Phaser, Vinyl Sim); compact `index.json` written last.
 
 ## Files
 
 | Path | What it is |
 |---|---|
-| `RhythmGM.circuitrhythmpack` | The pack for Novation Components. Samples only: the 64 project slots are empty (blank name, no file) and there are no Grid FX files. |
-| `RhythmGM_SD.zip` | The same 128 samples in Novation's manual SD-card layout: `Rhythm/0/PCM/NN__Name.wav`, empty `meta/` and `Sessions/`. Rename `0` to a free pack number. The Rhythm makes default Grid FX itself. |
-| `rhythmgm_samples.json` | Every slot: name, drum or instrument, source, GM program, root note, length. |
-| `index.html` | The pack's web page. |
-| `tools/make_rhythmgm.py` | Builds everything above (and `samples/`, not committed) from `../tracksgm/drums` and the GeneralUser GS soundfont. |
-| `tools/make_site_lists.py` | Refreshes the kit and instrument lists on the web page from `rhythmgm_samples.json`. |
-| `LICENSE-GeneralUser-GS.txt` | Licence for the samples. Keep it with any shared copy of the pack. |
+| `RhythmInstGM.circuitrhythmpack`, `RhythmDrumGM.circuitrhythmpack` | The packs for Novation Components. |
+| `RhythmInstGM_SD.zip`, `RhythmDrumGM_SD.zip` | The same samples in Novation's manual SD-card layout: `Rhythm/0/PCM/NN__Name.wav`, empty `meta/` and `Sessions/`. Rename `0` to a free pack number. |
+| `rhythminstgm_samples.json`, `rhythmdrumgm_samples.json` | Every slot: name, source, GM program and root note or kit, role and note, length. |
+| `index.html` | The web page. |
+| `tools/make_rhythminstgm.py` | Builds RhythmInstGM (and `inst_samples/`, not committed). Names and root notes are the `GM` list at its top. Run after `make_rhythmdrumgm.py`, which it reads to check the kit sizes. |
+| `tools/make_rhythmdrumgm.py` | Builds RhythmDrumGM (and `drum_samples/`, not committed). Roles are `ROLES`, each kit's picks `KITS`. |
+| `tools/rhythm_pack.py` | Writes a pack and SD zip the way Components does. |
+| `tools/make_rhythmgm.py` | The rendering chain both scripts use (FluidSynth, trim, level). Run directly it still builds the old single RhythmGM pack, which these two replace. |
+| `tools/make_site_lists.py` | Refreshes the kit and instrument lists on the web page. |
+| `LICENSE-GeneralUser-GS.txt` | Licence for the samples. Keep it with any shared copy of a pack. |
 
 ## Rebuild
 
 ```sh
-python3 rhythmgm/tools/make_rhythmgm.py path/to/GeneralUser-GS.sf2   # from the repo root
+python3 rhythmgm/tools/make_rhythmdrumgm.py path/to/GeneralUser-GS.sf2   # from the repo root
+python3 rhythmgm/tools/make_rhythminstgm.py path/to/GeneralUser-GS.sf2
 python3 rhythmgm/tools/make_site_lists.py
+node tests/rhythm_packs.mjs
 ```
 
-Needs the system `libfluidsynth`, Python 3 with NumPy, and the soundfont from [github.com/mrbumpy409/GeneralUser-GS](https://github.com/mrbumpy409/GeneralUser-GS). To change an instrument or its root note, edit `INSTRUMENTS` at the top of `make_rhythmgm.py`; keep four per family so the slot ranges on the page stay right.
+Needs the system `libfluidsynth`, Python 3 with NumPy, and the soundfont from [github.com/mrbumpy409/GeneralUser-GS](https://github.com/mrbumpy409/GeneralUser-GS).
 
 ## Rendering
 
-Each instrument: GeneralUser GS bank 0, FluidSynth at 48 kHz, velocity 100, reverb and chorus off, left and right summed to mono. Sustained sounds are held 2 s and keep their release; decaying sounds ring out. Lead-in trimmed, tail cut where it falls 60 dB below peak (at most 2.6 s, with a fade when cut), level matched to −17 dB RMS over the first second with the peak held at or below −0.5 dBFS.
+- **Instruments:** GeneralUser GS bank 0, FluidSynth at 48 kHz, velocity 100, reverb and chorus off, left and right summed to mono. Sustained sounds are held 1.4 s and keep their release; decaying sounds ring out. Lead-in trimmed, tail cut where it falls 60 dB below peak (at most 2.0 s, with a fade when cut), level matched to −17 dB RMS over the first second with the peak at or below −0.5 dBFS.
+- **Drums:** `../tracksgm/tools/make_drums.py`'s chain: velocity 110, same trim, peak −0.5 dBFS, length caps cymbals 4 s, open hats, toms and extras 2 s, the rest 1.5 s.
 
 ## Credits
 
-- Samples: [GeneralUser GS](https://github.com/mrbumpy409/GeneralUser-GS) by S. Christian Collins (`LICENSE-GeneralUser-GS.txt`). Credit "Samples: GeneralUser GS by S. Christian Collins" wherever the pack is shared.
-- Pack layout: RhythmGM by Ian Guinan.
-- Limits and SD-card layout: Novation's Circuit Rhythm Components guide and "Manually setting up Circuit Rhythm SD card packs".
+- Samples: [GeneralUser GS](https://github.com/mrbumpy409/GeneralUser-GS) by S. Christian Collins (`LICENSE-GeneralUser-GS.txt`). Credit "Samples: GeneralUser GS by S. Christian Collins" wherever a pack is shared.
+- Pack layout: RhythmInstGM and RhythmDrumGM by Ian Guinan.
+- Limits, layout and Grid FX: Novation's Circuit Rhythm Components guide, the Circuit Rhythm 2.0 firmware addendum, "Manually setting up Circuit Rhythm SD card packs", and Components-saved packs.
