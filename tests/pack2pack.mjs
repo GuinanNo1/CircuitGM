@@ -18,7 +18,7 @@ import { writeZip } from '../js/vendor/zip.js';
 
 const ab = (p) => { const b = readFileSync(p); return b.buffer.slice(b.byteOffset, b.byteOffset + b.length); };
 const tpl = ab('data/Empty.ncs');
-const tracksGM = await loadBaseFromBuffers(ab('data/TracksGM_final.circuittrackspack'), tpl);
+const tracksGM = await loadBaseFromBuffers(ab('tracksgm/TracksGM_final.circuittrackspack'), tpl);
 const saveDir = process.argv[2];
 let errors = 0;
 const fail = (m) => { errors++; if (errors <= 12) console.log('  FAIL ' + m); };

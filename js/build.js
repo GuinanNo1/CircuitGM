@@ -11,7 +11,7 @@ const DEFAULT_DRUM_CHOICES = 0x1a278; // 4 bytes: default sample slot per drum t
 const CHROMATIC = 15;
 export const NAME_MAX = 16;          // pack and project names: Components allows 16 characters
 
-export async function loadBase(url = 'data/TracksGM_final.circuittrackspack', templateUrl = 'data/Empty.ncs') {
+export async function loadBase(url = '../tracksgm/TracksGM_final.circuittrackspack', templateUrl = '../data/Empty.ncs') {
   const [packBuf, tplBuf] = await Promise.all([fetchBuf(url), fetchBuf(templateUrl)]);
   return loadBaseFromBuffers(packBuf, tplBuf);
 }

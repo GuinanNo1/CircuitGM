@@ -13,7 +13,7 @@ const ok = (cond, msg) => { console.log(`${cond ? 'ok  ' : 'FAIL'} ${msg}`); if 
     const page = await browser.newPage({ viewport, colorScheme: scheme, acceptDownloads: true });
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    await page.goto('http://localhost:8765/');
+    await page.goto('http://localhost:8765/midi2circuit/');
     await page.waitForFunction(() => !/Loading/.test(document.querySelector('#base-status').textContent), null, { timeout: 20000 });
     const text = (s) => page.textContent(s);
     const visible = (s) => page.isVisible(s);

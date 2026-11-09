@@ -41,7 +41,7 @@ const ids = Object.fromEntries(midi.sources.map((s) => [s.isDrum ? 'drums' : s.p
 const asg = { S1: [ids[80]], S2: [ids[38]], M1: [], M2: [], DR: [ids.drums] };
 // 1/16 steps, so every length here is a whole number of gate ticks and the trip is exact.
 const plan = arrange(midi, asg, { kit: 3, rate: 16 });
-const base = await loadBaseFromBuffers(ab('data/TracksGM_final.circuittrackspack'), ab('data/Empty.ncs'));
+const base = await loadBaseFromBuffers(ab('tracksgm/TracksGM_final.circuittrackspack'), ab('data/Empty.ncs'));
 const projs = buildProjects(plan, base, { title: 'Round trip', synthPatch: [80, 38], kit: 3, color: 5 });
 const packBuf = await (await buildPack(base, projs, { name: 'TracksGM Round', color: 'green' })).arrayBuffer();
 

@@ -12,7 +12,7 @@ const m = parseMidi(ab(file));
 const mel = m.sources.filter((s) => !s.isDrum);
 const asg = { S1: [mel[0].id], S2: [mel[1].id, mel[2].id], M1: [mel[3]?.id], M2: [mel[4]?.id], DR: m.sources.filter((s) => s.isDrum).map((s) => s.id) };
 const plan = arrange(m, asg, { rate: process.argv[4] ?? 'auto', kit: 3 });
-const base = await loadBaseFromBuffers(ab('data/TracksGM_final.circuittrackspack'), ab('data/Empty.ncs'));
+const base = await loadBaseFromBuffers(ab('tracksgm/TracksGM_final.circuittrackspack'), ab('data/Empty.ncs'));
 const projs = buildProjects(plan, base, { title: 'Test Song', synthPatch: [mel[0].program, mel[1].program], kit: 3, color: 5 });
 const blob = await buildPack(base, projs, { name: 'TracksGM Test', color: 'green' });
 const packBuf = await blob.arrayBuffer();

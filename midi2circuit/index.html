@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TracksGM MIDI to Circuit Tracks Converter (MIDI2Circuit)</title>
+<meta name="description" content="Turn a General MIDI file into a Novation Circuit Tracks pack built on the TracksGM Universal Circuit Tracks Pack (TracksGM Pack).">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../css/app.css">
+</head>
+<body>
+<header class="masthead">
+  <div class="wrap">
+    <h1>TracksGM <span>MIDI to Circuit Tracks Converter (MIDI2Circuit)</span> <em class="badge">alpha 0.1</em></h1>
+    <p class="helplinks"><a href="help.html#quickstart">Quickstart</a> · <a href="help.html">User guide</a> · <a href="../circuit2midi/">Circuit2MIDI (Circuit packs to MIDI)</a></p>
+    <p class="lede">Turn a General MIDI file, or a project from a Circuit Tracks or Circuit Rhythm pack, into a Novation Circuit Tracks pack. Pick the parts you want, hear how they'll play, and download a <code>.circuittrackspack</code> for Novation Components, built on the <a href="https://github.com/GuinanNo1/TracksGM/tree/pack-build">TracksGM Universal Circuit Tracks Pack (TracksGM Pack)</a> or a pack of your own.</p>
+    <p class="alpha">Alpha 0.1, for testing. Packs load and play on the Circuit Tracks, but the project format is reverse-engineered: keep a backup of your packs, and please report anything odd on <a href="https://github.com/GuinanNo1/TracksGM/issues">GitHub</a>.</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="panel" id="step-load">
+    <h2><span class="num">1</span> Load a MIDI file or Circuit pack</h2>
+    <div class="basepack" id="basepack">
+      <div class="bp-info">
+        <span class="k">Base pack</span>
+        <b id="base-name">TracksGM_final</b>
+        <span class="status" id="base-status">Loading the TracksGM Pack…</span>
+      </div>
+      <div class="bp-actions">
+        <label class="btn small filebtn">Use another pack…<input type="file" id="base-file" accept=".circuittrackspack,.zip"></label>
+        <button class="btn small" id="base-reset" type="button" hidden>Back to TracksGM_final</button>
+      </div>
+      <p class="hint small">The converted song is added to this pack's patches and drum samples (a Circuit pack loaded as the song brings its own drum samples). To use a different pack, drop a <code>.circuittrackspack</code> here. <a href="help.html#base-pack">How other packs are used</a></p>
+    </div>
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept=".mid,.midi,.rmi,.kar,audio/midi,.circuittrackspack,.circuitrhythmpack">
+      <span class="drop-main">Drop a song here, or <u>choose one</u></span>
+      <span class="drop-sub">A Standard MIDI file (type 0 or 1), or a Circuit Tracks or Circuit Rhythm pack (<code>.circuittrackspack</code>, <code>.circuitrhythmpack</code>) to convert one of its projects. Nothing is uploaded; everything runs in your browser.</span>
+    </label>
+    <div class="fileinfo" id="fileinfo" hidden></div>
+    <div class="projpick" id="projpick" hidden>
+      <div class="field"><label for="project">Project</label><select id="project"></select></div>
+      <p class="hint small" id="project-hint"></p>
+    </div>
+  </section>
+
+  <section class="panel" id="step-tracks" hidden>
+    <h2><span class="num">2</span> Choose the parts</h2>
+    <p class="hint" id="parts-hint">Give each part a Circuit Tracks track. You can send several MIDI parts to the same track to combine them. Synth 1 and Synth 2 play on the Tracks itself; MIDI 1 and MIDI 2 play external gear; Drums uses the GM drum part (channel 10).</p>
+    <div class="tablewrap">
+      <table class="tracks" id="tracks">
+        <thead><tr><th class="c-play"></th><th>Part</th><th class="c-num">Notes</th><th class="c-roll">Activity</th><th class="c-roles">Track</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" id="step-sounds" hidden>
+    <h2><span class="num">3</span> Pick the sounds</h2>
+    <div class="sounds">
+      <div class="field role-s1"><label for="patch-s1">Synth 1 patch</label><select id="patch-s1"></select><span class="sub" id="sub-s1"></span></div>
+      <div class="field role-s2"><label for="patch-s2">Synth 2 patch</label><select id="patch-s2"></select><span class="sub" id="sub-s2"></span></div>
+      <div class="field role-dr"><label for="kit">Drum kit</label><select id="kit"></select><b class="packdrums" id="kit-pack" hidden></b><span class="sub" id="kit-sub">Drum 1 kick · Drum 2 snare/toms · Drum 3 hi-hats · Drum 4 percussion</span></div>
+      <div class="field role-m"><label>MIDI 1 &amp; 2</label><p class="sub" id="sub-midi">These send notes on the MIDI channels set on your Circuit Tracks (Setup view), to play external gear.</p></div>
+    </div>
+    <div class="transpose" id="transpose"></div>
+  </section>
+
+  <section class="panel" id="step-arrange" hidden>
+    <h2><span class="num">4</span> Check the arrangement</h2>
+    <div class="shrink" id="shrink" hidden>
+      <div class="field check"><label><input type="checkbox" id="shrink-on" checked> Shrink the pack: keep only the patches and samples the song uses</label></div>
+      <p class="hint small" id="shrink-info"></p>
+      <ul class="warnings" id="shrink-warn"></ul>
+    </div>
+    <div class="options">
+      <div class="field"><label for="section-bars">Section length</label>
+        <select id="section-bars"><option value="auto" selected>Auto (fewest projects)</option><option value="4">4 bars</option><option value="8">8 bars</option><option value="16">16 bars</option><option value="32">32 bars</option></select></div>
+      <div class="field"><label for="rate">Pattern length</label>
+        <select id="rate">
+          <option value="track" selected>Per track: keep notes (each track its own step rate)</option>
+          <option value="auto">Auto: fewest projects (can merge or drop notes)</option>
+          <option value="16">1/16 steps</option>
+          <option value="8">1/8 steps</option>
+          <option value="4">1/4 steps</option>
+        </select></div>
+      <div class="field"><label for="tempo-div">Tempo</label>
+        <select id="tempo-div"><option value="1" selected>Original</option><option value="2">÷2</option><option value="4">÷4</option></select></div>
+      <div class="field"><label for="match">Repeats</label>
+        <select id="match">
+          <option value="exact">Match exactly</option>
+          <option value="loose" selected>Match ignoring velocity</option>
+          <option value="similar90">Treat ≥90% similar as a repeat</option>
+          <option value="similar75">Treat ≥75% similar as a repeat</option>
+        </select></div>
+      <div class="field"><label for="quantize">Quantise</label>
+        <select id="quantize"><option value="0" selected>Off</option><option value="0.25">1/16</option><option value="0.5">1/8</option><option value="0.16666666666666666">1/16 triplet</option></select></div>
+      <div class="field check"><label><input type="checkbox" id="align" checked> Line up sections with repeats</label></div>
+      <div class="field check"><label><input type="checkbox" id="trim" checked> Skip empty bars at the start</label></div>
+    </div>
+    <div class="summary" id="summary"></div>
+    <div class="transport">
+      <button class="btn primary" id="play" type="button" disabled>Play preview</button>
+      <span class="time" id="time">0:00</span>
+      <span class="hint inline">The preview plays the converted parts: quantised to the step grid, 6 notes per step, one drum sample per step.</span>
+    </div>
+    <p class="hint">Click a coloured dot to mute or unmute a whole row, or a box to mute or unmute those bars. Mutes change the preview and the pack. The numbers are the pattern each Circuit Tracks track plays; the rows under it are the MIDI parts feeding it. S solos a track in the preview only.</p>
+    <div class="gridwrap" id="gridwrap"><div class="grid" id="grid"></div></div>
+    <ul class="warnings" id="warnings"></ul>
+  </section>
+
+  <section class="panel" id="step-build" hidden>
+    <h2><span class="num">5</span> Build the pack</h2>
+    <div class="options">
+      <div class="field grow"><label for="title">Project name</label><input id="title" maxlength="16" autocomplete="off" title="Up to 16 characters, as Components allows"></div>
+      <div class="field grow"><label for="packname">Pack name</label><input id="packname" maxlength="16" autocomplete="off" title="Up to 16 characters, as Components allows"></div>
+      <div class="field"><label for="projcolors">Project colours</label>
+        <select id="projcolors"><option value="rainbow" selected>Repeating rainbow</option><optgroup label="One colour"><option value="0">Red</option><option value="1">Rose</option><option value="2">Peach</option><option value="3">Orange</option><option value="4">Sand</option><option value="5">Yellow</option><option value="6">Khaki</option><option value="7">Lime</option><option value="8">Green</option><option value="9">Teal</option><option value="10">Cyan</option><option value="11">Blue</option><option value="12">Purple</option><option value="13">Pink</option></optgroup></select></div>
+      <div class="field"><label for="packcolor">Pack colour</label>
+        <select id="packcolor"><option>blue</option><option>green</option><option>orange</option><option>red</option></select></div>
+    </div>
+    <div class="buildrow">
+      <button class="btn primary big" id="build" type="button">Download pack</button>
+      <span class="status" id="build-status"></span>
+    </div>
+    <p class="hint">Open the pack in Novation Components and send it to your Circuit Tracks. It holds the whole base pack (<span id="base-summary">TracksGM Pack: 128 patches, 64 drum samples</span>) plus the new projects in project slots 1 onwards, so it replaces whatever pack you send it over. In each project, scenes 1 onwards hold the song's sections in order and are saved as one scene chain.</p>
+  </section>
+</main>
+
+<footer class="wrap foot">
+  <p>Patches: TracksGM by Ian Guinan. Drum samples: <a href="https://github.com/mrbumpy409/GeneralUser-GS">GeneralUser GS</a> by S. Christian Collins (<a href="data/LICENSE-GeneralUser-GS.txt">licence</a>). Project format code from <a href="https://github.com/namirsab/circuit-tracks-tools">circuit-tracks-tools</a> by Namir Sayed-Ahmad Baraza (MIT). Not affiliated with Novation or Focusrite; "Circuit Tracks" and "Components" are their trademarks.</p>
+</footer>
+
+<script type="module" src="../js/app.js"></script>
+</body>
+</html>

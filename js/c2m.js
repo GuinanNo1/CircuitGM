@@ -159,7 +159,7 @@ $('to-tracks').addEventListener('click', async () => {
   setStatus('to-tracks-status', 'Opening MIDI2Circuit…');
   try {
     await putHandoff({ buffer: state.pack.buffer, fileName: state.pack.fileName, slot: state.entry.slot });
-    location.href = '../?from=circuit2midi';
+    location.href = '../midi2circuit/?from=circuit2midi';
   } catch (err) {
     setStatus('to-tracks-status', `Could not hand the pack over (${err.message}). Open MIDI2Circuit and drop the pack there instead.`, true);
   }

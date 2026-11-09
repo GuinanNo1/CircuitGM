@@ -7,7 +7,7 @@ const { chromium } = require('playwright');
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error' && !m.text().includes('ERR_TUNNEL')) errors.push(m.text()); });
-  await page.goto('http://localhost:8765/index.html');
+  await page.goto('http://localhost:8765/midi2circuit/index.html');
   await page.waitForFunction(() => document.querySelector('#base-status').textContent.includes('patches'));
   await page.setInputFiles('#file', '/home/claude/mrbumpy409/generaluser-gs/demo MIDIs/Dance.mid');
   await page.waitForSelector('#grid .col');

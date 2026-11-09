@@ -9,7 +9,7 @@ const fs = require('fs');
     const page = await ctx.newPage();
     page.on('console', (m) => { if (m.type() === 'error') errors.push(`${name}: ${m.text()}`); });
     page.on('pageerror', (e) => errors.push(`${name}: ${e.message}`));
-    await page.goto('http://localhost:8765/index.html');
+    await page.goto('http://localhost:8765/midi2circuit/index.html');
     await page.waitForFunction(() => document.querySelector('#base-status').textContent.includes('patches'), null, { timeout: 15000 });
     await page.setInputFiles('#file', '/home/claude/mrbumpy409/generaluser-gs/demo MIDIs/Dance.mid');
     await page.waitForSelector('#step-arrange:not([hidden]) .col');
