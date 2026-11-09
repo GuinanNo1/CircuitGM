@@ -1,0 +1,1160 @@
+{
+ "pack": "RhythmGM",
+ "product": "circuit-rhythm",
+ "total_seconds": 208.3,
+ "limit_seconds": 228.1,
+ "samples": [
+  {
+   "slot": 0,
+   "name": "Std Kick",
+   "kind": "drum",
+   "source": "tracksgm/drums/00 Std Kick.wav",
+   "seconds": 0.14,
+   "file": "001 Std Kick.wav"
+  },
+  {
+   "slot": 1,
+   "name": "Std Snare",
+   "kind": "drum",
+   "source": "tracksgm/drums/01 Std Snare.wav",
+   "seconds": 0.71,
+   "file": "002 Std Snare.wav"
+  },
+  {
+   "slot": 2,
+   "name": "Std Clap",
+   "kind": "drum",
+   "source": "tracksgm/drums/02 Std Clap.wav",
+   "seconds": 0.255,
+   "file": "003 Std Clap.wav"
+  },
+  {
+   "slot": 3,
+   "name": "Std CH",
+   "kind": "drum",
+   "source": "tracksgm/drums/03 Std CH.wav",
+   "seconds": 0.19,
+   "file": "004 Std CH.wav"
+  },
+  {
+   "slot": 4,
+   "name": "Std OH",
+   "kind": "drum",
+   "source": "tracksgm/drums/04 Std OH.wav",
+   "seconds": 2.0,
+   "file": "005 Std OH.wav"
+  },
+  {
+   "slot": 5,
+   "name": "Std Tom",
+   "kind": "drum",
+   "source": "tracksgm/drums/05 Std Tom.wav",
+   "seconds": 2.0,
+   "file": "006 Std Tom.wav"
+  },
+  {
+   "slot": 6,
+   "name": "Std Crash",
+   "kind": "drum",
+   "source": "tracksgm/drums/06 Std Crash.wav",
+   "seconds": 3.73,
+   "file": "007 Std Crash.wav"
+  },
+  {
+   "slot": 7,
+   "name": "Std Tamb",
+   "kind": "drum",
+   "source": "tracksgm/drums/07 Std Tamb.wav",
+   "seconds": 0.99,
+   "file": "008 Std Tamb.wav"
+  },
+  {
+   "slot": 8,
+   "name": "Room Kick",
+   "kind": "drum",
+   "source": "tracksgm/drums/08 Room Kick.wav",
+   "seconds": 0.28,
+   "file": "009 Room Kick.wav"
+  },
+  {
+   "slot": 9,
+   "name": "Room Snare",
+   "kind": "drum",
+   "source": "tracksgm/drums/09 Room Snare.wav",
+   "seconds": 0.375,
+   "file": "010 Room Snare.wav"
+  },
+  {
+   "slot": 10,
+   "name": "Room Stick",
+   "kind": "drum",
+   "source": "tracksgm/drums/10 Room Stick.wav",
+   "seconds": 0.175,
+   "file": "011 Room Stick.wav"
+  },
+  {
+   "slot": 11,
+   "name": "Room CH",
+   "kind": "drum",
+   "source": "tracksgm/drums/11 Room CH.wav",
+   "seconds": 0.2,
+   "file": "012 Room CH.wav"
+  },
+  {
+   "slot": 12,
+   "name": "Room OH",
+   "kind": "drum",
+   "source": "tracksgm/drums/12 Room OH.wav",
+   "seconds": 2.0,
+   "file": "013 Room OH.wav"
+  },
+  {
+   "slot": 13,
+   "name": "Room Tom",
+   "kind": "drum",
+   "source": "tracksgm/drums/13 Room Tom.wav",
+   "seconds": 2.0,
+   "file": "014 Room Tom.wav"
+  },
+  {
+   "slot": 14,
+   "name": "Room China",
+   "kind": "drum",
+   "source": "tracksgm/drums/14 Room China.wav",
+   "seconds": 3.055,
+   "file": "015 Room China.wav"
+  },
+  {
+   "slot": 15,
+   "name": "Room Conga",
+   "kind": "drum",
+   "source": "tracksgm/drums/15 Room Conga.wav",
+   "seconds": 0.225,
+   "file": "016 Room Conga.wav"
+  },
+  {
+   "slot": 16,
+   "name": "Power Kick",
+   "kind": "drum",
+   "source": "tracksgm/drums/16 Power Kick.wav",
+   "seconds": 0.38,
+   "file": "017 Power Kick.wav"
+  },
+  {
+   "slot": 17,
+   "name": "Power Snare",
+   "kind": "drum",
+   "source": "tracksgm/drums/17 Power Snare.wav",
+   "seconds": 0.71,
+   "file": "018 Power Snare.wav"
+  },
+  {
+   "slot": 18,
+   "name": "Power Snare2",
+   "kind": "drum",
+   "source": "tracksgm/drums/18 Power Snare2.wav",
+   "seconds": 0.565,
+   "file": "019 Power Snare2.wav"
+  },
+  {
+   "slot": 19,
+   "name": "Power CH",
+   "kind": "drum",
+   "source": "tracksgm/drums/19 Power CH.wav",
+   "seconds": 0.205,
+   "file": "020 Power CH.wav"
+  },
+  {
+   "slot": 20,
+   "name": "Power OH",
+   "kind": "drum",
+   "source": "tracksgm/drums/20 Power OH.wav",
+   "seconds": 2.0,
+   "file": "021 Power OH.wav"
+  },
+  {
+   "slot": 21,
+   "name": "Power Tom",
+   "kind": "drum",
+   "source": "tracksgm/drums/21 Power Tom.wav",
+   "seconds": 2.0,
+   "file": "022 Power Tom.wav"
+  },
+  {
+   "slot": 22,
+   "name": "Power Crash2",
+   "kind": "drum",
+   "source": "tracksgm/drums/22 Power Crash2.wav",
+   "seconds": 3.325,
+   "file": "023 Power Crash2.wav"
+  },
+  {
+   "slot": 23,
+   "name": "Power Cowbell",
+   "kind": "drum",
+   "source": "tracksgm/drums/23 Power Cowbell.wav",
+   "seconds": 0.165,
+   "file": "024 Power Cowbell.wav"
+  },
+  {
+   "slot": 24,
+   "name": "Elec Kick",
+   "kind": "drum",
+   "source": "tracksgm/drums/24 Elec Kick.wav",
+   "seconds": 0.18,
+   "file": "025 Elec Kick.wav"
+  },
+  {
+   "slot": 25,
+   "name": "Elec Snare",
+   "kind": "drum",
+   "source": "tracksgm/drums/25 Elec Snare.wav",
+   "seconds": 0.29,
+   "file": "026 Elec Snare.wav"
+  },
+  {
+   "slot": 26,
+   "name": "Elec Clap",
+   "kind": "drum",
+   "source": "tracksgm/drums/26 Elec Clap.wav",
+   "seconds": 0.285,
+   "file": "027 Elec Clap.wav"
+  },
+  {
+   "slot": 27,
+   "name": "Elec Closed HH",
+   "kind": "drum",
+   "source": "tracksgm/drums/27 Elec Closed HH.wav",
+   "seconds": 0.165,
+   "file": "028 Elec Closed HH.wav"
+  },
+  {
+   "slot": 28,
+   "name": "Elec Open HH",
+   "kind": "drum",
+   "source": "tracksgm/drums/28 Elec Open HH.wav",
+   "seconds": 0.86,
+   "file": "029 Elec Open HH.wav"
+  },
+  {
+   "slot": 29,
+   "name": "Elec Tom",
+   "kind": "drum",
+   "source": "tracksgm/drums/29 Elec Tom.wav",
+   "seconds": 0.24,
+   "file": "030 Elec Tom.wav"
+  },
+  {
+   "slot": 30,
+   "name": "Elec RevCym",
+   "kind": "drum",
+   "source": "tracksgm/drums/30 Elec RevCym.wav",
+   "seconds": 1.405,
+   "file": "031 Elec RevCym.wav"
+  },
+  {
+   "slot": 31,
+   "name": "Elec GateSD",
+   "kind": "drum",
+   "source": "tracksgm/drums/31 Elec GateSD.wav",
+   "seconds": 0.435,
+   "file": "032 Elec GateSD.wav"
+  },
+  {
+   "slot": 32,
+   "name": "808 Kick",
+   "kind": "drum",
+   "source": "tracksgm/drums/32 808 Kick.wav",
+   "seconds": 1.5,
+   "file": "033 808 Kick.wav"
+  },
+  {
+   "slot": 33,
+   "name": "808 Snare",
+   "kind": "drum",
+   "source": "tracksgm/drums/33 808 Snare.wav",
+   "seconds": 0.16,
+   "file": "034 808 Snare.wav"
+  },
+  {
+   "slot": 34,
+   "name": "808 Rim",
+   "kind": "drum",
+   "source": "tracksgm/drums/34 808 Rim.wav",
+   "seconds": 0.025,
+   "file": "035 808 Rim.wav"
+  },
+  {
+   "slot": 35,
+   "name": "808 CH",
+   "kind": "drum",
+   "source": "tracksgm/drums/35 808 CH.wav",
+   "seconds": 0.075,
+   "file": "036 808 CH.wav"
+  },
+  {
+   "slot": 36,
+   "name": "808 OH",
+   "kind": "drum",
+   "source": "tracksgm/drums/36 808 OH.wav",
+   "seconds": 0.625,
+   "file": "037 808 OH.wav"
+  },
+  {
+   "slot": 37,
+   "name": "808 Tom",
+   "kind": "drum",
+   "source": "tracksgm/drums/37 808 Tom.wav",
+   "seconds": 0.315,
+   "file": "038 808 Tom.wav"
+  },
+  {
+   "slot": 38,
+   "name": "808 Cymbal",
+   "kind": "drum",
+   "source": "tracksgm/drums/38 808 Cymbal.wav",
+   "seconds": 0.915,
+   "file": "039 808 Cymbal.wav"
+  },
+  {
+   "slot": 39,
+   "name": "808 Cowbell",
+   "kind": "drum",
+   "source": "tracksgm/drums/39 808 Cowbell.wav",
+   "seconds": 0.67,
+   "file": "040 808 Cowbell.wav"
+  },
+  {
+   "slot": 40,
+   "name": "Jazz Kick",
+   "kind": "drum",
+   "source": "tracksgm/drums/40 Jazz Kick.wav",
+   "seconds": 0.585,
+   "file": "041 Jazz Kick.wav"
+  },
+  {
+   "slot": 41,
+   "name": "Jazz Snare",
+   "kind": "drum",
+   "source": "tracksgm/drums/41 Jazz Snare.wav",
+   "seconds": 0.385,
+   "file": "042 Jazz Snare.wav"
+  },
+  {
+   "slot": 42,
+   "name": "Jazz Stick",
+   "kind": "drum",
+   "source": "tracksgm/drums/42 Jazz Stick.wav",
+   "seconds": 0.17,
+   "file": "043 Jazz Stick.wav"
+  },
+  {
+   "slot": 43,
+   "name": "Jazz PedalHH",
+   "kind": "drum",
+   "source": "tracksgm/drums/43 Jazz PedalHH.wav",
+   "seconds": 0.1,
+   "file": "044 Jazz PedalHH.wav"
+  },
+  {
+   "slot": 44,
+   "name": "Jazz Shaker",
+   "kind": "drum",
+   "source": "tracksgm/drums/44 Jazz Shaker.wav",
+   "seconds": 0.165,
+   "file": "045 Jazz Shaker.wav"
+  },
+  {
+   "slot": 45,
+   "name": "Jazz Tom",
+   "kind": "drum",
+   "source": "tracksgm/drums/45 Jazz Tom.wav",
+   "seconds": 2.0,
+   "file": "046 Jazz Tom.wav"
+  },
+  {
+   "slot": 46,
+   "name": "Jazz Ride",
+   "kind": "drum",
+   "source": "tracksgm/drums/46 Jazz Ride.wav",
+   "seconds": 4.0,
+   "file": "047 Jazz Ride.wav"
+  },
+  {
+   "slot": 47,
+   "name": "Jazz Bell",
+   "kind": "drum",
+   "source": "tracksgm/drums/47 Jazz Bell.wav",
+   "seconds": 2.0,
+   "file": "048 Jazz Bell.wav"
+  },
+  {
+   "slot": 48,
+   "name": "Brush Kick",
+   "kind": "drum",
+   "source": "tracksgm/drums/48 Brush Kick.wav",
+   "seconds": 0.585,
+   "file": "049 Brush Kick.wav"
+  },
+  {
+   "slot": 49,
+   "name": "Brush Tap",
+   "kind": "drum",
+   "source": "tracksgm/drums/49 Brush Tap.wav",
+   "seconds": 0.16,
+   "file": "050 Brush Tap.wav"
+  },
+  {
+   "slot": 50,
+   "name": "Brush Slap",
+   "kind": "drum",
+   "source": "tracksgm/drums/50 Brush Slap.wav",
+   "seconds": 0.52,
+   "file": "051 Brush Slap.wav"
+  },
+  {
+   "slot": 51,
+   "name": "Brush Swirl",
+   "kind": "drum",
+   "source": "tracksgm/drums/51 Brush Swirl.wav",
+   "seconds": 0.79,
+   "file": "052 Brush Swirl.wav"
+  },
+  {
+   "slot": 52,
+   "name": "Brush Cabasa",
+   "kind": "drum",
+   "source": "tracksgm/drums/52 Brush Cabasa.wav",
+   "seconds": 0.09,
+   "file": "053 Brush Cabasa.wav"
+  },
+  {
+   "slot": 53,
+   "name": "Brush Tom",
+   "kind": "drum",
+   "source": "tracksgm/drums/53 Brush Tom.wav",
+   "seconds": 2.0,
+   "file": "054 Brush Tom.wav"
+  },
+  {
+   "slot": 54,
+   "name": "Brush Ride2",
+   "kind": "drum",
+   "source": "tracksgm/drums/54 Brush Ride2.wav",
+   "seconds": 3.92,
+   "file": "055 Brush Ride2.wav"
+  },
+  {
+   "slot": 55,
+   "name": "Brush Splash",
+   "kind": "drum",
+   "source": "tracksgm/drums/55 Brush Splash.wav",
+   "seconds": 1.595,
+   "file": "056 Brush Splash.wav"
+  },
+  {
+   "slot": 56,
+   "name": "Orch Kick",
+   "kind": "drum",
+   "source": "tracksgm/drums/56 Orch Kick.wav",
+   "seconds": 1.39,
+   "file": "057 Orch Kick.wav"
+  },
+  {
+   "slot": 57,
+   "name": "Orch Snare",
+   "kind": "drum",
+   "source": "tracksgm/drums/57 Orch Snare.wav",
+   "seconds": 0.415,
+   "file": "058 Orch Snare.wav"
+  },
+  {
+   "slot": 58,
+   "name": "Orch Castanet",
+   "kind": "drum",
+   "source": "tracksgm/drums/58 Orch Castanet.wav",
+   "seconds": 0.04,
+   "file": "059 Orch Castanet.wav"
+  },
+  {
+   "slot": 59,
+   "name": "Orch WoodBlk",
+   "kind": "drum",
+   "source": "tracksgm/drums/59 Orch WoodBlk.wav",
+   "seconds": 0.11,
+   "file": "060 Orch WoodBlk.wav"
+  },
+  {
+   "slot": 60,
+   "name": "Orch Triangle",
+   "kind": "drum",
+   "source": "tracksgm/drums/60 Orch Triangle.wav",
+   "seconds": 1.775,
+   "file": "061 Orch Triangle.wav"
+  },
+  {
+   "slot": 61,
+   "name": "Orch TimpLo",
+   "kind": "drum",
+   "source": "tracksgm/drums/61 Orch TimpLo.wav",
+   "seconds": 2.0,
+   "file": "062 Orch TimpLo.wav"
+  },
+  {
+   "slot": 62,
+   "name": "Orch Cymbal",
+   "kind": "drum",
+   "source": "tracksgm/drums/62 Orch Cymbal.wav",
+   "seconds": 2.26,
+   "file": "063 Orch Cymbal.wav"
+  },
+  {
+   "slot": 63,
+   "name": "Orch TimpHi",
+   "kind": "drum",
+   "source": "tracksgm/drums/63 Orch TimpHi.wav",
+   "seconds": 2.0,
+   "file": "064 Orch TimpHi.wav"
+  },
+  {
+   "slot": 64,
+   "name": "Grand Piano C4",
+   "kind": "instrument",
+   "gm_program": 1,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 1",
+   "seconds": 2.49,
+   "file": "065 Grand Piano C4.wav"
+  },
+  {
+   "slot": 65,
+   "name": "Electric Piano C4",
+   "kind": "instrument",
+   "gm_program": 5,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 5",
+   "seconds": 2.1,
+   "file": "066 Electric Piano C4.wav"
+  },
+  {
+   "slot": 66,
+   "name": "Harpsichord C4",
+   "kind": "instrument",
+   "gm_program": 7,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 7",
+   "seconds": 2.405,
+   "file": "067 Harpsichord C4.wav"
+  },
+  {
+   "slot": 67,
+   "name": "Clavinet C4",
+   "kind": "instrument",
+   "gm_program": 8,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 8",
+   "seconds": 2.04,
+   "file": "068 Clavinet C4.wav"
+  },
+  {
+   "slot": 68,
+   "name": "Glockenspiel C6",
+   "kind": "instrument",
+   "gm_program": 10,
+   "root_note": 84,
+   "source": "GeneralUser GS bank 0 program 10",
+   "seconds": 2.125,
+   "file": "069 Glockenspiel C6.wav"
+  },
+  {
+   "slot": 69,
+   "name": "Vibraphone C5",
+   "kind": "instrument",
+   "gm_program": 12,
+   "root_note": 72,
+   "source": "GeneralUser GS bank 0 program 12",
+   "seconds": 2.6,
+   "file": "070 Vibraphone C5.wav"
+  },
+  {
+   "slot": 70,
+   "name": "Marimba C5",
+   "kind": "instrument",
+   "gm_program": 13,
+   "root_note": 72,
+   "source": "GeneralUser GS bank 0 program 13",
+   "seconds": 2.35,
+   "file": "071 Marimba C5.wav"
+  },
+  {
+   "slot": 71,
+   "name": "Tubular Bells C5",
+   "kind": "instrument",
+   "gm_program": 15,
+   "root_note": 72,
+   "source": "GeneralUser GS bank 0 program 15",
+   "seconds": 2.6,
+   "file": "072 Tubular Bells C5.wav"
+  },
+  {
+   "slot": 72,
+   "name": "Drawbar Organ C4",
+   "kind": "instrument",
+   "gm_program": 17,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 17",
+   "seconds": 2.095,
+   "file": "073 Drawbar Organ C4.wav"
+  },
+  {
+   "slot": 73,
+   "name": "Rock Organ C4",
+   "kind": "instrument",
+   "gm_program": 19,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 19",
+   "seconds": 2.055,
+   "file": "074 Rock Organ C4.wav"
+  },
+  {
+   "slot": 74,
+   "name": "Church Organ C4",
+   "kind": "instrument",
+   "gm_program": 20,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 20",
+   "seconds": 2.6,
+   "file": "075 Church Organ C4.wav"
+  },
+  {
+   "slot": 75,
+   "name": "Accordion C4",
+   "kind": "instrument",
+   "gm_program": 22,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 22",
+   "seconds": 2.135,
+   "file": "076 Accordion C4.wav"
+  },
+  {
+   "slot": 76,
+   "name": "Nylon Guitar C4",
+   "kind": "instrument",
+   "gm_program": 25,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 25",
+   "seconds": 2.215,
+   "file": "077 Nylon Guitar C4.wav"
+  },
+  {
+   "slot": 77,
+   "name": "Steel Guitar C4",
+   "kind": "instrument",
+   "gm_program": 26,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 26",
+   "seconds": 2.16,
+   "file": "078 Steel Guitar C4.wav"
+  },
+  {
+   "slot": 78,
+   "name": "Clean Guitar C4",
+   "kind": "instrument",
+   "gm_program": 28,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 28",
+   "seconds": 2.155,
+   "file": "079 Clean Guitar C4.wav"
+  },
+  {
+   "slot": 79,
+   "name": "Distortion Gtr C3",
+   "kind": "instrument",
+   "gm_program": 31,
+   "root_note": 48,
+   "source": "GeneralUser GS bank 0 program 31",
+   "seconds": 2.195,
+   "file": "080 Distortion Gtr C3.wav"
+  },
+  {
+   "slot": 80,
+   "name": "Acoustic Bass C2",
+   "kind": "instrument",
+   "gm_program": 33,
+   "root_note": 36,
+   "source": "GeneralUser GS bank 0 program 33",
+   "seconds": 2.265,
+   "file": "081 Acoustic Bass C2.wav"
+  },
+  {
+   "slot": 81,
+   "name": "Finger Bass C2",
+   "kind": "instrument",
+   "gm_program": 34,
+   "root_note": 36,
+   "source": "GeneralUser GS bank 0 program 34",
+   "seconds": 2.135,
+   "file": "082 Finger Bass C2.wav"
+  },
+  {
+   "slot": 82,
+   "name": "Slap Bass C2",
+   "kind": "instrument",
+   "gm_program": 37,
+   "root_note": 36,
+   "source": "GeneralUser GS bank 0 program 37",
+   "seconds": 2.05,
+   "file": "083 Slap Bass C2.wav"
+  },
+  {
+   "slot": 83,
+   "name": "Synth Bass C2",
+   "kind": "instrument",
+   "gm_program": 39,
+   "root_note": 36,
+   "source": "GeneralUser GS bank 0 program 39",
+   "seconds": 2.235,
+   "file": "084 Synth Bass C2.wav"
+  },
+  {
+   "slot": 84,
+   "name": "Violin C5",
+   "kind": "instrument",
+   "gm_program": 41,
+   "root_note": 72,
+   "source": "GeneralUser GS bank 0 program 41",
+   "seconds": 2.27,
+   "file": "085 Violin C5.wav"
+  },
+  {
+   "slot": 85,
+   "name": "Cello C3",
+   "kind": "instrument",
+   "gm_program": 43,
+   "root_note": 48,
+   "source": "GeneralUser GS bank 0 program 43",
+   "seconds": 2.345,
+   "file": "086 Cello C3.wav"
+  },
+  {
+   "slot": 86,
+   "name": "Pizzicato C4",
+   "kind": "instrument",
+   "gm_program": 46,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 46",
+   "seconds": 0.66,
+   "file": "087 Pizzicato C4.wav"
+  },
+  {
+   "slot": 87,
+   "name": "Harp C4",
+   "kind": "instrument",
+   "gm_program": 47,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 47",
+   "seconds": 2.6,
+   "file": "088 Harp C4.wav"
+  },
+  {
+   "slot": 88,
+   "name": "String Ensemble C4",
+   "kind": "instrument",
+   "gm_program": 49,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 49",
+   "seconds": 2.6,
+   "file": "089 String Ensemble C4.wav"
+  },
+  {
+   "slot": 89,
+   "name": "Synth Strings C4",
+   "kind": "instrument",
+   "gm_program": 51,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 51",
+   "seconds": 2.6,
+   "file": "090 Synth Strings C4.wav"
+  },
+  {
+   "slot": 90,
+   "name": "Choir Aahs C4",
+   "kind": "instrument",
+   "gm_program": 53,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 53",
+   "seconds": 2.6,
+   "file": "091 Choir Aahs C4.wav"
+  },
+  {
+   "slot": 91,
+   "name": "Orchestra Hit C4",
+   "kind": "instrument",
+   "gm_program": 56,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 56",
+   "seconds": 2.02,
+   "file": "092 Orchestra Hit C4.wav"
+  },
+  {
+   "slot": 92,
+   "name": "Trumpet C5",
+   "kind": "instrument",
+   "gm_program": 57,
+   "root_note": 72,
+   "source": "GeneralUser GS bank 0 program 57",
+   "seconds": 2.135,
+   "file": "093 Trumpet C5.wav"
+  },
+  {
+   "slot": 93,
+   "name": "French Horn C4",
+   "kind": "instrument",
+   "gm_program": 61,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 61",
+   "seconds": 2.27,
+   "file": "094 French Horn C4.wav"
+  },
+  {
+   "slot": 94,
+   "name": "Brass Section C4",
+   "kind": "instrument",
+   "gm_program": 62,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 62",
+   "seconds": 2.295,
+   "file": "095 Brass Section C4.wav"
+  },
+  {
+   "slot": 95,
+   "name": "Synth Brass C4",
+   "kind": "instrument",
+   "gm_program": 63,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 63",
+   "seconds": 2.18,
+   "file": "096 Synth Brass C4.wav"
+  },
+  {
+   "slot": 96,
+   "name": "Alto Sax C4",
+   "kind": "instrument",
+   "gm_program": 66,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 66",
+   "seconds": 2.115,
+   "file": "097 Alto Sax C4.wav"
+  },
+  {
+   "slot": 97,
+   "name": "Tenor Sax C4",
+   "kind": "instrument",
+   "gm_program": 67,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 67",
+   "seconds": 2.18,
+   "file": "098 Tenor Sax C4.wav"
+  },
+  {
+   "slot": 98,
+   "name": "Oboe C5",
+   "kind": "instrument",
+   "gm_program": 69,
+   "root_note": 72,
+   "source": "GeneralUser GS bank 0 program 69",
+   "seconds": 2.17,
+   "file": "099 Oboe C5.wav"
+  },
+  {
+   "slot": 99,
+   "name": "Clarinet C4",
+   "kind": "instrument",
+   "gm_program": 72,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 72",
+   "seconds": 2.21,
+   "file": "100 Clarinet C4.wav"
+  },
+  {
+   "slot": 100,
+   "name": "Flute C5",
+   "kind": "instrument",
+   "gm_program": 74,
+   "root_note": 72,
+   "source": "GeneralUser GS bank 0 program 74",
+   "seconds": 2.15,
+   "file": "101 Flute C5.wav"
+  },
+  {
+   "slot": 101,
+   "name": "Pan Flute C5",
+   "kind": "instrument",
+   "gm_program": 76,
+   "root_note": 72,
+   "source": "GeneralUser GS bank 0 program 76",
+   "seconds": 2.185,
+   "file": "102 Pan Flute C5.wav"
+  },
+  {
+   "slot": 102,
+   "name": "Shakuhachi C5",
+   "kind": "instrument",
+   "gm_program": 78,
+   "root_note": 72,
+   "source": "GeneralUser GS bank 0 program 78",
+   "seconds": 2.445,
+   "file": "103 Shakuhachi C5.wav"
+  },
+  {
+   "slot": 103,
+   "name": "Ocarina C5",
+   "kind": "instrument",
+   "gm_program": 80,
+   "root_note": 72,
+   "source": "GeneralUser GS bank 0 program 80",
+   "seconds": 2.05,
+   "file": "104 Ocarina C5.wav"
+  },
+  {
+   "slot": 104,
+   "name": "Square Lead C4",
+   "kind": "instrument",
+   "gm_program": 81,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 81",
+   "seconds": 2.31,
+   "file": "105 Square Lead C4.wav"
+  },
+  {
+   "slot": 105,
+   "name": "Saw Lead C4",
+   "kind": "instrument",
+   "gm_program": 82,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 82",
+   "seconds": 2.265,
+   "file": "106 Saw Lead C4.wav"
+  },
+  {
+   "slot": 106,
+   "name": "Charang Lead C4",
+   "kind": "instrument",
+   "gm_program": 85,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 85",
+   "seconds": 2.15,
+   "file": "107 Charang Lead C4.wav"
+  },
+  {
+   "slot": 107,
+   "name": "Fifths Lead C4",
+   "kind": "instrument",
+   "gm_program": 87,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 87",
+   "seconds": 2.43,
+   "file": "108 Fifths Lead C4.wav"
+  },
+  {
+   "slot": 108,
+   "name": "New Age Pad C4",
+   "kind": "instrument",
+   "gm_program": 89,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 89",
+   "seconds": 2.6,
+   "file": "109 New Age Pad C4.wav"
+  },
+  {
+   "slot": 109,
+   "name": "Warm Pad C4",
+   "kind": "instrument",
+   "gm_program": 90,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 90",
+   "seconds": 2.6,
+   "file": "110 Warm Pad C4.wav"
+  },
+  {
+   "slot": 110,
+   "name": "Polysynth Pad C4",
+   "kind": "instrument",
+   "gm_program": 91,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 91",
+   "seconds": 2.6,
+   "file": "111 Polysynth Pad C4.wav"
+  },
+  {
+   "slot": 111,
+   "name": "Sweep Pad C4",
+   "kind": "instrument",
+   "gm_program": 96,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 96",
+   "seconds": 2.6,
+   "file": "112 Sweep Pad C4.wav"
+  },
+  {
+   "slot": 112,
+   "name": "FX Crystal C5",
+   "kind": "instrument",
+   "gm_program": 99,
+   "root_note": 72,
+   "source": "GeneralUser GS bank 0 program 99",
+   "seconds": 2.6,
+   "file": "113 FX Crystal C5.wav"
+  },
+  {
+   "slot": 113,
+   "name": "FX Atmosphere C4",
+   "kind": "instrument",
+   "gm_program": 100,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 100",
+   "seconds": 2.6,
+   "file": "114 FX Atmosphere C4.wav"
+  },
+  {
+   "slot": 114,
+   "name": "FX Brightness C5",
+   "kind": "instrument",
+   "gm_program": 101,
+   "root_note": 72,
+   "source": "GeneralUser GS bank 0 program 101",
+   "seconds": 2.6,
+   "file": "115 FX Brightness C5.wav"
+  },
+  {
+   "slot": 115,
+   "name": "FX Sci-fi C4",
+   "kind": "instrument",
+   "gm_program": 104,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 104",
+   "seconds": 2.6,
+   "file": "116 FX Sci-fi C4.wav"
+  },
+  {
+   "slot": 116,
+   "name": "Sitar C4",
+   "kind": "instrument",
+   "gm_program": 105,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 105",
+   "seconds": 1.55,
+   "file": "117 Sitar C4.wav"
+  },
+  {
+   "slot": 117,
+   "name": "Banjo C4",
+   "kind": "instrument",
+   "gm_program": 106,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 106",
+   "seconds": 2.03,
+   "file": "118 Banjo C4.wav"
+  },
+  {
+   "slot": 118,
+   "name": "Koto C4",
+   "kind": "instrument",
+   "gm_program": 108,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 108",
+   "seconds": 2.42,
+   "file": "119 Koto C4.wav"
+  },
+  {
+   "slot": 119,
+   "name": "Kalimba C5",
+   "kind": "instrument",
+   "gm_program": 109,
+   "root_note": 72,
+   "source": "GeneralUser GS bank 0 program 109",
+   "seconds": 1.605,
+   "file": "120 Kalimba C5.wav"
+  },
+  {
+   "slot": 120,
+   "name": "Steel Drums C5",
+   "kind": "instrument",
+   "gm_program": 115,
+   "root_note": 72,
+   "source": "GeneralUser GS bank 0 program 115",
+   "seconds": 0.975,
+   "file": "121 Steel Drums C5.wav"
+  },
+  {
+   "slot": 121,
+   "name": "Taiko Drum C3",
+   "kind": "instrument",
+   "gm_program": 117,
+   "root_note": 48,
+   "source": "GeneralUser GS bank 0 program 117",
+   "seconds": 2.6,
+   "file": "122 Taiko Drum C3.wav"
+  },
+  {
+   "slot": 122,
+   "name": "Melodic Tom C3",
+   "kind": "instrument",
+   "gm_program": 118,
+   "root_note": 48,
+   "source": "GeneralUser GS bank 0 program 118",
+   "seconds": 2.6,
+   "file": "123 Melodic Tom C3.wav"
+  },
+  {
+   "slot": 123,
+   "name": "Synth Drum C3",
+   "kind": "instrument",
+   "gm_program": 119,
+   "root_note": 48,
+   "source": "GeneralUser GS bank 0 program 119",
+   "seconds": 0.48,
+   "file": "124 Synth Drum C3.wav"
+  },
+  {
+   "slot": 124,
+   "name": "Seashore C4",
+   "kind": "instrument",
+   "gm_program": 123,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 123",
+   "seconds": 2.6,
+   "file": "125 Seashore C4.wav"
+  },
+  {
+   "slot": 125,
+   "name": "Bird Tweet C5",
+   "kind": "instrument",
+   "gm_program": 124,
+   "root_note": 72,
+   "source": "GeneralUser GS bank 0 program 124",
+   "seconds": 2.335,
+   "file": "126 Bird Tweet C5.wav"
+  },
+  {
+   "slot": 126,
+   "name": "Helicopter C4",
+   "kind": "instrument",
+   "gm_program": 126,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 126",
+   "seconds": 2.6,
+   "file": "127 Helicopter C4.wav"
+  },
+  {
+   "slot": 127,
+   "name": "Applause C4",
+   "kind": "instrument",
+   "gm_program": 127,
+   "root_note": 60,
+   "source": "GeneralUser GS bank 0 program 127",
+   "seconds": 2.6,
+   "file": "128 Applause C4.wav"
+  }
+ ]
+}

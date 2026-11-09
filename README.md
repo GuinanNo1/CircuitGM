@@ -6,7 +6,7 @@ General MIDI for the Novation Circuit Tracks and Circuit Rhythm: sound packs, an
 | | What it is | Status | Links |
 |---|---|---|---|
 | **TracksGM** | General MIDI pack for the Circuit Tracks: 128 synth patches in GM order, 64 drum samples in 8 kits | Ready | [Page and patch list](https://guinanno1.github.io/CircuitGM/tracksgm/) · [Download](https://github.com/GuinanNo1/CircuitGM/raw/main/tracksgm/TracksGM_final.circuittrackspack) · [Code](tracksgm/) |
-| **RhythmGM** | General MIDI sample pack for the Circuit Rhythm | Coming soon | [Page](https://guinanno1.github.io/CircuitGM/rhythmgm/) |
+| **RhythmGM** | General MIDI sample pack for the Circuit Rhythm: the 64 TracksGM drum hits, plus 64 pitched GM instruments | Beta | [Page and sample list](https://guinanno1.github.io/CircuitGM/rhythmgm/) · [Download](https://github.com/GuinanNo1/CircuitGM/raw/main/rhythmgm/RhythmGM.circuitrhythmpack) · [Code](rhythmgm/) |
 | **PackTrim** | Trims a Circuit Tracks or Circuit Rhythm pack to the samples and patches its projects use | Coming soon | [Page](https://guinanno1.github.io/CircuitGM/packtrim/) |
 | **MIDI2Circuit** | MIDI files, or Circuit Tracks and Circuit Rhythm projects, to Circuit Tracks packs | Alpha 0.1 | [Open](https://guinanno1.github.io/CircuitGM/midi2circuit/) · [Help](https://guinanno1.github.io/CircuitGM/midi2circuit/help.html) · [Code](midi2circuit/) |
 | **Circuit2MIDI** | A project from a Circuit Tracks or Circuit Rhythm pack to a Standard MIDI file | Alpha 0.1 | [Open](https://guinanno1.github.io/CircuitGM/circuit2midi/) · [Help](https://guinanno1.github.io/CircuitGM/circuit2midi/help.html) · [Code](circuit2midi/) |
@@ -35,7 +35,8 @@ Then open <http://localhost:8765/>.
 | `index.html` | The CircuitGM landing page. |
 | `css/app.css` | Styles shared by every page, including the site navigation. |
 | `tracksgm/` | The TracksGM pack, its web page, drum samples, build tools and patch data (see [`tracksgm/PACK.md`](tracksgm/PACK.md)). |
-| `rhythmgm/`, `packtrim/` | Pages for the RhythmGM pack and PackTrim (coming soon). |
+| `rhythmgm/` | The RhythmGM pack, its SD-card version, web page, build script and sample data (see [`rhythmgm/README.md`](rhythmgm/README.md)). |
+| `packtrim/` | PackTrim's page (coming soon). |
 | `midi2circuit/index.html`, `midi2circuit/help.html` | MIDI2Circuit's page and help. |
 | `circuit2midi/index.html`, `circuit2midi/help.html`, `css/c2m.css` | Circuit2MIDI's page and help. |
 | `js/app.js` | The page logic: loading, part picker, sounds, arrangement view, build. |

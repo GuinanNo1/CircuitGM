@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>RhythmGM</title>
-<meta name="description" content="RhythmGM: a General MIDI sample pack for the Novation Circuit Rhythm, coming soon.">
+<meta name="description" content="RhythmGM: a General MIDI sample pack for the Novation Circuit Rhythm. 64 drum hits in 8 kits and 64 pitched General MIDI instruments from GeneralUser GS.">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,7 +17,7 @@
     <a class="brand" href="../" title="CircuitGM home: all packs and tools">Circuit<b>GM</b></a>
     <ul>
       <li><a href="../tracksgm/">TracksGM</a></li>
-      <li><a href="./" aria-current="page">RhythmGM <span class="soon">soon</span></a></li>
+      <li><a href="./" aria-current="page">RhythmGM</a></li>
       <li><a href="../packtrim/">PackTrim <span class="soon">soon</span></a></li>
       <li><a href="../midi2circuit/">MIDI2Circuit</a></li>
       <li><a href="../circuit2midi/">Circuit2MIDI</a></li>
@@ -27,16 +27,216 @@
 
 <header class="masthead">
   <div class="wrap">
-    <h1>RhythmGM <span>General MIDI pack for the Circuit Rhythm</span> <em class="badge">coming soon</em></h1>
-    <p class="lede">A General MIDI sample set for the Circuit Rhythm, built from GeneralUser GS, the same source as the TracksGM drums.</p>
+    <h1>RhythmGM <span>General MIDI pack for the Circuit Rhythm</span> <em class="badge">beta</em></h1>
+    <p class="lede">A Novation Components pack for the Circuit Rhythm that fills all <b>128 sample slots</b>: the same <b>64 drum hits in 8 kits</b> as <a href="../tracksgm/">TracksGM</a>, and <b>64 pitched General MIDI instruments</b>, four from each GM family. Every sample comes from GeneralUser GS.</p>
+    <p class="alpha">Beta: built and checked in software, not yet loaded on a Circuit Rhythm. Keep a backup of your packs, and please report anything odd on <a href="https://github.com/GuinanNo1/CircuitGM/issues">GitHub</a>.</p>
   </div>
 </header>
 
 <main class="wrap doc">
-  <section class="panel">
-    <h2>What it will be</h2>
-    <p>The Circuit Rhythm has no synth engine, so every General MIDI instrument becomes a pitched sample, alongside drum kits, in the Rhythm's 128 sample slots. Which instruments, how many notes of each, and how the slots are shared between instruments and drums are still to be worked out.</p>
-    <p>Until then, <a href="../tracksgm/">TracksGM</a> is the General MIDI pack for the Circuit Tracks, and <a href="../circuit2midi/">Circuit2MIDI</a> already reads Circuit Rhythm packs.</p>
+  <nav class="panel toc" aria-label="Contents">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#get">Download and install</a></li>
+      <li><a href="#layout">How the slots are laid out</a></li>
+      <li><a href="#kits">Drum kits (slots 1–64)</a></li>
+      <li><a href="#instruments">Instruments (slots 65–128)</a></li>
+      <li><a href="#made">How it was made</a></li>
+      <li><a href="#credits">Credits and licences</a></li>
+    </ol>
+  </nav>
+
+  <section class="panel" id="get">
+    <h2>Download and install</h2>
+    <div class="btnrow">
+      <a class="btn primary big" href="RhythmGM.circuitrhythmpack" download>Download RhythmGM</a>
+      <span class="hint inline"><code>RhythmGM.circuitrhythmpack</code> · 128 samples · <span data-total>208.3</span> s of the 228.1 s sample limit</span>
+    </div>
+    <h3>With Novation Components</h3>
+    <ol class="steps">
+      <li>Open <a href="https://components.novationmusic.com/">Novation Components</a> (web or desktop) with your Circuit Rhythm connected.</li>
+      <li>Open <code>RhythmGM.circuitrhythmpack</code> in Components and send it to a <b>spare</b> pack slot. It replaces that slot's projects, samples and Grid FX, so save anything you want to keep first.</li>
+      <li>Load the pack on the Circuit Rhythm. Its project slots are empty, ready for your own projects.</li>
+    </ol>
+    <h3>Straight onto an SD card</h3>
+    <p>If Components won't take the pack file, <a href="RhythmGM_SD.zip" download>RhythmGM_SD.zip</a> holds the same samples in the folder layout from Novation's article <a href="https://support.novationmusic.com/hc/articles/4402771846930">Manually setting up Circuit Rhythm SD card packs</a> (<code>Rhythm/0/PCM/00__Std Kick.wav</code> and so on). Rename the <code>0</code> folder to a free pack number on your card, as that article describes. The Circuit Rhythm makes default Grid FX for a pack without them.</p>
+  </section>
+
+  <section class="panel" id="layout">
+    <h2>How the slots are laid out</h2>
+    <ul>
+      <li><b>Slots 1–64: drums.</b> Eight kits of eight hits, exactly as in TracksGM, so a kit is in the same place on both packs. Each kit runs kick, snare, rim or clap, closed hat, open hat, tom, cymbal, percussion.</li>
+      <li><b>Slots 65–128: instruments.</b> Sixty-four General MIDI instruments in GM order, four from each of the sixteen families. Each is one note, about two seconds long, with its natural attack and release.</li>
+      <li><b>Pitch.</b> Each instrument's name ends with its root note (for example <i>Grand Piano C4</i>, <i>Finger Bass C2</i>). Play a step at that note and the sample sounds at its own pitch; other notes pitch it up or down. Basses are rooted low and bells high, so their useful range needs the least stretching.</li>
+      <li><b>Levels.</b> Drums peak at −0.5 dBFS, as in TracksGM. Instruments are matched by loudness over their first second, never peaking above −0.5 dBFS.</li>
+    </ul>
+  </section>
+
+  <section class="panel" id="kits">
+    <h2>Drum kits (slots 1–64)</h2>
+    <!-- kits:start (generated by tools/make_site_lists.py) -->
+    <table>
+      <thead><tr><th>Slots</th><th>Kit</th><th>Kick</th><th>Snare</th><th>Rim / clap</th><th>Closed hat</th><th>Open hat</th><th>Tom</th><th>Cymbal</th><th>Perc</th></tr></thead>
+      <tbody>
+        <tr><td>1–8</td><td><b>Std</b></td><td>Kick</td><td>Snare</td><td>Clap</td><td>CH</td><td>OH</td><td>Tom</td><td>Crash</td><td>Tamb</td></tr>
+        <tr><td>9–16</td><td><b>Room</b></td><td>Kick</td><td>Snare</td><td>Stick</td><td>CH</td><td>OH</td><td>Tom</td><td>China</td><td>Conga</td></tr>
+        <tr><td>17–24</td><td><b>Power</b></td><td>Kick</td><td>Snare</td><td>Snare2</td><td>CH</td><td>OH</td><td>Tom</td><td>Crash2</td><td>Cowbell</td></tr>
+        <tr><td>25–32</td><td><b>Elec</b></td><td>Kick</td><td>Snare</td><td>Clap</td><td>Closed HH</td><td>Open HH</td><td>Tom</td><td>RevCym</td><td>GateSD</td></tr>
+        <tr><td>33–40</td><td><b>808</b></td><td>Kick</td><td>Snare</td><td>Rim</td><td>CH</td><td>OH</td><td>Tom</td><td>Cymbal</td><td>Cowbell</td></tr>
+        <tr><td>41–48</td><td><b>Jazz</b></td><td>Kick</td><td>Snare</td><td>Stick</td><td>PedalHH</td><td>Shaker</td><td>Tom</td><td>Ride</td><td>Bell</td></tr>
+        <tr><td>49–56</td><td><b>Brush</b></td><td>Kick</td><td>Tap</td><td>Slap</td><td>Swirl</td><td>Cabasa</td><td>Tom</td><td>Ride2</td><td>Splash</td></tr>
+        <tr><td>57–64</td><td><b>Orch</b></td><td>Kick</td><td>Snare</td><td>Castanet</td><td>WoodBlk</td><td>Triangle</td><td>TimpLo</td><td>Cymbal</td><td>TimpHi</td></tr>
+      </tbody>
+    </table>    <!-- kits:end -->
+  </section>
+
+  <section class="panel" id="instruments">
+    <h2>Instruments (slots 65–128)</h2>
+    <p>Four per General MIDI family, with each one's root note and its GM program number.</p>
+    <!-- instruments:start (generated by tools/make_site_lists.py) -->
+    <div class="patchlist">
+      <section><h3>65–68 · Piano</h3>
+        <ol start="65">
+          <li>Grand Piano <span class="hint inline">root C4 · GM 1</span></li>
+          <li>Electric Piano <span class="hint inline">root C4 · GM 5</span></li>
+          <li>Harpsichord <span class="hint inline">root C4 · GM 7</span></li>
+          <li>Clavinet <span class="hint inline">root C4 · GM 8</span></li>
+        </ol>
+  </section>
+      <section><h3>69–72 · Chromatic Percussion</h3>
+        <ol start="69">
+          <li>Glockenspiel <span class="hint inline">root C6 · GM 10</span></li>
+          <li>Vibraphone <span class="hint inline">root C5 · GM 12</span></li>
+          <li>Marimba <span class="hint inline">root C5 · GM 13</span></li>
+          <li>Tubular Bells <span class="hint inline">root C5 · GM 15</span></li>
+        </ol>
+  </section>
+      <section><h3>73–76 · Organ</h3>
+        <ol start="73">
+          <li>Drawbar Organ <span class="hint inline">root C4 · GM 17</span></li>
+          <li>Rock Organ <span class="hint inline">root C4 · GM 19</span></li>
+          <li>Church Organ <span class="hint inline">root C4 · GM 20</span></li>
+          <li>Accordion <span class="hint inline">root C4 · GM 22</span></li>
+        </ol>
+  </section>
+      <section><h3>77–80 · Guitar</h3>
+        <ol start="77">
+          <li>Nylon Guitar <span class="hint inline">root C4 · GM 25</span></li>
+          <li>Steel Guitar <span class="hint inline">root C4 · GM 26</span></li>
+          <li>Clean Guitar <span class="hint inline">root C4 · GM 28</span></li>
+          <li>Distortion Gtr <span class="hint inline">root C3 · GM 31</span></li>
+        </ol>
+  </section>
+      <section><h3>81–84 · Bass</h3>
+        <ol start="81">
+          <li>Acoustic Bass <span class="hint inline">root C2 · GM 33</span></li>
+          <li>Finger Bass <span class="hint inline">root C2 · GM 34</span></li>
+          <li>Slap Bass <span class="hint inline">root C2 · GM 37</span></li>
+          <li>Synth Bass <span class="hint inline">root C2 · GM 39</span></li>
+        </ol>
+  </section>
+      <section><h3>85–88 · Strings</h3>
+        <ol start="85">
+          <li>Violin <span class="hint inline">root C5 · GM 41</span></li>
+          <li>Cello <span class="hint inline">root C3 · GM 43</span></li>
+          <li>Pizzicato <span class="hint inline">root C4 · GM 46</span></li>
+          <li>Harp <span class="hint inline">root C4 · GM 47</span></li>
+        </ol>
+  </section>
+      <section><h3>89–92 · Ensemble</h3>
+        <ol start="89">
+          <li>String Ensemble <span class="hint inline">root C4 · GM 49</span></li>
+          <li>Synth Strings <span class="hint inline">root C4 · GM 51</span></li>
+          <li>Choir Aahs <span class="hint inline">root C4 · GM 53</span></li>
+          <li>Orchestra Hit <span class="hint inline">root C4 · GM 56</span></li>
+        </ol>
+  </section>
+      <section><h3>93–96 · Brass</h3>
+        <ol start="93">
+          <li>Trumpet <span class="hint inline">root C5 · GM 57</span></li>
+          <li>French Horn <span class="hint inline">root C4 · GM 61</span></li>
+          <li>Brass Section <span class="hint inline">root C4 · GM 62</span></li>
+          <li>Synth Brass <span class="hint inline">root C4 · GM 63</span></li>
+        </ol>
+  </section>
+      <section><h3>97–100 · Reed</h3>
+        <ol start="97">
+          <li>Alto Sax <span class="hint inline">root C4 · GM 66</span></li>
+          <li>Tenor Sax <span class="hint inline">root C4 · GM 67</span></li>
+          <li>Oboe <span class="hint inline">root C5 · GM 69</span></li>
+          <li>Clarinet <span class="hint inline">root C4 · GM 72</span></li>
+        </ol>
+  </section>
+      <section><h3>101–104 · Pipe</h3>
+        <ol start="101">
+          <li>Flute <span class="hint inline">root C5 · GM 74</span></li>
+          <li>Pan Flute <span class="hint inline">root C5 · GM 76</span></li>
+          <li>Shakuhachi <span class="hint inline">root C5 · GM 78</span></li>
+          <li>Ocarina <span class="hint inline">root C5 · GM 80</span></li>
+        </ol>
+  </section>
+      <section><h3>105–108 · Synth Lead</h3>
+        <ol start="105">
+          <li>Square Lead <span class="hint inline">root C4 · GM 81</span></li>
+          <li>Saw Lead <span class="hint inline">root C4 · GM 82</span></li>
+          <li>Charang Lead <span class="hint inline">root C4 · GM 85</span></li>
+          <li>Fifths Lead <span class="hint inline">root C4 · GM 87</span></li>
+        </ol>
+  </section>
+      <section><h3>109–112 · Synth Pad</h3>
+        <ol start="109">
+          <li>New Age Pad <span class="hint inline">root C4 · GM 89</span></li>
+          <li>Warm Pad <span class="hint inline">root C4 · GM 90</span></li>
+          <li>Polysynth Pad <span class="hint inline">root C4 · GM 91</span></li>
+          <li>Sweep Pad <span class="hint inline">root C4 · GM 96</span></li>
+        </ol>
+  </section>
+      <section><h3>113–116 · Synth Effects</h3>
+        <ol start="113">
+          <li>FX Crystal <span class="hint inline">root C5 · GM 99</span></li>
+          <li>FX Atmosphere <span class="hint inline">root C4 · GM 100</span></li>
+          <li>FX Brightness <span class="hint inline">root C5 · GM 101</span></li>
+          <li>FX Sci-fi <span class="hint inline">root C4 · GM 104</span></li>
+        </ol>
+  </section>
+      <section><h3>117–120 · Ethnic</h3>
+        <ol start="117">
+          <li>Sitar <span class="hint inline">root C4 · GM 105</span></li>
+          <li>Banjo <span class="hint inline">root C4 · GM 106</span></li>
+          <li>Koto <span class="hint inline">root C4 · GM 108</span></li>
+          <li>Kalimba <span class="hint inline">root C5 · GM 109</span></li>
+        </ol>
+  </section>
+      <section><h3>121–124 · Percussive</h3>
+        <ol start="121">
+          <li>Steel Drums <span class="hint inline">root C5 · GM 115</span></li>
+          <li>Taiko Drum <span class="hint inline">root C3 · GM 117</span></li>
+          <li>Melodic Tom <span class="hint inline">root C3 · GM 118</span></li>
+          <li>Synth Drum <span class="hint inline">root C3 · GM 119</span></li>
+        </ol>
+  </section>
+      <section><h3>125–128 · Sound Effects</h3>
+        <ol start="125">
+          <li>Seashore <span class="hint inline">root C4 · GM 123</span></li>
+          <li>Bird Tweet <span class="hint inline">root C5 · GM 124</span></li>
+          <li>Helicopter <span class="hint inline">root C4 · GM 126</span></li>
+          <li>Applause <span class="hint inline">root C4 · GM 127</span></li>
+        </ol>
+  </section>
+    </div>    <!-- instruments:end -->
+  </section>
+
+  <section class="panel" id="made">
+    <h2>How it was made</h2>
+    <p>The drums are the 64 TracksGM hits, unchanged. Each instrument note was rendered from GeneralUser GS through FluidSynth (the synth it is voiced for), at velocity 100 with reverb and chorus off, summed to mono at 48 kHz and 16 bits, the format the Circuit Rhythm stores. Sustained sounds were held for two seconds and keep their release; decaying sounds ring out, up to 2.6 seconds. The script, <a href="https://github.com/GuinanNo1/CircuitGM/blob/main/rhythmgm/tools/make_rhythmgm.py"><code>make_rhythmgm.py</code></a>, rebuilds the pack exactly; the choice of instruments and root notes is a list at its top.</p>
+  </section>
+
+  <section class="panel" id="credits">
+    <h2>Credits and licences</h2>
+    <ul>
+      <li>Samples: <a href="https://github.com/mrbumpy409/GeneralUser-GS">GeneralUser GS</a> by S. Christian Collins (<a href="LICENSE-GeneralUser-GS.txt">licence</a>). If you share the pack, keep the licence with it and credit "Samples: GeneralUser GS by S. Christian Collins".</li>
+      <li>Pack layout and rendering: RhythmGM by Ian Guinan.</li>
+    </ul>
   </section>
 </main>
 
