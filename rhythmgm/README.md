@@ -11,7 +11,9 @@ General MIDI sample packs for the Novation Circuit Rhythm, in two packs that eac
 
   Kit k is in slots 16k+1 to 16k+16. The two extras are percussion that differs by kit (Std Tamb/Cowbell, Room Conga Hi/Lo, Power Cowbell/Tamb, Elec Cabasa/Maracas, 808 Cowbell/Claves, Jazz Shaker/Ride Bell, Brush Cabasa/Tamb, Orch Castanets/Triangle). The Orch kit's toms are timpani. Hits that TracksGM also has are copied byte for byte from `../tracksgm/drums`.
 
-**Instruments plus drums.** Slots 113–128 of RhythmInstGM are GM's Percussive and Sound Effects families. When MIDI2Circuit builds Circuit Rhythm packs (planned), it puts one RhythmDrumGM kit in those 16 slots, so slots 1–112 keep their GM numbers. Slots 1–112 plus the longest kit (Orch) is 211.8 s, inside the 228.1 s limit.
+- **RhythmLatinGM:** eight Latin kits (LatinStd, LatinRoom, LatinPower, LatinElec, Latin808, LatinDance, LatinJazz, LatinBrush). Each has its root kit's kick and snare and GM Latin percussion in the other slots, placed to stand in for the RhythmDrumGM roles; conga and bongo sets alternate. 40.2 s. Built by `tools/make_rhythmlatingm.py`.
+
+**Instruments plus drums.** Slots 113–128 of RhythmInstGM are GM's Percussive and Sound Effects families. When MIDI2Circuit builds Circuit Rhythm packs (planned), it puts one RhythmDrumGM or RhythmLatinGM kit in those 16 slots, so slots 1–112 keep their GM numbers. Slots 1–112 plus the longest kit (Orch) is 211.8 s, inside the 228.1 s limit.
 
 Sample time: RhythmInstGM 211.0 s, RhythmDrumGM 136.8 s, of the Circuit Rhythm's 228.1 s; every sample is 48 kHz, 16-bit, mono.
 

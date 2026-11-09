@@ -2,10 +2,10 @@
 
     python3 rhythmgm/tools/make_site_lists.py        (from the repo root)
 
-Reads rhythmdrumgm_samples.json and rhythminstgm_samples.json and rewrites the blocks between
+Reads rhythmdrumgm_samples.json, rhythmlatingm_samples.json and rhythminstgm_samples.json and rewrites the blocks between
 <!-- kits:start ... --> / <!-- kits:end --> and <!-- instruments:start ... --> /
-<!-- instruments:end --> in rhythmgm/index.html, plus the <span data-drum-total> and
-<span data-inst-total> figures.
+<!-- instruments:end -->, <!-- latin... --> and <!-- latinkits... --> in rhythmgm/index.html,
+plus the data-drum-total, data-latin-total and data-inst-total figures.
 """
 import html, json, os, re
 
@@ -36,6 +36,24 @@ def kits(drums):
     return "\n".join("    " + r for r in rows)
 
 
+def latin(lat):
+    """Positions down the side, the conga set and the bongo set across."""
+    c = [x for x in lat if x["set"] == "congas"][:16]
+    b = [x for x in lat if x["set"] == "bongos"][:16]
+    rows = ["<table>", "  <thead><tr><th>Pos.</th><th>RhythmDrumGM role</th><th>Kits …1 (congas)</th><th>Kits …2 (bongos)</th></tr></thead>", "  <tbody>"]
+    for r in range(16):
+        rows.append(f"    <tr><td>{r + 1}</td><td>{ROLE_LABELS[r]}</td><td>{html.escape(c[r]['role'])}</td><td>{html.escape(b[r]['role'])}</td></tr>")
+    rows += ["  </tbody>", "</table>"]
+    return "\n".join("    " + r for r in rows)
+
+
+def latin_kits(lat):
+    kits = []
+    for i in range(0, len(lat), 16):
+        kits.append(f"<b>{html.escape(lat[i]['kit'])}</b> {i + 1}–{i + 16}")
+    return "    " + ", ".join(kits) + "."
+
+
 def instruments(ins):
     out = ['<div class="patchlist">']
     for f, fam in enumerate(FAMILIES):
@@ -62,10 +80,14 @@ def fill(page, tag, body):
 if __name__ == "__main__":
     dr = json.load(open(os.path.join(ROOT, "rhythmdrumgm_samples.json")))
     ins = json.load(open(os.path.join(ROOT, "rhythminstgm_samples.json")))
+    lat = json.load(open(os.path.join(ROOT, "rhythmlatingm_samples.json")))
     page = open(PAGE, encoding="utf-8").read()
     page = fill(page, "kits", kits(dr["samples"]))
     page = fill(page, "instruments", instruments(ins["samples"]))
+    page = fill(page, "latin", latin(lat["samples"]))
+    page = fill(page, "latinkits", latin_kits(lat["samples"]))
     page = re.sub(r"<span data-drum-total>[^<]*</span>", f"<span data-drum-total>{dr['total_seconds']:.1f}</span>", page)
+    page = re.sub(r"<span data-latin-total>[^<]*</span>", f"<span data-latin-total>{lat['total_seconds']:.1f}</span>", page)
     page = re.sub(r"<span data-inst-total>[^<]*</span>", f"<span data-inst-total>{ins['total_seconds']:.1f}</span>", page)
     open(PAGE, "w", encoding="utf-8").write(page)
     print(f"{PAGE}: drums {dr['total_seconds']} s, instruments {ins['total_seconds']} s")

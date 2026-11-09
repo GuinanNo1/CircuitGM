@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>RhythmGM</title>
-<meta name="description" content="RhythmGM: General MIDI sample packs for the Novation Circuit Rhythm. RhythmInstGM has all 128 GM instruments in GM order; RhythmDrumGM has eight 16-hit drum kits, all from GeneralUser GS.">
+<meta name="description" content="RhythmGM: General MIDI sample packs for the Novation Circuit Rhythm. RhythmInstGM has all 128 GM instruments in GM order; RhythmDrumGM has eight 16-hit drum kits and RhythmLatinGM eight Latin kits, all from GeneralUser GS.">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,7 +28,7 @@
 <header class="masthead">
   <div class="wrap">
     <h1>RhythmGM <span>General MIDI packs for the Circuit Rhythm</span> <em class="badge">beta</em></h1>
-    <p class="lede">Two Novation Components packs for the Circuit Rhythm, each filling all <b>128 sample slots</b> from GeneralUser GS. <b>RhythmInstGM</b> holds all 128 General MIDI instruments in GM order: slot 1 is Grand Piano and slot 128 is Gunshot, just as on any GM sound list. <b>RhythmDrumGM</b> holds the eight GS drum kits, 16 hits each, every kit in the same order.</p>
+    <p class="lede">Three Novation Components packs for the Circuit Rhythm, each filling all <b>128 sample slots</b> from GeneralUser GS. <b>RhythmInstGM</b> holds all 128 General MIDI instruments in GM order: slot 1 is Grand Piano and slot 128 is Gunshot, just as on any GM sound list. <b>RhythmDrumGM</b> holds the eight GS drum kits, 16 hits each, every kit in the same order, and <b>RhythmLatinGM</b> eight Latin percussion kits in the same sixteen slots.</p>
     <p class="alpha">Beta: built and checked in software, not yet loaded on a Circuit Rhythm. Keep a backup of your packs, and please report anything odd on <a href="https://github.com/GuinanNo1/CircuitGM/issues">GitHub</a>.</p>
   </div>
 </header>
@@ -40,6 +40,7 @@
       <li><a href="#get">Download and install</a></li>
       <li><a href="#layout">How the slots are laid out</a></li>
       <li><a href="#kits">RhythmDrumGM kits</a></li>
+      <li><a href="#latin">RhythmLatinGM kits</a></li>
       <li><a href="#instruments">RhythmInstGM instruments</a></li>
       <li><a href="#made">How they were made</a></li>
       <li><a href="#credits">Credits and licences</a></li>
@@ -56,6 +57,10 @@
       <a class="btn primary big" href="RhythmDrumGM.circuitrhythmpack" download>Download RhythmDrumGM</a>
       <span class="hint inline"><code>RhythmDrumGM.circuitrhythmpack</code> · 8 kits × 16 hits · <span data-drum-total>136.8</span> s of 228.1 s</span>
     </div>
+    <div class="btnrow">
+      <a class="btn primary big" href="RhythmLatinGM.circuitrhythmpack" download>Download RhythmLatinGM</a>
+      <span class="hint inline"><code>RhythmLatinGM.circuitrhythmpack</code> · 8 Latin kits × 16 hits · <span data-latin-total>40.2</span> s of 228.1 s</span>
+    </div>
     <h3>With Novation Components</h3>
     <ol class="steps">
       <li>Open <a href="https://components.novationmusic.com/">Novation Components</a> (web or desktop) with your Circuit Rhythm connected.</li>
@@ -63,7 +68,7 @@
       <li>Load the pack on the Circuit Rhythm. Its project slots are empty, ready for your own projects, and its Grid FX are the Rhythm's defaults.</li>
     </ol>
     <h3>Straight onto an SD card</h3>
-    <p>If Components won't take a pack file, <a href="RhythmInstGM_SD.zip" download>RhythmInstGM_SD.zip</a> and <a href="RhythmDrumGM_SD.zip" download>RhythmDrumGM_SD.zip</a> hold the same samples in the folder layout from Novation's article <a href="https://support.novationmusic.com/hc/articles/4402771846930">Manually setting up Circuit Rhythm SD card packs</a> (<code>Rhythm/0/PCM/00__Grand Piano C4.wav</code> and so on). Rename the <code>0</code> folder to a free pack number on your card, as that article describes.</p>
+    <p>If Components won't take a pack file, <a href="RhythmInstGM_SD.zip" download>RhythmInstGM_SD.zip</a>, <a href="RhythmDrumGM_SD.zip" download>RhythmDrumGM_SD.zip</a> and <a href="RhythmLatinGM_SD.zip" download>RhythmLatinGM_SD.zip</a> hold the same samples in the folder layout from Novation's article <a href="https://support.novationmusic.com/hc/articles/4402771846930">Manually setting up Circuit Rhythm SD card packs</a> (<code>Rhythm/0/PCM/00__Grand Piano C4.wav</code> and so on). Rename the <code>0</code> folder to a free pack number on your card, as that article describes.</p>
   </section>
 
   <section class="panel" id="layout">
@@ -71,7 +76,7 @@
     <ul>
       <li><b>RhythmInstGM: slot = GM program.</b> Slot 1 is Grand Piano, slot 41 Violin, slot 128 Gunshot: the numbering anyone who knows General MIDI expects. Each instrument is one note, up to two seconds long, with its natural attack and release.</li>
       <li><b>RhythmDrumGM: eight kits of sixteen.</b> Std, Room, Power, Elec, 808, Jazz, Brush and Orch, each with the same sixteen roles in the same order: kick, kick 2, snare, snare 2, rim, clap, closed, pedal and open hats, three toms, crash, ride, then two extra percussion sounds that differ by kit. A pattern keeps working when you swap kits.</li>
-      <li><b>Instruments plus drums.</b> Slots 113–128 of RhythmInstGM are GM's Percussive and Sound Effects families, the ones a song can most easily do without. When MIDI2Circuit builds Circuit Rhythm packs (planned), it will put the RhythmDrumGM kit you choose into those sixteen slots, so slots 1–112 keep their GM numbers. Every combination fits the sample limit.</li>
+      <li><b>Instruments plus drums.</b> Slots 113–128 of RhythmInstGM are GM's Percussive and Sound Effects families, the ones a song can most easily do without. When MIDI2Circuit builds Circuit Rhythm packs (planned), it will put the RhythmDrumGM or RhythmLatinGM kit you choose into those sixteen slots, so slots 1–112 keep their GM numbers. Every combination fits the sample limit.</li>
       <li><b>Pitch.</b> Each instrument's name ends with its root note (for example <i>Grand Piano C4</i>, <i>Finger Bass C2</i>). Play that note and the sample sounds at its own pitch; other notes pitch it up or down. Basses are rooted low and bells high, so their useful range needs the least stretching.</li>
       <li><b>Levels.</b> Drums peak at −0.5 dBFS, as in TracksGM. Instruments are matched by loudness over their first second, never peaking above −0.5 dBFS.</li>
     </ul>
@@ -102,6 +107,34 @@
         <tr><td>16</td><td><b>Extra 2</b></td><td>Cowbell</td><td>Conga Lo</td><td>Tamb</td><td>Maracas</td><td>Claves</td><td>Ride Bell</td><td>Tamb</td><td>Triangle</td></tr>
       </tbody>
     </table>    <!-- kits:end -->
+  </section>
+
+  <section class="panel" id="latin">
+    <h2>RhythmLatinGM kits</h2>
+    <p>GS has no Latin kit, so these eight are built from the GM Latin percussion every GS kit carries. Each takes its kick and snare from a root kit (Std, Room, Dance or Brush); kit 1 of each root has a conga set and kit 2 a bongo set. The Latin sounds sit where they best stand in for RhythmDrumGM's roles, so any of these kits drops into the same sixteen slots. Kits: <!-- latinkits:start (generated by tools/make_site_lists.py) -->
+    <b>LatinStd</b> 1–16, <b>LatinRoom</b> 17–32, <b>LatinPower</b> 33–48, <b>LatinElec</b> 49–64, <b>Latin808</b> 65–80, <b>LatinDance</b> 81–96, <b>LatinJazz</b> 97–112, <b>LatinBrush</b> 113–128.    <!-- latinkits:end --></p>
+    <!-- latin:start (generated by tools/make_site_lists.py) -->
+    <table>
+      <thead><tr><th>Pos.</th><th>RhythmDrumGM role</th><th>Kits …1 (congas)</th><th>Kits …2 (bongos)</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Kick</td><td>Kick</td><td>Kick</td></tr>
+        <tr><td>2</td><td>Kick 2</td><td>Surdo</td><td>Surdo</td></tr>
+        <tr><td>3</td><td>Snare</td><td>Snare</td><td>Snare</td></tr>
+        <tr><td>4</td><td>Snare 2</td><td>Timbale Hi</td><td>Timbale Hi</td></tr>
+        <tr><td>5</td><td>Rim</td><td>Claves</td><td>Claves</td></tr>
+        <tr><td>6</td><td>Clap</td><td>Cabasa</td><td>Cabasa</td></tr>
+        <tr><td>7</td><td>Closed hat</td><td>Maracas</td><td>Maracas</td></tr>
+        <tr><td>8</td><td>Pedal hat</td><td>Shaker</td><td>Shaker</td></tr>
+        <tr><td>9</td><td>Open hat</td><td>Guiro</td><td>Guiro</td></tr>
+        <tr><td>10</td><td>Tom low</td><td>Conga Lo</td><td>Bongo Lo</td></tr>
+        <tr><td>11</td><td>Tom mid</td><td>Conga Hi</td><td>Bongo Hi</td></tr>
+        <tr><td>12</td><td>Tom high</td><td>Conga Mute</td><td>Timbale Lo</td></tr>
+        <tr><td>13</td><td>Crash</td><td>Agogo</td><td>Agogo</td></tr>
+        <tr><td>14</td><td>Ride</td><td>Cowbell</td><td>Cowbell</td></tr>
+        <tr><td>15</td><td>Extra 1</td><td>Timbale Lo</td><td>Cuica</td></tr>
+        <tr><td>16</td><td>Extra 2</td><td>Wood Block</td><td>Wood Block</td></tr>
+      </tbody>
+    </table>    <!-- latin:end -->
   </section>
 
   <section class="panel" id="instruments">
@@ -307,14 +340,14 @@
   <section class="panel" id="made">
     <h2>How they were made</h2>
     <p>Every sample was rendered from GeneralUser GS through FluidSynth (the synth it is voiced for), with reverb and chorus off, summed to mono at 48 kHz and 16 bits, the format the Circuit Rhythm stores. Instruments play at velocity 100; sustained sounds are held for 1.4 seconds and keep their release, and every instrument is capped at two seconds so all 128 fit. Drums play at velocity 110 with the same length caps as TracksGM (cymbals four seconds; open hats, toms and percussion two). The packs' project files and Grid FX are laid out exactly as Components saves a pack with empty projects and default Grid FX.</p>
-    <p>The scripts rebuild the packs exactly: <a href="https://github.com/GuinanNo1/CircuitGM/blob/main/rhythmgm/tools/make_rhythminstgm.py"><code>make_rhythminstgm.py</code></a> (names and root notes are a list at its top) and <a href="https://github.com/GuinanNo1/CircuitGM/blob/main/rhythmgm/tools/make_rhythmdrumgm.py"><code>make_rhythmdrumgm.py</code></a> (the roles and each kit's picks).</p>
+    <p>The scripts rebuild the packs exactly: <a href="https://github.com/GuinanNo1/CircuitGM/blob/main/rhythmgm/tools/make_rhythminstgm.py"><code>make_rhythminstgm.py</code></a> (names and root notes are a list at its top) and <a href="https://github.com/GuinanNo1/CircuitGM/blob/main/rhythmgm/tools/make_rhythmdrumgm.py"><code>make_rhythmdrumgm.py</code></a> (the roles and each kit's picks) and <a href="https://github.com/GuinanNo1/CircuitGM/blob/main/rhythmgm/tools/make_rhythmlatingm.py"><code>make_rhythmlatingm.py</code></a> (the Latin layout).</p>
   </section>
 
   <section class="panel" id="credits">
     <h2>Credits and licences</h2>
     <ul>
       <li>Samples: <a href="https://github.com/mrbumpy409/GeneralUser-GS">GeneralUser GS</a> by S. Christian Collins (<a href="LICENSE-GeneralUser-GS.txt">licence</a>). If you share the pack, keep the licence with it and credit "Samples: GeneralUser GS by S. Christian Collins".</li>
-      <li>Pack layout and rendering: RhythmInstGM and RhythmDrumGM by Ian Guinan.</li>
+      <li>Pack layout and rendering: RhythmInstGM, RhythmDrumGM and RhythmLatinGM by Ian Guinan.</li>
     </ul>
   </section>
 </main>

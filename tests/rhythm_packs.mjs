@@ -1,4 +1,4 @@
-// RhythmInstGM and RhythmDrumGM read back like Components-saved Rhythm packs: product
+// RhythmInstGM, RhythmDrumGM and RhythmLatinGM read back like Components-saved Rhythm packs: product
 // circuit-rhythm, 128 named samples all present, 64 empty projects (slot 0 "User Session"),
 // 16 default Grid FX (effectType 127, 7f 00 00 00 00 00 00), compact index.json.
 // Run from the repo root after building: node tests/rhythm_packs.mjs
@@ -10,7 +10,7 @@ const EMPTY_MD5 = 'e1c697f7b24fba4531716cbc02af5b2a';   // Components' blank pro
 let errors = 0;
 const ok = (c, m) => { console.log(`${c ? 'ok  ' : 'FAIL'} ${m}`); if (!c) errors++; };
 
-for (const name of ['RhythmInstGM', 'RhythmDrumGM']) {
+for (const name of ['RhythmInstGM', 'RhythmDrumGM', 'RhythmLatinGM']) {
   const b = readFileSync(`rhythmgm/${name}.circuitrhythmpack`);
   const pack = await loadPack(b.buffer.slice(b.byteOffset, b.byteOffset + b.length), `${name}.circuitrhythmpack`);
   ok(pack.product === 'circuit-rhythm' && pack.name === name, `${name}: product and name`);
