@@ -47,7 +47,7 @@ async function init() {
     state.defaultBase = await loadBase();
     setBase(state.defaultBase, DEFAULT_PACK);
   } catch (e) {
-    $('#base-status').textContent = `Could not load the TracksGM Pack: ${e.message}. If you opened index.html straight from disk, serve the folder instead (see README).`;
+    $('#base-status').textContent = `Could not load the TracksGM pack: ${e.message}. If you opened index.html straight from disk, serve the folder instead (see README).`;
     $('#base-status').classList.add('error');
   }
   for (const id of ['#section-bars', '#rate', '#tempo-div', '#match', '#quantize', '#align', '#trim']) $(id).addEventListener('change', rearrange);
@@ -131,7 +131,7 @@ function setBase(base, name) {
   const status = $('#base-status');
   status.classList.remove('error');
   status.textContent = isDefault
-    ? `TracksGM Pack: ${nPatch} patches, ${nSamp} drum samples.`
+    ? `TracksGM pack: ${nPatch} patches, ${nSamp} drum samples.`
     : base.fromSong
       ? `The loaded pack's own ${nPatch} patches. Its projects are not copied; the converted project replaces them.`
       : `${base.index.name ? `“${base.index.name}”: ` : ''}${nPatch} patches, ${nSamp} drum samples.`
@@ -149,7 +149,7 @@ function updateBaseSummary() {
   const base = state.base;
   const nPatch = base.patches.filter((p) => p.data).length;
   const nSamp = base.samples.filter((s) => s.present).length;
-  const label = base === state.defaultBase ? 'TracksGM Pack' : state.baseName;
+  const label = base === state.defaultBase ? 'TracksGM pack' : state.baseName;
   $('#base-summary').textContent = fromPack()
     ? `${label}'s ${nPatch} patches, with the drum samples of ${state.songPackName}`
     : `${label}: ${nPatch} patches, ${nSamp} drum samples`;
@@ -498,7 +498,7 @@ function sourcesFor(role) {
 function rolesChanged() {
   state.barCache.delete('lane4'); state.barCache.delete('lane5'); state.barCache.delete('lane6'); state.barCache.delete('lane7');
   syncRoleButtons();
-  // Default each synth patch to the GM program of the first part on it (the TracksGM Pack is in GM order;
+  // Default each synth patch to the GM program of the first part on it (the TracksGM pack is in GM order;
   // other packs are assumed to be too).
   ['S1', 'S2'].forEach((r, i) => {
     const first = sourcesFor(r)[0];

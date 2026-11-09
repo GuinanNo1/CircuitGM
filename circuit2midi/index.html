@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>TracksGM Circuit Tracks to MIDI Converter (Circuit2MIDI)</title>
+<title>CircuitGM Circuit to MIDI Converter (Circuit2MIDI)</title>
 <meta name="description" content="Turn a project in a Novation Circuit Tracks or Circuit Rhythm pack into a Standard MIDI file, and compact the pack by removing unused samples and patches.">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,12 +13,24 @@
 <link rel="stylesheet" href="../css/c2m.css">
 </head>
 <body>
+<nav class="sitenav" aria-label="CircuitGM">
+  <div class="wrap">
+    <a class="brand" href="../" title="CircuitGM home: all packs and tools">Circuit<b>GM</b></a>
+    <ul>
+      <li><a href="../tracksgm/">TracksGM</a></li>
+      <li><a href="../rhythmgm/">RhythmGM <span class="soon">soon</span></a></li>
+      <li><a href="../packtrim/">PackTrim <span class="soon">soon</span></a></li>
+      <li><a href="../midi2circuit/">MIDI2Circuit</a></li>
+      <li><a href="./" aria-current="page">Circuit2MIDI</a></li>
+    </ul>
+  </div>
+</nav>
 <header class="masthead">
   <div class="wrap">
-    <h1>TracksGM <span>Circuit Tracks to MIDI Converter (Circuit2MIDI)</span> <em class="badge">alpha 0.1</em></h1>
-    <p class="helplinks"><a href="help.html#quickstart">Quickstart</a> · <a href="help.html">User guide</a> · <a href="../midi2circuit/">MIDI2Circuit (MIDI to Circuit Tracks)</a></p>
+    <h1>Circuit2MIDI <span>Circuit Tracks and Rhythm to MIDI converter</span> <em class="badge">alpha 0.1</em></h1>
+    <p class="helplinks"><a href="help.html#quickstart">Quickstart</a> · <a href="help.html">User guide</a></p>
     <p class="lede">Open a Novation Components pack for the Circuit Tracks or Circuit Rhythm, tidy it by removing the samples and patches no project uses, and turn one of its projects into a Standard MIDI file: every scene, pattern chain and step, on the channels and sounds you choose.</p>
-    <p class="alpha">Alpha 0.1, for testing. The Circuit Rhythm project format was worked out from one hardware-saved project, so check the result against your Circuit, keep your original pack, and please report anything odd on <a href="https://github.com/GuinanNo1/TracksGM/issues">GitHub</a>.</p>
+    <p class="alpha">Alpha 0.1, for testing. The Circuit Rhythm project format was worked out from one hardware-saved project, so check the result against your Circuit, keep your original pack, and please report anything odd on <a href="https://github.com/GuinanNo1/CircuitGM/issues">GitHub</a>.</p>
   </div>
 </header>
 
@@ -116,7 +128,7 @@
 </main>
 
 <footer class="wrap foot">
-  <p>Part of <a href="https://github.com/GuinanNo1/TracksGM">TracksGM</a> by Ian Guinan. Project format code from <a href="https://github.com/namirsab/circuit-tracks-tools">circuit-tracks-tools</a> by Namir Sayed-Ahmad Baraza (MIT). Not affiliated with Novation or Focusrite; "Circuit Tracks", "Circuit Rhythm" and "Components" are their trademarks.</p>
+  <p>Part of <a href="https://github.com/GuinanNo1/CircuitGM">TracksGM</a> by Ian Guinan. Project format code from <a href="https://github.com/namirsab/circuit-tracks-tools">circuit-tracks-tools</a> by Namir Sayed-Ahmad Baraza (MIT). Not affiliated with Novation or Focusrite; "Circuit Tracks", "Circuit Rhythm" and "Components" are their trademarks.</p>
 </footer>
 
 <script type="module" src="../js/c2m.js"></script>

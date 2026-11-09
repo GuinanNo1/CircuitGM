@@ -2,7 +2,7 @@
 //  1. Circuit Tracks: a pack built from a MIDI file -> load it as the song -> build again on
 //     its own patches and samples, shrunk -> every note and drum sample must match.
 //  2. Circuit Rhythm: a synthetic Rhythm pack (stereo 44.1 kHz and 48 kHz samples in slots
-//     above 64) -> build on the TracksGM Pack's patches -> drum hits land on the right drum
+//     above 64) -> build on the TracksGM pack's patches -> drum hits land on the right drum
 //     tracks with the right (renumbered, converted) samples, and the pitched track plays its
 //     notes on Synth 1.
 // Run from the repo root: node tests/pack2pack.mjs [save-dir]

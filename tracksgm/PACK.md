@@ -1,10 +1,10 @@
-# TracksGM Universal Circuit Tracks Pack (TracksGM Pack)
+# TracksGM
 
-A General MIDI sound set for the Novation Circuit Tracks, as a Novation Components pack (`TracksGM_final.circuittrackspack`): **128 synth patches in General MIDI order** and **64 drum samples** (8 kits of 8). It works as a general-purpose pack on its own, and it is the sound set the [TracksGM MIDI to Circuit Tracks Converter (MIDI2Circuit)](https://guinanno1.github.io/TracksGM/) builds on. This is the master copy until it is revised.
+A General MIDI sound set for the Novation Circuit Tracks, as a Novation Components pack (`TracksGM_final.circuittrackspack`): **128 synth patches in General MIDI order** and **64 drum samples** (8 kits of 8). It works as a general-purpose pack on its own, and it is the sound set the [CircuitGM MIDI to Circuit Converter (MIDI2Circuit)](https://guinanno1.github.io/CircuitGM/midi2circuit/) builds on. This is the master copy until it is revised.
 
-The final TracksGM Pack will be further manually tuned to improve the patches. The final pack is used in the [TracksGM MIDI to Circuit Tracks Converter (MIDI2Circuit)](https://guinanno1.github.io/TracksGM/) (though alternate packs can be uploaded into the converter).
+The final TracksGM pack will be further manually tuned to improve the patches. The final pack is used in the [CircuitGM MIDI to Circuit Converter (MIDI2Circuit)](https://guinanno1.github.io/CircuitGM/midi2circuit/) (though alternate packs can be uploaded into the converter).
 
-When a retuned version replaces `TracksGM_final.circuittrackspack` here, copy it to `data/TracksGM_final.circuittrackspack` on the [`web-converter` branch](https://github.com/GuinanNo1/TracksGM/tree/web-converter) too, so the converter's default base pack stays current.
+This file is the only copy of the pack in the repository: MIDI2Circuit loads it from here as its default base pack, so replacing it here updates the converter too. The pack's web page is <https://guinanno1.github.io/CircuitGM/tracksgm/>; after a patch or sample is renamed, run `python3 tracksgm/tools/make_site_lists.py` from the repository root to refresh its patch list and drum table.
 
 | | |
 |---|---|
@@ -18,7 +18,7 @@ When a retuned version replaces `TracksGM_final.circuittrackspack` here, copy it
 
 | Path | What it is |
 |---|---|
-| `TracksGM_final.circuittrackspack` | The TracksGM Pack. Load it in Novation Components. |
+| `TracksGM_final.circuittrackspack` | The TracksGM pack. Load it in Novation Components. |
 | `tracksgm_patches.json` | The 128 patches as data: slot, name and the 340 patch bytes (hex), plus the 64 sample names. |
 | `drums/` | The 64 drum WAVs exactly as stored in the pack, named by slot. |
 | `tools/ctpatch.py` | Patch builder: the 340-byte patch map, parameter names, and calibrated helpers that work in real units (`cutoff(hz)`, `env_time(seconds)`, `eq_level(db, band)`, `lfo_rate(hz)`, `vib_depth(cents)` …). |
@@ -26,10 +26,11 @@ When a retuned version replaces `TracksGM_final.circuittrackspack` here, copy it
 | `tools/revoice_tracksgm_wt.py` | Second pass: wavetable re-voice, vibrato macro depth and the loudness trims measured after it. |
 | `tools/make_drums.py` | Renders the 64 drum hits from GeneralUser GS with FluidSynth. |
 | `tools/extract_sf2.py` | Dumps every sample and every drum-kit hit in GeneralUser GS to WAV, with index CSVs, for picking substitutes. |
+| `tools/make_site_lists.py` | Refreshes the patch list and drum table on the pack's web page (`index.html`) from `tracksgm_patches.json`. |
 | `tools/make_pack.py` | Writes a `.circuittrackspack` from a folder of `.syx` patches and WAVs. |
 | `tools/make_tracksgm.py` | Rebuilds a pack from `tracksgm_patches.json` and lets you edit patches as `.syx` and fold them back. |
 | `tools/build_from_source.py` | Runs the whole chain and checks the result against the master. |
-| `docs/circuit-tracks-file-formats.md` | Research notes on the pack, patch and project (`.ncs`) formats. |
+| `../docs/circuit-tracks-file-formats.md` | Research notes on the pack, patch and project (`.ncs`) formats. |
 | `LICENSE-GeneralUser-GS.txt` | Licence for the drum samples. Keep it with any shared copy of the pack. |
 
 ## Rebuild
@@ -107,7 +108,7 @@ Hits picked by ear (2026-11-06): the Elec kick is the Dance kit's Kick 2, the El
 `extract_sf2.py` writes out every one of GeneralUser's 920 samples and all 795 drum-kit hits (210 distinct sounds), so substitutes can be auditioned and dropped into a slot.
 
 ## Credits and licences
-- Patches: TracksGM Pack by Ian Guinan.
+- Patches: TracksGM pack by Ian Guinan.
 - Drum samples: GeneralUser GS by S. Christian Collins (`LICENSE-GeneralUser-GS.txt`). Credit "Drum samples: GeneralUser GS by S. Christian Collins" wherever the pack is shared.
 - Patch format: Novation Circuit Tracks Programmer's Reference Guide v3; macro destination names from the CIRCUIT-HACKS-RC wiki.
 - Not affiliated with Novation or Focusrite. "Circuit Tracks" and "Components" are their trademarks.

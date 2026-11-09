@@ -1,4 +1,4 @@
-"""Rebuild the TracksGM Pack (master GM set) from tracksgm_patches.json.
+"""Rebuild the TracksGM pack (master GM set) from tracksgm_patches.json.
 
     python3 make_tracksgm.py --samples drums          -> TracksGM.circuittrackspack
     python3 make_tracksgm.py --syx-only               -> tracksgm/NNN <Name>.syx only

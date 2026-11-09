@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Circuit2MIDI Help</title>
-<meta name="description" content="Quickstart and user guide for the TracksGM Circuit Tracks to MIDI Converter (Circuit2MIDI).">
+<title>Circuit2MIDI Help · CircuitGM</title>
+<meta name="description" content="Quickstart and user guide for the CircuitGM Circuit to MIDI Converter (Circuit2MIDI).">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,10 +12,22 @@
 <link rel="stylesheet" href="../css/app.css">
 </head>
 <body>
+<nav class="sitenav" aria-label="CircuitGM">
+  <div class="wrap">
+    <a class="brand" href="../" title="CircuitGM home: all packs and tools">Circuit<b>GM</b></a>
+    <ul>
+      <li><a href="../tracksgm/">TracksGM</a></li>
+      <li><a href="../rhythmgm/">RhythmGM <span class="soon">soon</span></a></li>
+      <li><a href="../packtrim/">PackTrim <span class="soon">soon</span></a></li>
+      <li><a href="../midi2circuit/">MIDI2Circuit</a></li>
+      <li><a href="./">Circuit2MIDI</a></li>
+    </ul>
+  </div>
+</nav>
 <header class="masthead">
   <div class="wrap">
     <p class="crumbs"><a href="./">← Back to Circuit2MIDI</a></p>
-    <h1>Help <span>TracksGM Circuit Tracks to MIDI Converter (Circuit2MIDI)</span> <em class="badge">alpha 0.1</em></h1>
+    <h1>Circuit2MIDI help <span>CircuitGM Circuit to MIDI Converter</span> <em class="badge">alpha 0.1</em></h1>
     <p class="lede">How to tidy a Circuit Tracks or Circuit Rhythm pack and turn one of its projects into a Standard MIDI file. Going the other way, from a MIDI file to a Circuit Tracks pack, is <a href="../midi2circuit/">MIDI2Circuit</a>.</p>
   </div>
 </header>
@@ -84,7 +96,7 @@
     <h2>What compacting removes</h2>
     <p>A sample counts as used when any project with notes plays it on a step or has it as a track's default sample. A patch counts as used when a project has it on Synth 1 or Synth 2. Everything else is left out.</p>
     <p>Every sample and patch keeps its slot number, so the projects are copied byte for byte and still find their sounds. Removed slots stay in the pack as empty slots, which is how Components stores them. Projects, grid effects and everything else are kept.</p>
-    <p>A pack with no projects (such as the TracksGM Universal Circuit Tracks Pack (TracksGM Pack) itself) can't be compacted, because every sound in it would count as unused.</p>
+    <p>A pack with no projects (such as the TracksGM pack itself) can't be compacted, because every sound in it would count as unused.</p>
     <p>The compacted pack replaces the whole pack on your Circuit when you send it from Components, as any pack does.</p>
   </section>
 
