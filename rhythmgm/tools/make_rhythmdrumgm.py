@@ -2,22 +2,26 @@
 
     python3 rhythmgm/tools/make_rhythmdrumgm.py /path/to/GeneralUser-GS.sf2   (from the repo root)
 
-Every kit has the same 16 roles in the same order, so a pattern keeps working when you swap
-kits, and any one kit drops straight into slots 113-128 of RhythmInstGM:
+Each kit is two rows of eight. Row 1 is the TracksGM kit exactly (same hits, byte-identical
+samples, same order), so the 8 drums of a TracksGM kit map one-to-one onto a RhythmDrumGM
+kit and fill one pad row on the Rhythm. Row 2 repeats the same eight roles with a second
+sound for each:
 
-   1 Kick      2 Kick 2    3 Snare     4 Snare 2   5 Rim       6 Clap      7 CH        8 Pedal HH
-   9 OH       10 Tom Lo   11 Tom Mid  12 Tom Hi   13 Crash    14 Ride     15 extra    16 extra
+   row 1:  1 Kick     2 Snare     3 Rim/clap     4 Closed hat   5 Open hat   6 Tom     7 Cymbal     8 Perc
+   row 2:  9 Kick 2  10 Snare 2  11 Rim/clap 2  12 Hat 2       13 Open 2    14 Tom 2  15 Cymbal 2  16 Perc 2
+
+(Jazz, Brush and Orch use their TracksGM picks in row 1, e.g. Jazz pedal hat and shaker in
+the hat slots, so their row 2 holds the ordinary closed and open hats.)
 
 Kits (slots): Std 1-16, Room 17-32, Power 33-48, Elec 49-64, 808 65-80, Jazz 81-96,
-Brush 97-112, Orch 113-128. The GM note for each role is in ROLES; KITS overrides it where a
-kit has its sound elsewhere, or where TracksGM_final uses a different pick (Ian's choices in
-tracksgm/tools/make_drums.py are kept). A note may be (GS program, note) to borrow from
-another kit. Slots 15-16 are extra percussion, different per kit.
+Brush 97-112, Orch 113-128. Any kit drops into slots 113-128 of RhythmInstGM. Row 1 comes
+from tracksgm/tools/make_drums.py (KITS); row 2 is ROW2 below. A note may be (GS program,
+note) to borrow from another kit.
 
 Rendering is make_drums.py's chain (FluidSynth, velocity 110, 48 kHz 16-bit mono, lead-in
-trimmed, tail cut at -60 dB with a fade, peak -0.5 dBFS) with the same length caps (cymbals
-4 s, open hats, toms and extras 2 s, the rest 1.5 s), so a hit shared with TracksGM sounds
-the same on both. All 128 hits use well under the Rhythm's 228.1 s.
+trimmed, tail cut at -60 dB with a fade, peak -0.5 dBFS) with its length caps per role
+(cymbals 4 s; open hats, toms and percussion 2 s; the rest 1.5 s). Hits TracksGM has are
+copied from tracksgm/drums.
 
 Outputs (rhythmgm/): RhythmDrumGM.circuitrhythmpack, RhythmDrumGM_SD.zip,
 drum_samples/NNN Name.wav, rhythmdrumgm_samples.json.
@@ -31,40 +35,39 @@ import make_drums as md                                         # noqa: E402
 from rhythm_pack import write_pack, write_sd_zip                 # noqa: E402
 
 LIMIT_S = 228.1
+ROLES = ["Kick", "Snare", "Rim/clap", "Closed hat", "Open hat", "Tom", "Cymbal", "Perc"]
+CAPS = [md.MAX_S.get(s, md.DEFAULT_MAX) for s in md.SLOTS]       # same caps as TracksGM, by role
 
-# role, default GM note, length cap (s)
-ROLES = [("Kick", 36, 1.5), ("Kick 2", 35, 1.5), ("Snare", 38, 1.5), ("Snare 2", 40, 1.5),
-         ("Rim", 37, 1.5), ("Clap", 39, 1.5), ("CH", 42, 1.5), ("Pedal HH", 44, 1.5),
-         ("OH", 46, 2.0), ("Tom Lo", 41, 2.0), ("Tom Mid", 47, 2.0), ("Tom Hi", 50, 2.0),
-         ("Crash", 49, 4.0), ("Ride", 51, 4.0), (None, None, 2.0), (None, None, 2.0)]
-
-# kit, GS program (bank 128), {role index: note or (program, note)}, (extra 1, extra 2) as (name, note)
-KITS = [
-    ("Std", 0, {}, (("Tamb", 54), ("Cowbell", 56))),
-    ("Room", 8, {}, (("Conga Hi", 63), ("Conga Lo", 64))),
-    ("Power", 16, {}, (("Cowbell", 56), ("Tamb", 54))),
-    ("Elec", 24, {0: (26, 35), 1: 36, 2: (25, 40), 3: 38}, (("Cabasa", 69), ("Maracas", 70))),
-    ("808", 25, {0: 35, 1: 36, 13: (0, 51)}, (("Cowbell", 56), ("Claves", 75))),
-    ("Jazz", 32, {}, (("Shaker", 82), ("Ride Bell", 53))),
-    ("Brush", 40, {}, (("Cabasa", 69), ("Tamb", 54))),
-    ("Orch", 48, {0: 35, 1: 36, 5: (0, 39), 6: 27, 7: 28, 8: 29, 12: 59, 13: (0, 51)},
-     (("Castanets", 39), ("Triangle", 81))),
-]
-ORCH_TOMS = {9: "Timp Lo", 10: "Timp Mid", 11: "Timp Hi"}      # GS Orchestra kit: 41-53 are timpani
+# Row 2 per kit, in ROLES order: (short name, note or (GS program, note)).
+ROW2 = {
+    "Std":   [("Kick2", 35), ("Snare2", 40), ("Rim", 37), ("PedalHH", 44),
+              ("Ride", 51), ("TomLo", 41), ("Crash2", 57), ("Cowbell", 56)],
+    "Room":  [("Kick2", 35), ("Snare2", 40), ("Clap", 39), ("PedalHH", 44),
+              ("Ride", 51), ("TomHi", 50), ("Crash", 49), ("CongaLo", 64)],
+    "Power": [("Kick2", 35), ("Clap", 39), ("Rim", 37), ("PedalHH", 44),
+              ("Ride", 51), ("TomHi", 48), ("Crash", 49), ("Tamb", 54)],
+    "Elec":  [("Kick2", 36), ("Snare2", 38), ("Rim", 37), ("PedalHH", 44),
+              ("Ride", 51), ("TomLo", 41), ("Crash", 49), ("Maracas", 70)],
+    "808":   [("Kick2", 36), ("Snare2", 40), ("Clap", 39), ("PedalHH", 44),
+              ("Ride", (0, 51)), ("TomHi", 50), ("Crash", (0, 49)), ("Claves", 75)],
+    "Jazz":  [("Kick2", 35), ("Snare2", 40), ("Clap", 39), ("CH", 42),
+              ("OH", 46), ("TomLo", 41), ("Crash", 49), ("Tamb", 54)],
+    "Brush": [("Kick2", 35), ("Snare2", (32, 38)), ("Rim", 37), ("CH", 42),
+              ("OH", 46), ("TomHi", 50), ("Crash", 49), ("Tamb", 54)],
+    "Orch":  [("Kick2", 36), ("Snare2", (16, 40)), ("Clap", (0, 39)), ("CH", 27),
+              ("OH", 29), ("TimpMid", 43), ("Crash", 57), ("Tamb", 54)],
+}
 
 
 def plan():
     out = []
-    for kit, prog, over, extras in KITS:
-        for r, (role, note, cap) in enumerate(ROLES):
-            if role is None:
-                role, note = extras[r - 14]
-            note = over.get(r, note)
-            p, n = note if isinstance(note, tuple) else (prog, note)
-            if kit == "Orch" and r in ORCH_TOMS:
-                role = ORCH_TOMS[r]
-            out.append({"kit": kit, "role": role, "name": f"{kit} {role}", "gs_program": p,
-                        "note": n, "cap": cap})
+    for kit, prog, notes, names in md.KITS:
+        rows = [list(zip(names, notes)), ROW2[kit]]
+        for row, hits in enumerate(rows):
+            for r, (short, note) in enumerate(hits):
+                p, n = note if isinstance(note, tuple) else (prog, note)
+                out.append({"kit": kit, "row": row + 1, "role": ROLES[r] + (" 2" if row else ""),
+                            "hit": short, "name": f"{kit} {short}", "gs_program": p, "note": n, "cap": CAPS[r]})
     return out
 
 
@@ -104,7 +107,7 @@ if __name__ == "__main__":
     if total > LIMIT_S:
         sys.exit("over the Circuit Rhythm sample limit")
     json.dump({"pack": "RhythmDrumGM", "product": "circuit-rhythm", "total_seconds": round(total, 1),
-               "limit_seconds": LIMIT_S, "roles": [r[0] for r in ROLES[:14]] + ["extra", "extra"],
+               "limit_seconds": LIMIT_S, "roles": ROLES + [r + " 2" for r in ROLES],
                "samples": slots}, open(os.path.join(OUT, "rhythmdrumgm_samples.json"), "w"), indent=1)
     pairs = [(s["name"], os.path.join(sdir, s["file"])) for s in slots]
     write_pack(os.path.join(OUT, "RhythmDrumGM.circuitrhythmpack"), "RhythmDrumGM", "orange", pairs)

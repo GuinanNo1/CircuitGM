@@ -3,19 +3,20 @@
 General MIDI sample packs for the Novation Circuit Rhythm, in two packs that each fill all 128 sample slots from GeneralUser GS:
 
 - **RhythmInstGM:** all 128 General MIDI instruments, **slot = GM program** (slot 1 Grand Piano … slot 128 Gunshot). Each is one note, up to 2 s. The name is the zero-padded program number, the instrument and its root note (`001 Grand Piano C4`, `034 Finger Bass C2`): play that note and the sample sounds at its own pitch.
-- **RhythmDrumGM:** the eight GS kits (Std, Room, Power, Elec, 808, Jazz, Brush, Orch), 16 hits each, every kit in the same order:
+- **RhythmDrumGM:** the eight GS kits (Std, Room, Power, Elec, 808, Jazz, Brush, Orch), 16 hits each in two rows of eight:
 
-  | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 |
-  |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-  | Kick | Kick 2 | Snare | Snare 2 | Rim | Clap | CH | Pedal HH | OH | Tom Lo | Tom Mid | Tom Hi | Crash | Ride | extra | extra |
+  | Row | 1/9 | 2/10 | 3/11 | 4/12 | 5/13 | 6/14 | 7/15 | 8/16 |
+  |---|---|---|---|---|---|---|---|---|
+  | 1 (slots 1–8 of a kit) | Kick | Snare | Rim/clap | Closed hat | Open hat | Tom | Cymbal | Perc |
+  | 2 (slots 9–16) | Kick 2 | Snare 2 | Rim/clap 2 | Hat 2 | Open 2 | Tom 2 | Cymbal 2 | Perc 2 |
 
-  Kit k is in slots 16k+1 to 16k+16. The two extras are percussion that differs by kit (Std Tamb/Cowbell, Room Conga Hi/Lo, Power Cowbell/Tamb, Elec Cabasa/Maracas, 808 Cowbell/Claves, Jazz Shaker/Ride Bell, Brush Cabasa/Tamb, Orch Castanets/Triangle). The Orch kit's toms are timpani. Hits that TracksGM also has are copied byte for byte from `../tracksgm/drums`.
+  Row 1 is the TracksGM kit exactly (same hits, byte-identical, same order), so the 8 drums of a TracksGM kit map one-to-one onto a RhythmDrumGM kit and fill one pad row on the Rhythm. Row 2 adds a second sound for each role (`ROW2` in `tools/make_rhythmdrumgm.py`). Kit k is in slots 16k+1 to 16k+16. The Orch kit's toms are timpani.
 
-- **RhythmLatinGM:** eight Latin kits (LatinStd, LatinRoom, LatinPower, LatinElec, Latin808, LatinDance, LatinJazz, LatinBrush). Each has its root kit's kick and snare and GM Latin percussion in the other slots, placed to stand in for the RhythmDrumGM roles; conga and bongo sets alternate. 40.2 s. Built by `tools/make_rhythmlatingm.py`.
+- **RhythmLatinGM:** eight Latin kits (LatinStd, LatinRoom, LatinPower, LatinElec, Latin808, LatinDance, LatinJazz, LatinBrush). Each has its root kit's kick and snare and GM Latin percussion in the other slots, placed in the same two-row role layout as RhythmDrumGM; conga and bongo sets alternate. 40.2 s. Built by `tools/make_rhythmlatingm.py`.
 
 **Instruments plus drums.** Slots 113–128 of RhythmInstGM are GM's Percussive and Sound Effects families. When MIDI2Circuit builds Circuit Rhythm packs (planned), it puts one RhythmDrumGM or RhythmLatinGM kit in those 16 slots, so slots 1–112 keep their GM numbers. Slots 1–112 plus the longest kit (Orch) is 211.8 s, inside the 228.1 s limit.
 
-Sample time: RhythmInstGM 211.0 s, RhythmDrumGM 136.8 s, of the Circuit Rhythm's 228.1 s; every sample is 48 kHz, 16-bit, mono.
+Sample time: RhythmInstGM 211.0 s, RhythmDrumGM 135.1 s, of the Circuit Rhythm's 228.1 s; every sample is 48 kHz, 16-bit, mono.
 
 **Page and sample lists:** https://guinanno1.github.io/CircuitGM/rhythmgm/
 
@@ -34,7 +35,7 @@ Copied from Components-saved Rhythm packs (see `tools/rhythm_pack.py`): 64 proje
 | `rhythminstgm_samples.json`, `rhythmdrumgm_samples.json` | Every slot: name, source, GM program and root note or kit, role and note, length. |
 | `index.html` | The web page. |
 | `tools/make_rhythminstgm.py` | Builds RhythmInstGM (and `inst_samples/`, not committed). Names and root notes are the `GM` list at its top. Run after `make_rhythmdrumgm.py`, which it reads to check the kit sizes. |
-| `tools/make_rhythmdrumgm.py` | Builds RhythmDrumGM (and `drum_samples/`, not committed). Roles are `ROLES`, each kit's picks `KITS`. |
+| `tools/make_rhythmdrumgm.py` | Builds RhythmDrumGM (and `drum_samples/`, not committed). Row 1 comes from TracksGM's `make_drums.py`; row 2 is `ROW2`. |
 | `tools/rhythm_pack.py` | Writes a pack and SD zip the way Components does. |
 | `tools/make_rhythmgm.py` | The rendering chain both scripts use (FluidSynth, trim, level). Run directly it still builds the old single RhythmGM pack, which these two replace. |
 | `tools/make_site_lists.py` | Refreshes the kit and instrument lists on the web page. |

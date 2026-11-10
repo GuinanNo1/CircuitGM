@@ -15,23 +15,20 @@ PAGE = os.path.join(ROOT, "index.html")
 FAMILIES = ["Piano", "Chromatic Percussion", "Organ", "Guitar", "Bass", "Strings",
             "Ensemble", "Brass", "Reed", "Pipe", "Synth Lead", "Synth Pad",
             "Synth Effects", "Ethnic", "Percussive", "Sound Effects"]
-ROLE_LABELS = ["Kick", "Kick 2", "Snare", "Snare 2", "Rim", "Clap", "Closed hat", "Pedal hat",
-               "Open hat", "Tom low", "Tom mid", "Tom high", "Crash", "Ride", "Extra 1", "Extra 2"]
+ROLE_LABELS = ["Kick", "Snare", "Rim / clap", "Closed hat", "Open hat", "Tom", "Cymbal", "Perc",
+               "Kick 2", "Snare 2", "Rim / clap 2", "Hat 2", "Open 2", "Tom 2", "Cymbal 2", "Perc 2"]
 
 
 def kits(drums):
+    """Positions down the side (row 1 = the TracksGM kit, row 2 = second sounds), kits across."""
     names = [drums[k * 16]["kit"] for k in range(8)]
     rows = ["<table>",
             "  <thead><tr><th>Pos.</th><th>Role</th>" + "".join(
                 f"<th>{html.escape(n)}<br><span class=\"hint inline\">{k * 16 + 1}–{k * 16 + 16}</span></th>"
                 for k, n in enumerate(names)) + "</tr></thead>", "  <tbody>"]
     for r in range(16):
-        cells = []
-        for k in range(8):
-            h = drums[k * 16 + r]
-            cells.append(f"<td>{html.escape(h['role'])}</td>" if r >= 14 or h["role"].startswith("Timp")
-                         else "<td>✓</td>")
-        rows.append(f"    <tr><td>{r + 1}</td><td><b>{ROLE_LABELS[r]}</b></td>{''.join(cells)}</tr>")
+        cells = "".join(f"<td>{html.escape(drums[k * 16 + r]['hit'])}</td>" for k in range(8))
+        rows.append(f"    <tr><td>{r + 1}</td><td><b>{ROLE_LABELS[r]}</b></td>{cells}</tr>")
     rows += ["  </tbody>", "</table>"]
     return "\n".join("    " + r for r in rows)
 

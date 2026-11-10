@@ -9,21 +9,21 @@ drops into slots 113-128 of RhythmInstGM. Conga and bongo sets alternate (ROOTS)
 
   pos  RhythmDrumGM role   conga kits                bongo kits
    1   Kick                Kick (root kit)           Kick (root kit)
-   2   Kick 2              Surdo                     Surdo
-   3   Snare               Snare (root kit)          Snare (root kit)
-   4   Snare 2             Timbale Hi                Timbale Hi
-   5   Rim                 Claves                    Claves
-   6   Clap                Cabasa                    Cabasa
-   7   CH                  Maracas                   Maracas
-   8   Pedal HH            Shaker                    Shaker
-   9   OH                  Guiro                     Guiro
-  10   Tom Lo              Conga Lo (tumba)          Bongo Lo
-  11   Tom Mid             Conga Hi (open)           Bongo Hi
-  12   Tom Hi              Conga Mute                Timbale Lo
-  13   Crash               Agogo                     Agogo
-  14   Ride                Cowbell                   Cowbell
-  15   extra               Timbale Lo                Cuica
-  16   extra               Wood Block                Wood Block
+   2   Snare               Snare (root kit)          Snare (root kit)
+   3   Rim/clap            Claves                    Claves
+   4   Closed hat          Maracas                   Maracas
+   5   Open hat            Guiro                     Guiro
+   6   Tom                 Conga Hi (open)           Bongo Hi
+   7   Cymbal              Agogo                     Agogo
+   8   Perc                Cowbell                   Cowbell
+   9   Kick 2              Surdo                     Surdo
+  10   Snare 2             Timbale Hi                Timbale Hi
+  11   Rim/clap 2          Cabasa                    Cabasa
+  12   Hat 2               Shaker                    Shaker
+  13   Open 2              Wood Block                Wood Block
+  14   Tom 2               Conga Lo (tumba)          Bongo Lo
+  15   Cymbal 2            Timbale Lo                Timbale Lo
+  16   Perc 2              Conga Mute                Cuica
 
 Kits (slots): LatinStd 1-16 (congas), LatinRoom 17-32 (bongos), LatinPower 33-48 (congas),
 LatinElec 49-64 (bongos), Latin808 65-80 (congas), LatinDance 81-96 (bongos), LatinJazz
@@ -49,21 +49,19 @@ LIMIT_S = 228.1
 ROOTS = [("Std", 0, 36, 38, 1), ("Room", 8, 36, 38, 2), ("Power", 16, 36, 38, 1),
          ("Elec", 24, (26, 35), (25, 40), 2), ("808", 25, 35, 38, 1), ("Dance", 26, 36, 38, 2),
          ("Jazz", 32, 36, 38, 1), ("Brush", 40, 36, 38, 2)]
-COMMON = {0: ("Kick", 36, 1.5), 1: ("Surdo", 87, 2.0), 2: ("Snare", 38, 1.5), 3: ("Timbale Hi", 65, 2.0),
-          4: ("Claves", 75, 2.0), 5: ("Cabasa", 69, 2.0), 6: ("Maracas", 70, 2.0), 7: ("Shaker", 82, 2.0),
-          8: ("Guiro", 74, 2.0), 12: ("Agogo", 67, 2.0), 13: ("Cowbell", 56, 2.0)}
+COMMON = {2: ("Claves", 75, 2.0), 3: ("Maracas", 70, 2.0), 4: ("Guiro", 74, 2.0), 6: ("Agogo", 67, 2.0),
+          7: ("Cowbell", 56, 2.0), 8: ("Surdo", 87, 2.0), 9: ("Timbale Hi", 65, 2.0), 10: ("Cabasa", 69, 2.0),
+          11: ("Shaker", 82, 2.0), 12: ("Wood Block", 76, 2.0), 14: ("Timbale Lo", 66, 2.0)}
 SETS = {
-    1: {9: ("Conga Lo", 64, 2.0), 10: ("Conga Hi", 63, 2.0), 11: ("Conga Mute", 62, 2.0),
-        14: ("Timbale Lo", 66, 2.0), 15: ("Wood Block", 76, 2.0)},
-    2: {9: ("Bongo Lo", 61, 2.0), 10: ("Bongo Hi", 60, 2.0), 11: ("Timbale Lo", 66, 2.0),
-        14: ("Cuica", 79, 2.0), 15: ("Wood Block", 76, 2.0)},
+    1: {5: ("Conga Hi", 63, 2.0), 13: ("Conga Lo", 64, 2.0), 15: ("Conga Mute", 62, 2.0)},
+    2: {5: ("Bongo Hi", 60, 2.0), 13: ("Bongo Lo", 61, 2.0), 15: ("Cuica", 79, 2.0)},
 }
 
 
 def plan():
     out = []
     for root, prog, kick, snare, n in ROOTS:
-        roles = {**COMMON, **SETS[n], 0: ("Kick", kick, 1.5), 2: ("Snare", snare, 1.5)}
+        roles = {**COMMON, **SETS[n], 0: ("Kick", kick, 1.5), 1: ("Snare", snare, 1.5)}
         for r in range(16):
             role, note, cap = roles[r]
             p, nt = note if isinstance(note, tuple) else (prog, note)
