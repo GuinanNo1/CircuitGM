@@ -46,7 +46,9 @@ export function songOf(pack, entry) {
       }
       sound = sampleName(slot);
     }
-    tracks.push({ index: t, label, kind, defaultSample, patchSlot, sound, patterns });
+    // The synth's amp envelope, from the patch saved in the project (what the hardware plays).
+    const env = kind === 'synth' ? ampEnvelope(t === 0 ? p.synth1Patch : p.synth2Patch) : null;
+    tracks.push({ index: t, label, kind, defaultSample, patchSlot, sound, patterns, env });
   }
   const scenes = p.scenes.map((s, i) => ({
     index: i,
@@ -59,6 +61,21 @@ export function songOf(pack, entry) {
     tempo: p.tempo, swing: p.swing, swingRate: p.swingSyncRate,
     scenes, sceneChain: { start: Math.min(p.sceneChain.start, p.sceneChain.end), end: Math.max(p.sceneChain.start, p.sceneChain.end) },
     tracks, sampleName,
+  };
+}
+
+// Envelope 1 (amp) of a 340-byte Circuit Tracks patch, in seconds and 0-1 sustain. Times use
+// the curve calibrated on hardware (tracksgm/tools/ctpatch.py env_seconds): value 64 is 0.18 s
+// for attack and 0.38 s for decay and release, and every 31.5 steps is a factor of ten.
+const ENV1 = 70; // attack, decay, sustain, release at 70-73
+export function ampEnvelope(patch) {
+  if (!patch || patch.length < ENV1 + 4) return null;
+  const secs = (v, ref) => ref * 10 ** ((v - 64) / 31.5);
+  return {
+    attack: secs(patch[ENV1], 0.18),
+    decay: secs(patch[ENV1 + 1], 0.38),
+    sustain: patch[ENV1 + 2] / 127,
+    release: secs(patch[ENV1 + 3], 0.38),
   };
 }
 

@@ -2,7 +2,8 @@
 // instrument family (a sketch of the part, not the Circuit Tracks patch); drums use the
 // actual TracksGM samples of the chosen kit.
 //
-// Events: { t: seconds, d: seconds, track: 0-7, note, vel, part? (drum kit part), program? }
+// Events: { t: seconds, d: seconds, track: 0-7, note, vel, part? (drum kit part), program?,
+//   env? ({ attack, decay, sustain, release } from the Circuit patch; otherwise a guess by GM family) }
 
 const LOOKAHEAD = 0.15;
 const TICK_MS = 25;
@@ -72,6 +73,7 @@ export class Player {
     this.idx = events.findIndex((e) => e.t >= from);
     if (this.idx < 0) this.idx = events.length;
     this.voices = [];
+    this.held = new Map();
     this.timer = setInterval(() => this.schedule(), TICK_MS);
     this.schedule();
     const frame = () => {
@@ -93,6 +95,7 @@ export class Player {
       try { v.gain.gain.cancelScheduledValues(now); v.gain.gain.setTargetAtTime(0, now, 0.02); v.src.stop(now + 0.1); } catch { /* already stopped */ }
     }
     this.voices = [];
+    this.held?.clear();
   }
 
   schedule() {
@@ -111,8 +114,21 @@ export class Player {
   tone(e, at) {
     const ctx = this.ctx;
     const fam = family(e.program ?? 0);
+    // The Circuit patch's own envelope when we have it: a guess from the GM family can be far
+    // off (a "pad" fading in over 0.25 s makes short chords sound late).
+    const env = e.env ?? fam;
+    const attack = Math.max(0.002, env.attack);
+    const release = Math.max(0.01, env.release);
     const f = 440 * 2 ** ((e.note - 69) / 12);
     const vel = (e.vel / 127) ** 1.5 * 0.32;
+    // The same note again on a track retriggers it, as on the hardware, instead of stacking a
+    // second voice on the first.
+    const key = e.track * 128 + e.note;
+    const prev = this.held.get(key);
+    if (prev && prev.end > at) {
+      try { prev.gain.gain.cancelScheduledValues(at); prev.gain.gain.setTargetAtTime(0, at, 0.004); prev.src.stop(at + 0.03); } catch { /* already stopped */ }
+      prev.end = at;
+    }
     const osc = ctx.createOscillator();
     osc.type = fam.wave;
     osc.frequency.value = f;
@@ -122,15 +138,19 @@ export class Player {
     filt.Q.value = 0.7;
     const g = ctx.createGain();
     const dur = Math.max(0.03, e.d);
-    const end = at + dur + fam.release;
+    const end = at + dur + release;
     g.gain.setValueAtTime(0, at);
-    g.gain.linearRampToValueAtTime(vel, at + fam.attack);
-    if (fam.decay) g.gain.setTargetAtTime(vel * fam.sustain, at + fam.attack, fam.decay);
-    g.gain.setTargetAtTime(0, at + dur, fam.release / 3);
+    g.gain.linearRampToValueAtTime(vel, at + attack);
+    // Patch decay times are to (near) the sustain level, so a third of one is the time constant;
+    // the family guesses were tuned as time constants already.
+    if (env.decay && env.sustain < 1) g.gain.setTargetAtTime(vel * env.sustain, at + attack, e.env ? env.decay / 3 : env.decay);
+    g.gain.setTargetAtTime(0, at + dur, release / 3);
     osc.connect(filt).connect(g).connect(this.trackGains[e.track]);
     osc.start(at);
     osc.stop(end + 0.05);
-    this.voices.push({ src: osc, gain: g, end });
+    const v = { src: osc, gain: g, end };
+    this.voices.push(v);
+    this.held.set(key, v);
   }
 
   drum(e, at) {

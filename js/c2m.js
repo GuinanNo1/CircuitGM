@@ -471,7 +471,7 @@ function previewEvents() {
     const t = ticksToSeconds(h.tick, song.tempo);
     const d = ticksToSeconds(h.dur, song.tempo);
     if (tr.kind === 'synth' || tr.kind === 'midi') {
-      ev.push({ t, d, track: h.track, note: h.note + (m.transpose || 0), vel: h.vel, program: m.program >= 0 ? m.program : 80 });
+      ev.push({ t, d, track: h.track, note: h.note + (m.transpose || 0), vel: h.vel, program: m.program >= 0 ? m.program : 80, env: tr.env });
     } else if (h.sample != null) {
       ev.push({ t, d, track: h.track, note: 60, vel: h.vel, part: `s${h.sample}`, choke: true, rate: rhythm && h.note != null ? 2 ** ((h.note - 60) / 12) : undefined });
     }
