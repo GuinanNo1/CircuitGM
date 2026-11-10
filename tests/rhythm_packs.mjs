@@ -15,7 +15,7 @@ for (const name of ['RhythmInstGM', 'RhythmDrumGM', 'RhythmLatinGM']) {
   const pack = await loadPack(b.buffer.slice(b.byteOffset, b.byteOffset + b.length), `${name}.circuitrhythmpack`);
   ok(pack.product === 'circuit-rhythm' && pack.name === name, `${name}: product and name`);
   ok(pack.samples.length === 128 && pack.samples.every((s) => s.present && s.name), `${name}: 128 named samples, all present`);
-  ok(pack.samples.every((s) => s.name.length <= 18), `${name}: sample names 18 characters or fewer`);
+  ok(pack.samples.every((s) => s.name.length <= 23), `${name}: sample names 23 characters or fewer (Components cuts at 23)`);
   ok(pack.projects.length === 64 && pack.projects.every((p) => p.empty && !p.error), `${name}: 64 empty projects`);
   ok(pack.index.projects[0].name === 'User Session' && pack.index.projects.slice(1).every((p) => p.name === ''), `${name}: project names as Components writes them`);
   const md5s = new Set();

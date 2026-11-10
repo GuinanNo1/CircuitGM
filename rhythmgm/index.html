@@ -68,7 +68,7 @@
       <li>Load the pack on the Circuit Rhythm. Its project slots are empty, ready for your own projects, and its Grid FX are the Rhythm's defaults.</li>
     </ol>
     <h3>Straight onto an SD card</h3>
-    <p>If Components won't take a pack file, <a href="RhythmInstGM_SD.zip" download>RhythmInstGM_SD.zip</a>, <a href="RhythmDrumGM_SD.zip" download>RhythmDrumGM_SD.zip</a> and <a href="RhythmLatinGM_SD.zip" download>RhythmLatinGM_SD.zip</a> hold the same samples in the folder layout from Novation's article <a href="https://support.novationmusic.com/hc/articles/4402771846930">Manually setting up Circuit Rhythm SD card packs</a> (<code>Rhythm/0/PCM/00__Grand Piano C4.wav</code> and so on). Rename the <code>0</code> folder to a free pack number on your card, as that article describes.</p>
+    <p>If Components won't take a pack file, <a href="RhythmInstGM_SD.zip" download>RhythmInstGM_SD.zip</a>, <a href="RhythmDrumGM_SD.zip" download>RhythmDrumGM_SD.zip</a> and <a href="RhythmLatinGM_SD.zip" download>RhythmLatinGM_SD.zip</a> hold the same samples in the folder layout from Novation's article <a href="https://support.novationmusic.com/hc/articles/4402771846930">Manually setting up Circuit Rhythm SD card packs</a> (<code>Rhythm/0/PCM/00__001 Grand Piano C4.wav</code> and so on). Rename the <code>0</code> folder to a free pack number on your card, as that article describes.</p>
   </section>
 
   <section class="panel" id="layout">
@@ -77,7 +77,7 @@
       <li><b>RhythmInstGM: slot = GM program.</b> Slot 1 is Grand Piano, slot 41 Violin, slot 128 Gunshot: the numbering anyone who knows General MIDI expects. Each instrument is one note, up to two seconds long, with its natural attack and release.</li>
       <li><b>RhythmDrumGM: eight kits of sixteen.</b> Std, Room, Power, Elec, 808, Jazz, Brush and Orch, each with the same sixteen roles in the same order: kick, kick 2, snare, snare 2, rim, clap, closed, pedal and open hats, three toms, crash, ride, then two extra percussion sounds that differ by kit. A pattern keeps working when you swap kits.</li>
       <li><b>Instruments plus drums.</b> Slots 113–128 of RhythmInstGM are GM's Percussive and Sound Effects families, the ones a song can most easily do without. When MIDI2Circuit builds Circuit Rhythm packs (planned), it will put the RhythmDrumGM or RhythmLatinGM kit you choose into those sixteen slots, so slots 1–112 keep their GM numbers. Every combination fits the sample limit.</li>
-      <li><b>Pitch.</b> Each instrument's name ends with its root note (for example <i>Grand Piano C4</i>, <i>Finger Bass C2</i>). Play that note and the sample sounds at its own pitch; other notes pitch it up or down. Basses are rooted low and bells high, so their useful range needs the least stretching.</li>
+      <li><b>Pitch.</b> Each instrument's name starts with its GM program number and ends with its root note (for example <i>001 Grand Piano C4</i>, <i>034 Finger Bass C2</i>). Play that note and the sample sounds at its own pitch; other notes pitch it up or down. Basses are rooted low and bells high, so their useful range needs the least stretching.</li>
       <li><b>Levels.</b> Drums peak at −0.5 dBFS, as in TracksGM. Instruments are matched by loudness over their first second, never peaking above −0.5 dBFS.</li>
     </ul>
   </section>

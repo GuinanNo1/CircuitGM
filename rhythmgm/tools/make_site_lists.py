@@ -63,7 +63,7 @@ def instruments(ins):
         out.append(f"  <section><h3>{first}–{first + 7} · {fam}<span class=\"hint inline\">{note}</span></h3>")
         out.append(f'    <ol start="{first}">')
         for s in group:
-            name, root = s["name"].rsplit(" ", 1)
+            name, root = s["name"].split(" ", 1)[1].rsplit(" ", 1)
             out.append(f"      <li>{html.escape(name)} <span class=\"hint inline\">root {root}</span></li>")
         out.append("    </ol>\n  </section>")
     out.append("</div>")

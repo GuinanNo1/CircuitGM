@@ -12,7 +12,8 @@ sum, 48 kHz 16-bit, lead-in trimmed, tail cut at -60 dB, level -17 dB RMS over t
 second, peak <= -0.5 dBFS), with shorter notes so 128 instruments fit: sustained sounds are
 held HOLD_S and keep their release, everything is capped at MAX_S with a fade.
 
-The root note is the last word of each name ("Grand Piano C4"): play that key and the sample
+Each name is the zero-padded GM program, the instrument and its root note ("001 Grand Piano C4";
+Components keeps 23 characters, the longest is 21). The root note is the last word: play that key and the sample
 sounds at its own pitch. On the Circuit Rhythm, middle C plays a sample unpitched.
 
 Outputs (rhythmgm/): RhythmInstGM.circuitrhythmpack, RhythmInstGM_SD.zip,
@@ -96,7 +97,7 @@ if __name__ == "__main__":
     for i, (short, root) in enumerate(GM):
         prog = i + 1
         x = rg.tidy(rg.play(syn, sfid, prog, root))
-        s = {"slot": i, "gm_program": prog, "name": f"{short} {rg.note_name(root)}", "root_note": root,
+        s = {"slot": i, "gm_program": prog, "name": f"{prog:03d} {short} {rg.note_name(root)}", "root_note": root,
              "source": f"GeneralUser GS bank 0 program {prog}", "file": f"{prog:03d} {short} {rg.note_name(root)}.wav"}
         rg.save(os.path.join(sdir, s["file"]), x)
         with wave.open(os.path.join(sdir, s["file"])) as w:

@@ -2,7 +2,7 @@
 
 General MIDI sample packs for the Novation Circuit Rhythm, in two packs that each fill all 128 sample slots from GeneralUser GS:
 
-- **RhythmInstGM:** all 128 General MIDI instruments, **slot = GM program** (slot 1 Grand Piano … slot 128 Gunshot). Each is one note, up to 2 s. The name ends with the root note (`Grand Piano C4`, `Finger Bass C2`): play that note and the sample sounds at its own pitch.
+- **RhythmInstGM:** all 128 General MIDI instruments, **slot = GM program** (slot 1 Grand Piano … slot 128 Gunshot). Each is one note, up to 2 s. The name is the zero-padded program number, the instrument and its root note (`001 Grand Piano C4`, `034 Finger Bass C2`): play that note and the sample sounds at its own pitch.
 - **RhythmDrumGM:** the eight GS kits (Std, Room, Power, Elec, 808, Jazz, Brush, Orch), 16 hits each, every kit in the same order:
 
   | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 |
