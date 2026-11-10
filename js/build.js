@@ -93,6 +93,8 @@ export function buildProjects(plan, base, settings) {
       // live in the 8 bytes after the scene's chains, as Components saves them.
       return { flags: 1, mask: 0, trackChains: sc.chains.map((c) => ({ start: c.start, end: c.end })) };
     });
+    // Mute Recall on, so scenes recall their saved mutes as soon as the pack is loaded.
+    proj.muteRecall = 1;
     proj.sceneChain = { start: 0, end: p.scenes.length - 1 };
     proj.patternChains = p.scenes[0].chains.map((c) => ({ start: c.start, end: c.end }));
 

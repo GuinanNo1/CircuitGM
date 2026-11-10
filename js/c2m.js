@@ -232,7 +232,8 @@ async function selectProject(e) {
   $('swing').checked = hasSwing;
   $('swing-label').textContent = hasSwing ? `Apply the project's swing (${song.swing}%)` : 'No swing in this project';
   $('mutes-field').hidden = !song.scenes.some((s) => s.used && s.mask);
-  $('scene-mutes').checked = true;
+  // Follow the project's Mute Recall setting: with it off, the Circuit ignores the saved mutes.
+  $('scene-mutes').checked = song.muteRecall !== 0;
   $('midname').value = fileSafe(song.name);
   $('preview-hint').textContent = state.pack.product === 'circuit-rhythm'
     ? 'The preview plays the pack\'s own samples, at the pitch each step sets.'

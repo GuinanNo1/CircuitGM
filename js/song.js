@@ -59,6 +59,9 @@ export function songOf(pack, entry) {
   return {
     product: pack.product, name: entry.name || p.name || `Project ${entry.slot + 1}`,
     tempo: p.tempo, swing: p.swing, swingRate: p.swingSyncRate,
+    // Tracks projects store Mute Recall Mode; when it is off the hardware keeps the mixer mutes
+    // as they are on a scene change. (Not known for Rhythm projects: undefined.)
+    muteRecall: pack.product === 'circuit-tracks' ? p.muteRecall : undefined,
     scenes, sceneChain: { start: Math.min(p.sceneChain.start, p.sceneChain.end), end: Math.max(p.sceneChain.start, p.sceneChain.end) },
     tracks, sampleName,
   };

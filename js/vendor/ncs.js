@@ -30,6 +30,10 @@ const METADATA_OFFSETS = [
 ];
 
 // Tail-relative offsets
+// Tail byte 2: Mute Recall Mode (the pad above the scene pads in Mixer view). When it is 1,
+// selecting a scene recalls the mixer mutes saved with it. In 21 hardware-saved Tracks projects
+// it is 1 in exactly the 17 that have scene mutes saved.
+const T_MUTE_RECALL = 2;
 const T_SCALE_ROOT = 16, T_SCALE_TYPE = 17, T_DELAY_PRESET = 18, T_REVERB_PRESET = 19;
 const T_SYNTH1_PATCH = 24, T_SYNTH2_PATCH = 364, PATCH_SIZE = 340;
 const T_DRUM_CONFIGS = 704;
@@ -210,6 +214,7 @@ export function parseNCS(arrayBuffer) {
 
   // Tail
   const t = d.subarray(TAIL_OFFSET);
+  proj.muteRecall = t[T_MUTE_RECALL];
   proj.scaleRoot = t[T_SCALE_ROOT];
   proj.scaleType = t[T_SCALE_TYPE];
   proj.delayPreset = t[T_DELAY_PRESET];
@@ -400,6 +405,7 @@ export function serializeNCS(proj, baseBytes, { freshScenes = false } = {}) {
 
   // Tail
   const tOff = TAIL_OFFSET;
+  if (proj.muteRecall !== undefined) d[tOff + T_MUTE_RECALL] = proj.muteRecall ? 1 : 0;
   d[tOff + T_SCALE_ROOT] = proj.scaleRoot ?? 0;
   d[tOff + T_SCALE_TYPE] = proj.scaleType ?? 0;
   d[tOff + T_DELAY_PRESET] = proj.delayPreset ?? 0;
