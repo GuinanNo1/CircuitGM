@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/app.css?v=20261110b">
+<link rel="stylesheet" href="../css/app.css?v=20261110c">
 <link rel="stylesheet" href="../css/c2m.css">
 <script>(function(){var r=document.documentElement;try{if(localStorage.getItem('circuitgm-advanced-c2m')!=='1')r.classList.add('simple')}catch(e){r.classList.add('simple')}})();</script>
 </head>
@@ -91,7 +91,7 @@
       <div class="field"><label for="chance">Steps with a chance below 100%</label>
         <select id="chance"><option value="keep" selected>Keep them all</option><option value="drop">Leave them out</option></select></div>
       <div class="field check"><label><input type="checkbox" id="swing" checked> <span id="swing-label">Apply swing</span></label></div>
-      <div class="field check" id="mutes-field"><label><input type="checkbox" id="scene-mutes"> Use scene track masks (unconfirmed)</label></div>
+      <div class="field check" id="mutes-field"><label><input type="checkbox" id="scene-mutes" checked> Apply the track mutes saved in each scene</label></div>
     </div>
     <p class="status" id="order-status" role="status"></p>
     <div class="summary" id="song-summary"></div>
@@ -142,6 +142,6 @@
   <p>Part of <a href="https://github.com/GuinanNo1/CircuitGM">TracksGM</a> by Ian Guinan. Project format code from <a href="https://github.com/namirsab/circuit-tracks-tools">circuit-tracks-tools</a> by Namir Sayed-Ahmad Baraza (MIT). Not affiliated with Novation or Focusrite; "Circuit Tracks", "Circuit Rhythm" and "Components" are their trademarks.</p>
 </footer>
 
-<script type="module" src="../js/c2m.js?v=20261110b"></script>
+<script type="module" src="../js/c2m.js?v=20261110c"></script>
 </body>
 </html>

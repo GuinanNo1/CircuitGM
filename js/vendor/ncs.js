@@ -126,13 +126,16 @@ export function parseNCS(arrayBuffer) {
     patterns: [],
   };
 
-  // Scenes: 16 × 40 bytes — 8-byte header (byte 0 = used flag) + 8 chain
-  // entries. Track order inside a scene: S1,S2,M1,M2,D1..D4
+  // Scenes: 16 × 40 bytes from 0x38. Each scene's 8 chain entries sit at base+8..base+39
+  // and its 8-byte header follows them, at base+40 (the next record's first 8 bytes; scene
+  // 16's is 0x2B8): byte 0 = scene stored, byte 1 = the mixer mutes saved with the scene,
+  // bit t set = track t muted. Checked on 13 Components-saved Tracks projects (2026-11-10):
+  // the stored flags there run exactly over the saved scenes. Track order: S1,S2,M1,M2,D1..D4
   for (let s = 0; s < 16; s++) {
     const base = SC_BASE + s * 40;
     const chains = [];
     for (let t = 0; t < 8; t++) chains.push(parseChainEntry(d, base + 8 + t * 4));
-    proj.scenes.push({ flags: d[base], trackChains: chains });
+    proj.scenes.push({ flags: d[base + 40], mask: d[base + 41], trackChains: chains });
   }
   // The scene chain uses the same [start, end, 0, 0] layout as pattern chains.
   const scEntry = parseChainEntry(d, SC_BASE + 648);
@@ -311,7 +314,9 @@ export function serializeNCS(proj, baseBytes, { freshScenes = false } = {}) {
     const base = SC_BASE + s * 40;
     const scene = proj.scenes?.[s];
     if (!scene?.trackChains) continue;
-    if (scene.flags !== undefined) d[base] = scene.flags;
+    // The scene's header follows its chain entries (see parseNCS): stored flag, mutes.
+    if (scene.flags !== undefined) d[base + 40] = scene.flags;
+    if (scene.mask !== undefined) d[base + 41] = scene.mask;
     for (let t = 0; t < 8; t++) writeChainEntry(d, base + 8 + t * 4, scene.trackChains[t] ?? {});
   }
   const sc = proj.sceneChain ?? { start: 0, end: 0 };

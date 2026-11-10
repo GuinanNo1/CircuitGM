@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/app.css?v=20261110b">
+<link rel="stylesheet" href="../css/app.css?v=20261110c">
 </head>
 <body>
 <nav class="sitenav" aria-label="CircuitGM">
@@ -81,8 +81,8 @@
       <dd>Steps set to play only some of the time are kept by default. Choose <b>Leave them out</b> to drop them.</dd>
       <dt>Apply the project's swing</dt>
       <dd>Moves every second step later, as the Circuit does.</dd>
-      <dt>Use scene track masks (unconfirmed)</dt>
-      <dd>Only shown for projects whose scenes carry a per-track bit mask. It probably mutes tracks in that scene, but that isn't confirmed yet, so it is off by default.</dd>
+      <dt>Apply the track mutes saved in each scene</dt>
+      <dd>Shown when a project's scenes have tracks muted. The Circuit saves the mixer mutes with each scene and recalls them when the scene plays, so this is on by default: muted tracks stay silent in the preview and are left out of the MIDI file. Switch it off to hear and keep every track.</dd>
       <dt>The grid</dt>
       <dd>One column per scene in playing order, one row per Circuit track. Each cell shows the pattern chain that track plays in that scene; grey cells have no notes. The dot leaves a track out of both the preview and the MIDI file, and S solos a track in the preview only.</dd>
     </dl>

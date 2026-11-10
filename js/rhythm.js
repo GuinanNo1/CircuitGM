@@ -7,8 +7,9 @@
 //   0x00  magic 'RUSE' (hardware-saved) or 'INIT' (Components' empty slot), u32 file size,
 //         u32 1, u32 colour, then the 32-byte name at 0x10.
 //   0x34  tempo, 0x35 swing, 0x36 swing sync rate (same as the Tracks).
-//   0x38  16 scenes x 40 bytes: header (byte 0 used flag, byte 1 a per-track bit mask whose
-//         meaning is unconfirmed) + 8 chain entries [start, end, 0, 0], tracks 1-8.
+//   0x38  16 scenes x 40 bytes: 8 chain entries [start, end, 0, 0] (tracks 1-8) at base+8,
+//         then the scene's header at base+40 (byte 0 stored flag, byte 1 the mixer mutes
+//         saved with the scene, bit t = track t muted), as on the Tracks.
 //   0x2C0 scene chain [start, end, 0, 0]; 0x2C4 8 pattern chains (the live selection).
 //   0x2E4 64 pattern blocks of 2600 bytes, block = track * 8 + pattern:
 //         32 steps x 8 bytes [note, gate, micro mask, velocity, probability, sample, 0, 0],
@@ -54,7 +55,7 @@ export function parseRhythm(buffer) {
     const base = SC_BASE + s * 40;
     const trackChains = [];
     for (let t = 0; t < 8; t++) trackChains.push({ start: d[base + 8 + t * 4], end: d[base + 9 + t * 4] });
-    proj.scenes.push({ flags: d[base], mask: d[base + 1], trackChains });
+    proj.scenes.push({ flags: d[base + 40], mask: d[base + 41], trackChains });
   }
   for (let t = 0; t < 8; t++) proj.patternChains.push({ start: d[SC_BASE + 652 + t * 4], end: d[SC_BASE + 653 + t * 4] });
   for (let t = 0; t < 8; t++) {

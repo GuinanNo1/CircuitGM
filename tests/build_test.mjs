@@ -51,7 +51,7 @@ for (const [pi, p] of plan.projects.entries()) {
   }
   for (const [si, sc] of p.scenes.entries()) {
     const g = pr.scenes[si];
-    if (g.flags !== (si === 0 ? 0 : 1) || sc.chains.some((c, t) => g.trackChains[t].start !== c.start || g.trackChains[t].end !== c.end)) { errors++; console.log('scene mismatch', si); }
+    if (g.flags !== 1 || g.mask !== 0 || sc.chains.some((c, t) => g.trackChains[t].start !== c.start || g.trackChains[t].end !== c.end)) { errors++; console.log('scene mismatch', si); }
   }
   if (pr.sceneChain.start !== 0 || pr.sceneChain.end !== p.scenes.length - 1) errors++;
 }

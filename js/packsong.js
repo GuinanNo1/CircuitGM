@@ -29,7 +29,7 @@ export function projectChoices(pack) {
 
 export function packSong(pack, entry) {
   const song = songOf(pack, entry);
-  const rendered = renderSong(song, { order: sceneOrder(song, defaultOrderKind(song)), swing: true, chance: 'keep' });
+  const rendered = renderSong(song, { order: sceneOrder(song, defaultOrderKind(song)), swing: true, chance: 'keep', sceneMutes: true });
   const mapping = defaultMapping(song, pack);
   const used = samplesByTrack(song);
   const slots = [...new Set(used.flat())].filter((s) => s != null).sort((a, b) => a - b);
