@@ -1,6 +1,7 @@
 // PackTrim page: load a Circuit Tracks / Circuit Rhythm pack, show which samples and patches
 // its projects use, and save a copy without the rest. Every project is kept; the trimming
 // itself is compactPack (js/pack.js), shared with Circuit2MIDI.
+import { setupMode } from './mode.js';
 import { fitName } from './names.js';
 import { loadPack, compactPack } from './pack.js';
 import { PROJECT_COLOURS } from './convert.js';
@@ -22,6 +23,7 @@ const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const projName = (p) => p.name || `Project ${p.slot + 1}`;
 
 let pack = null;
+setupMode('packtrim');
 
 // ---------- 1. Load ----------
 

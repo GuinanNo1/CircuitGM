@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="../css/app.css?v=20261110f">
 <link rel="stylesheet" href="../css/packtrim.css?v=20261110f">
+<script>(function(){var r=document.documentElement;try{if(localStorage.getItem('circuitgm-advanced-packtrim')!=='1')r.classList.add('simple')}catch(e){r.classList.add('simple')}})();</script>
 </head>
 <body>
 <nav class="sitenav" aria-label="CircuitGM">
@@ -37,6 +38,15 @@
 <main class="wrap">
   <section class="panel" id="step-load">
     <h2><span class="num">1</span> Load a pack</h2>
+    <div class="modebar">
+      <label class="modeswitch big" title="Simple shows the totals; Advanced also shows every sample and patch slot">
+        <span class="ms-simple">Simple</span>
+        <input type="checkbox" id="advanced" role="switch" aria-label="Advanced mode">
+        <span class="ms-adv">Advanced</span>
+      </label>
+      <p class="modenote simple-only">You're in <b>simple mode</b>: PackTrim shows how many samples and patches are kept and the trimmed size. Switch on <b>Advanced</b> to also see every sample and patch slot, and which projects use each one.</p>
+      <p class="modenote adv">You're in <b>Advanced mode</b>: every sample and patch slot is shown. Switch back to Simple at any time; the trimming is the same either way.</p>
+    </div>
     <label class="drop" id="drop">
       <input type="file" id="file" accept=".circuittrackspack,.circuitrhythmpack,.zip">
       <span class="drop-main">Drop a pack here, or <u>choose one</u></span>
@@ -55,6 +65,7 @@
   <section class="panel" id="step-sounds" hidden>
     <h2><span class="num">3</span> Samples and patches</h2>
     <div class="summary" id="summary"></div>
+    <div class="adv">
     <div class="legend" aria-hidden="true">
       <span><i class="sw keep"></i>Kept: a project uses it</span>
       <span><i class="sw out"></i>Left out: no project uses it</span>
@@ -65,6 +76,7 @@
     <div id="patches-block">
       <h3 class="subhead">Patches</h3>
       <div class="slots" id="patches"></div>
+    </div>
     </div>
   </section>
 
