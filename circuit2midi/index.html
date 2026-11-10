@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/app.css">
+<link rel="stylesheet" href="../css/app.css?v=20261110b">
 <link rel="stylesheet" href="../css/c2m.css">
 <script>(function(){var r=document.documentElement;try{if(localStorage.getItem('circuitgm-advanced-c2m')!=='1')r.classList.add('simple')}catch(e){r.classList.add('simple')}})();</script>
 </head>
@@ -29,17 +29,25 @@
 <header class="masthead">
   <div class="wrap">
     <h1>Circuit2MIDI <span>Circuit Tracks and Rhythm to MIDI converter</span> <em class="badge">alpha 0.1</em></h1>
-    <p class="helplinks"><a href="help.html#quickstart">Quickstart</a> · <a href="help.html">User guide</a> <label class="modeswitch" title="Show every setting"><input type="checkbox" id="advanced" role="switch"> Advanced</label></p>
+    <p class="helplinks"><a href="help.html#quickstart">Quickstart</a> · <a href="help.html">User guide</a></p>
     <p class="lede">Open a Novation Components pack for the Circuit Tracks or Circuit Rhythm, trim it by removing the samples and patches no project uses, and turn one of its projects into a Standard MIDI file: every scene, pattern chain and step, on the channels and sounds you choose.</p>
     <p class="alpha">Alpha 0.1, for testing. The Circuit Rhythm project format was worked out from one hardware-saved project, so check the result against your Circuit, keep your original pack, and please report anything odd on <a href="https://github.com/GuinanNo1/CircuitGM/issues">GitHub</a>.</p>
-    <p class="modenote simple-only">You're in <b>simple mode</b>: the main choices, with settings that suit most projects. Switch on <b>Advanced</b> for detailed control over scene order, swing, chance steps, the MIDI channels and instruments, and drum notes. Tuning those settings can give a closer match to your Circuit, but may take some experimenting.</p>
-    <p class="modenote changed" id="mode-changed" hidden></p>
   </div>
 </header>
 
 <main class="wrap">
   <section class="panel" id="step-load">
     <h2><span class="num">1</span> Load a pack</h2>
+    <div class="modebar">
+      <label class="modeswitch big" title="Simple shows the main choices; Advanced shows every setting">
+        <span class="ms-simple">Simple</span>
+        <input type="checkbox" id="advanced" role="switch" aria-label="Advanced mode">
+        <span class="ms-adv">Advanced</span>
+      </label>
+      <p class="modenote simple-only">You're in <b>simple mode</b>: the main choices, with settings that suit most projects. Switch on <b>Advanced</b> for detailed control over scene order, swing, chance steps, the MIDI channels and instruments, and drum notes. Tuning those settings can give a closer match to your Circuit, but may take some experimenting.</p>
+      <p class="modenote adv">You're in <b>Advanced mode</b>: every setting is shown. Switch back to Simple at any time; your settings are kept and still applied.</p>
+      <p class="modenote changed" id="mode-changed" hidden></p>
+    </div>
     <label class="drop" id="drop">
       <input type="file" id="file" accept=".circuittrackspack,.circuitrhythmpack,.zip">
       <span class="drop-main">Drop a pack here, or <u>choose one</u></span>
@@ -134,6 +142,6 @@
   <p>Part of <a href="https://github.com/GuinanNo1/CircuitGM">TracksGM</a> by Ian Guinan. Project format code from <a href="https://github.com/namirsab/circuit-tracks-tools">circuit-tracks-tools</a> by Namir Sayed-Ahmad Baraza (MIT). Not affiliated with Novation or Focusrite; "Circuit Tracks", "Circuit Rhythm" and "Components" are their trademarks.</p>
 </footer>
 
-<script type="module" src="../js/c2m.js"></script>
+<script type="module" src="../js/c2m.js?v=20261110b"></script>
 </body>
 </html>

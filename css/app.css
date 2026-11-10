@@ -366,3 +366,13 @@ html:not(.simple) .simple-only { display: none !important; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .warnings.errors li { color: #ff9a8c; background: #3a1f1c; } }
 :root[data-theme="dark"] .warnings.errors li { color: #ff9a8c; background: #3a1f1c; }
 .warnings.errors:empty { display: none; }
+
+/* The Simple / Advanced switch at the top of step 1 */
+.modebar { margin: 0 0 18px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); }
+.modebar .modenote { margin-top: 10px; }
+.modeswitch.big { margin: 0; gap: 12px; font-size: 1.05rem; flex-wrap: wrap; }
+.modeswitch.big input { width: 52px; height: 30px; }
+.modeswitch.big input::after { top: 4px; left: 4px; width: 22px; height: 22px; }
+.modeswitch.big input:checked::after { transform: translateX(22px); }
+.modeswitch .ms-simple, .modeswitch .ms-adv { color: var(--muted); }
+html.simple .modeswitch .ms-simple, html:not(.simple) .modeswitch .ms-adv { color: var(--ink); }
