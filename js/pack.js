@@ -98,8 +98,10 @@ export function findUsage(pack, only = null) {
     for (const x of list) n += (await pack.zip.get(x.url)()).byteLength;
     return n;
   };
+  // A project that could not be read may use any sound, so nothing counts as unused then.
+  const unreadable = pack.projects.filter((e) => e.error && (only == null || e.slot === only));
   return {
-    samples, patches, unusedSamples, unusedPatches,
+    samples, patches, unusedSamples, unusedPatches, unreadable,
     projectsWithContent: pack.projects.filter((p) => !p.empty && (only == null || p.slot === only)).length,
     unusedBytes: () => bytesOf([...unusedSamples, ...unusedPatches]),
   };
@@ -111,6 +113,7 @@ export function findUsage(pack, only = null) {
 export async function compactPack(pack, { name, only = null } = {}) {
   const usage = only == null ? pack.usage : findUsage(pack, only);
   if (!usage.projectsWithContent) throw new Error('This pack has no projects with content, so compacting it would remove every sample and patch.');
+  if (usage.unreadable.length) throw new Error(`Project ${usage.unreadable.map((e) => e.slot + 1).join(', ')} could not be read, so it is not known which sounds ${usage.unreadable.length === 1 ? 'it uses' : 'they use'}. The pack has been left as it is.`);
   const index = JSON.parse(JSON.stringify(pack.index));
   const dropS = new Set(usage.unusedSamples.map((s) => s.slot));
   const dropP = new Set(usage.unusedPatches.map((p) => p.slot));
