@@ -1,0 +1,42 @@
+/* PackTrim additions to app.css. Kept = --s2 (green), left out = --warn, empty = --cell-empty. */
+
+.subhead { font: 600 1.05rem var(--head); margin: 8px 0 0; }
+
+/* Projects table */
+.ptable-wrap { overflow-x: auto; }
+.ptable { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+.ptable th { text-align: left; font: 600 0.78rem var(--body); text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); padding: 6px 10px; border-bottom: 1px solid var(--line); }
+.ptable td { padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.ptable tr:last-child td { border-bottom: 0; }
+.ptable .n { text-align: right; font-variant-numeric: tabular-nums; width: 6em; }
+.ptable td.n[title] { cursor: help; text-decoration: underline dotted var(--muted); text-underline-offset: 3px; }
+.ptable .pname { font-weight: 600; }
+.ptable .pn { font: 600 0.85rem var(--mono); width: 28px; height: 28px; border-radius: 6px; display: inline-grid; place-items: center; background: var(--pc, var(--ink)); color: #fff; }
+.ptable tr.bad td { background: var(--warn-bg); }
+.ptable .err { color: var(--warn); font-size: 0.85rem; }
+
+/* Legend */
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.88rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; border: 2px solid transparent; }
+.sw.keep { background: color-mix(in srgb, var(--s2) 18%, var(--panel)); border-color: var(--s2); }
+.sw.out { background: var(--warn-bg); border-color: var(--warn); border-style: dashed; }
+.sw.empty { background: var(--cell-empty); }
+
+/* Slot grid: one cell per sample or patch slot, in slot order */
+.slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 5px; }
+.slot {
+  display: flex; align-items: center; gap: 7px; min-width: 0;
+  border-radius: 6px; padding: 4px 7px; font-size: 0.82rem;
+  border: 1.5px solid transparent; cursor: default;
+}
+.slot .sn { font: 500 0.72rem var(--mono); color: var(--muted); min-width: 2.2em; text-align: right; }
+.slot .st { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slot.keep { background: color-mix(in srgb, var(--s2) 12%, var(--panel)); border-color: color-mix(in srgb, var(--s2) 55%, transparent); }
+.slot.out { background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn) 60%, transparent); border-style: dashed; color: var(--warn); }
+.slot.out .st { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--warn) 55%, transparent); }
+.slot.empty { background: var(--cell-empty); }
+
+@media (max-width: 520px) {
+  .slots { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); }
+}

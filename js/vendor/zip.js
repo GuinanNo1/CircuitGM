@@ -6,7 +6,8 @@ const EOCD_SIG = 0x06054b50;
 const CENTRAL_SIG = 0x02014b50;
 const LOCAL_SIG = 0x04034b50;
 
-// Parse a zip ArrayBuffer into Map<path, () => Promise<ArrayBuffer>>.
+// Parse a zip ArrayBuffer into Map<path, () => Promise<ArrayBuffer>>. The map's `sizes`
+// property maps each path to its stored (compressed) size in bytes.
 export function readZip(buf) {
   const data = new DataView(buf);
   const bytes = new Uint8Array(buf);
@@ -21,6 +22,7 @@ export function readZip(buf) {
   let off = data.getUint32(eocd + 16, true);
 
   const entries = new Map();
+  entries.sizes = new Map();
   for (let n = 0; n < count; n++) {
     if (data.getUint32(off, true) !== CENTRAL_SIG) throw new Error('Bad zip central directory');
     const method = data.getUint16(off + 10, true);
@@ -32,6 +34,7 @@ export function readZip(buf) {
     const name = new TextDecoder().decode(bytes.subarray(off + 46, off + 46 + nameLen));
     if (!name.endsWith('/')) {
       entries.set(name, () => extract(data, bytes, localOff, method, compSize, name));
+      entries.sizes.set(name, compSize);
     }
     off += 46 + nameLen + extraLen + commentLen;
   }
