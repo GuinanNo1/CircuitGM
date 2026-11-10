@@ -4,6 +4,7 @@
 const { chromium } = require('playwright');
 let fails = 0; const ok = (c, m) => { console.log(`${c ? 'ok  ' : 'FAIL'} ${m}`); if (!c) fails++; };
 (async () => { const b = await chromium.launch({ channel: 'chrome' }); const p = await b.newPage({ viewport: { width: 1280, height: 900 } }); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
+await p.addInitScript(() => { try { localStorage.setItem('circuitgm-advanced-m2c', '1'); localStorage.setItem('circuitgm-advanced-c2m', '1'); } catch {} });   // these tests drive every control: Advanced mode
 // 1. Tracks pack with two projects: pick project 2
 await p.goto('http://localhost:8765/circuit2midi/'); await p.setInputFiles('#file', process.argv[2]);
 await p.waitForSelector('.proj'); ok(await p.isDisabled('#to-tracks'), 'button off until a project is chosen');
