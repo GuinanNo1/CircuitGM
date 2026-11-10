@@ -49,6 +49,40 @@ export class Player {
     }
   }
 
+  // Play one sample on its own, straight to the output (mutes and solo don't apply), so a
+  // reader can hear which sound it is. bytes: the file, used when the sample isn't loaded yet.
+  // Returns the sample's length in seconds; onEnd runs when it finishes or is stopped.
+  async audition(part, bytes, onEnd) {
+    const ctx = this.ensure();
+    if (ctx.state === 'suspended') await ctx.resume();
+    this.stopAudition();
+    let buf = this.drumBuffers.get(part);
+    if (!buf && bytes) {
+      buf = await ctx.decodeAudioData(bytes.slice(0));
+      this.drumBuffers.set(part, buf);
+    }
+    if (!buf) throw new Error('This sample could not be played.');
+    const src = ctx.createBufferSource();
+    const g = ctx.createGain();
+    g.gain.value = 0.8;
+    src.buffer = buf;
+    src.connect(g).connect(this.master);
+    const a = { src, g, onEnd };
+    src.onended = () => { if (this.auditioning === a) { this.auditioning = null; onEnd?.(); } };
+    this.auditioning = a;
+    src.start();
+    return buf.duration;
+  }
+
+  stopAudition() {
+    const a = this.auditioning;
+    if (!a) return;
+    this.auditioning = null;
+    const now = this.ctx.currentTime;
+    try { a.g.gain.setTargetAtTime(0, now, 0.01); a.src.stop(now + 0.05); } catch { /* already stopped */ }
+    a.onEnd?.();
+  }
+
   setMute(track, on) { this.mutes[track] = on; this.applyGains(); }
   setSolo(track) { this.solo = this.solo === track ? -1 : track; this.applyGains(); }
   applyGains() {

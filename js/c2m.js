@@ -254,6 +254,28 @@ async function loadSamples(song) {
   try { await player.setDrumSamples(map); } catch { /* audio not available until the page is used */ }
 }
 
+// Drum notes: hear a sample to match it to a note. A second click (or another sample) stops it.
+const PLAY_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1l9 5-9 5z"/></svg>';
+const STOP_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="2" width="8" height="8"/></svg>';
+let auditionBtn = null;
+async function auditionSample(slot, btn) {
+  if (auditionBtn === btn) { player.stopAudition(); return; }
+  const s = state.pack?.samples[slot];
+  const reset = (b) => { b.classList.remove('on'); b.innerHTML = PLAY_ICON; b.setAttribute('aria-label', b.getAttribute('aria-label').replace(/^Stop/, 'Play')); };
+  try {
+    const bytes = s?.present ? await state.pack.zip.get(s.url)() : null;
+    auditionBtn = btn;
+    btn.classList.add('on');
+    btn.innerHTML = STOP_ICON;
+    btn.setAttribute('aria-label', btn.getAttribute('aria-label').replace(/^Play/, 'Stop'));
+    await player.audition(`s${slot}`, bytes, () => { reset(btn); if (auditionBtn === btn) auditionBtn = null; });
+  } catch {
+    reset(btn);
+    if (auditionBtn === btn) auditionBtn = null;
+    btn.title = 'This sample could not be played';
+  }
+}
+
 // ---------- 4. Scenes ----------
 
 for (const id of ['order', 'chance', 'swing', 'scene-mutes']) $(id).addEventListener('change', () => {
@@ -427,8 +449,11 @@ function drawMapping() {
     const who = song.tracks.filter((tr, t) => mapping.tracks[t].on && mapping.tracks[t].mode === 'drums' && used[t].includes(slot)).map((tr) => tr.label);
     const opts = [];
     for (let n = 0; n < 128; n++) opts.push([n, `${n} ${GM_DRUMS[n] ?? noteName(n)}`]);
+    const play = el('button', { class: 'playbtn', type: 'button', title: 'Play this sample', 'aria-label': `Play ${song.sampleName(slot)}` });
+    play.innerHTML = PLAY_ICON;
+    play.addEventListener('click', () => auditionSample(slot, play));
     dbody.append(el('tr', {},
-      el('td', { class: 'pname', text: song.sampleName(slot) }),
+      el('td', { class: 'pname' }, el('span', { class: 'samp' }, play, el('span', { text: song.sampleName(slot) }))),
       el('td', { text: String(slot + 1) }),
       el('td', { text: who.join(', ') }),
       el('td', {}, select(opts, mapping.drumNotes[slot], (v) => { mapping.drumNotes[slot] = Number(v); update(); }, `${song.sampleName(slot)}: note`))));
