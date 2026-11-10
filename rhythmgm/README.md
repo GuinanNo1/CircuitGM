@@ -12,7 +12,7 @@ General MIDI sample packs for the Novation Circuit Rhythm, in two packs that eac
 
   Row 1 is the TracksGM kit exactly (same hits, byte-identical, same order), so the 8 drums of a TracksGM kit map one-to-one onto a RhythmDrumGM kit and fill one pad row on the Rhythm. Row 2 adds a second sound for each role (`ROW2` in `tools/make_rhythmdrumgm.py`). Kit k is in slots 16k+1 to 16k+16. The Orch kit's toms are timpani.
 
-- **RhythmLatinGM:** eight Latin kits (LatinStd, LatinRoom, LatinPower, LatinElec, Latin808, LatinDance, LatinJazz, LatinBrush). Each has its root kit's kick and snare and GM Latin percussion in the other slots, placed in the same two-row role layout as RhythmDrumGM; conga and bongo sets alternate. 40.2 s. Built by `tools/make_rhythmlatingm.py`.
+- **RhythmLatinGM:** Want something more exotic for your percussion? Why not try drum sets with a more latin flavour! Eight Latin kits (LatinStd, LatinRoom, LatinPower, LatinElec, Latin808, LatinDance, LatinJazz, LatinBrush). Each has its root kit's kick and snare and GM Latin percussion in the other slots, placed in the same two-row role layout as RhythmDrumGM; conga and bongo sets alternate. 40.2 s. Built by `tools/make_rhythmlatingm.py`.
 
 **Instruments plus drums.** Slots 113–128 of RhythmInstGM are GM's Percussive and Sound Effects families. When MIDI2Circuit builds Circuit Rhythm packs (planned), it puts one RhythmDrumGM or RhythmLatinGM kit in those 16 slots, so slots 1–112 keep their GM numbers. Slots 1–112 plus the longest kit (Orch) is 211.8 s, inside the 228.1 s limit.
 
