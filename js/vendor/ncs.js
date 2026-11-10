@@ -30,10 +30,12 @@ const METADATA_OFFSETS = [
 ];
 
 // Tail-relative offsets
-// Tail byte 2: Mute Recall Mode (the pad above the scene pads in Mixer view). When it is 1,
-// selecting a scene recalls the mixer mutes saved with it. In 21 hardware-saved Tracks projects
-// it is 1 in exactly the 17 that have scene mutes saved.
-const T_MUTE_RECALL = 2;
+// Tail byte 22: Mute Recall Mode (the pad above the scene pads in Mixer view). When it is 1,
+// selecting a scene recalls the mixer mutes saved with it. Found by Ian lighting the pad on
+// the hardware and saving (2026-11-10): only this byte (outside the synth patches) changed
+// from 0 to 1. Golden HuntrixDL, whose mutes recall on the hardware, has it at 1.
+// (Tail byte 2 is 1 in exactly the projects with scene mutes saved; it is not this switch.)
+const T_MUTE_RECALL = 22;
 const T_SCALE_ROOT = 16, T_SCALE_TYPE = 17, T_DELAY_PRESET = 18, T_REVERB_PRESET = 19;
 const T_SYNTH1_PATCH = 24, T_SYNTH2_PATCH = 364, PATCH_SIZE = 340;
 const T_DRUM_CONFIGS = 704;
