@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PatchWorker help</title>
+<meta name="description" content="How to use PatchWorker, the CircuitGM synth patch editor for the Novation Circuit Tracks.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../css/patchworker.css?v=20261112a">
+</head>
+<body class="doc">
+<nav class="topnav" aria-label="CircuitGM">
+  <a class="brand" href="../" title="CircuitGM home: all packs and tools">Circuit<b>GM</b></a>
+  <ul>
+    <li><a href="../tracksgm/">TracksGM</a></li>
+    <li><a href="../rhythmgm/">RhythmGM</a></li>
+    <li><a href="./" aria-current="page">PatchWorker</a></li>
+    <li><a href="../packtrim/">PackTrim</a></li>
+    <li><a href="../midi2circuit/">MIDI2Circuit</a></li>
+    <li><a href="../circuit2midi/">Circuit2MIDI</a></li>
+  </ul>
+</nav>
+<main class="docwrap">
+  <p><a href="./">← Back to PatchWorker</a></p>
+  <h1>PatchWorker help</h1>
+  <p>PatchWorker edits the synth patches of a Novation Circuit Tracks. It opens with the <a href="../tracksgm/">TracksGM</a> pack. You can work with no hardware (the page plays the patch itself) or link a Circuit Tracks and hear every edit on the real thing. Nothing is uploaded: files stay on your computer.</p>
+
+  <h2 id="quickstart">Quick start</h2>
+  <ol>
+    <li>Pick a patch from the list on the left.</li>
+    <li>Play it: click the keys along the bottom, type on the <code>A</code> row of your keyboard (<code>W E T Y U</code> are the black keys, <code>Z</code> / <code>X</code> change octave), or press <code>Space</code> to run a loop while you edit.</li>
+    <li>Turn knobs: drag up or down. Hold <code>Shift</code> for fine steps, scroll over a knob, or use the arrow keys. Double-click a knob to reset it. Click the number under a knob to type a value.</li>
+    <li><b>Download pack</b> saves the whole pack with your edits, ready to send to the Circuit Tracks with Novation Components. <b>Patch ▾ → Download .syx</b> saves just the current patch.</li>
+  </ol>
+  <p>Edits go straight into the pack in your browser: there is no separate Save step. An orange dot marks every patch changed since the pack was opened. <b>Undo</b> (<code>Ctrl/Cmd+Z</code>) works per patch, <b>Compare</b> (hold it) plays the patch as the pack had it, and <b>Patch ▾ → Revert</b> puts it back. Your session is kept in the browser, so closing the tab does not lose it.</p>
+
+  <h2 id="pages">The three pages</h2>
+  <p>The pages and controls follow Novation Components' Synth editor.</p>
+  <table>
+    <tr><th>Main</th><td>Oscillators 1 and 2 (wave, Index / pulse width, Interpolate, VSync, Cents, Semitones, Density, Detune, pitch-bend range), Mixer, Filter (type, Bypass routing, Frequency, Resonance, Q, Key Track, Env 2 &gt; Freq, Drive and drive type), Envelopes 1 Amp / 2 Filter / 3 Mod, and LFOs 1 and 2.</td></tr>
+    <tr><th>Effects</th><td>Chorus / Phaser, three-band Equaliser, Distortion, and Voice (Mono, Auto-Glide or Poly, Portamento, Pre-Glide, Keyboard Octave).</td></tr>
+    <tr><th>Modulation</th><td>What the selected macro controls (up to four destinations, each with Start, End and Depth), and the 20-row mod matrix.</td></tr>
+  </table>
+  <p>The eight <b>Macros</b> sit above every page. Their positions are saved in the patch. Click a macro to select it; the Modulation page then shows its destinations. The line under each knob names what it controls.</p>
+  <p>Values shown with <code>~</code> (Hz, ms, dB) are measured from a real Circuit Tracks, so "Frequency ~650 Hz" is what the hardware does at that setting. A <code>Sync</code> box swaps a rate knob to tempo-locked note lengths.</p>
+
+  <h2 id="link">Linking a Circuit Tracks</h2>
+  <ol>
+    <li>Connect the Circuit Tracks by USB and close Novation Components (only one program can use the SysEx connection reliably).</li>
+    <li>Use Chrome, Edge or another browser with Web MIDI. Click <b>Link Circuit Tracks</b> and allow MIDI access when the browser asks.</li>
+    <li>Choose <b>Synth 1</b> or <b>Synth 2</b>. The current patch is sent to that synth, and from then on, with <b>Live</b> ticked, every edit goes to the hardware as you make it. Choosing another patch in the list sends it too.</li>
+  </ol>
+  <table>
+    <tr><th>Send</th><td>Sends the current patch to the chosen synth now. This loads it as that synth's working patch; it does not overwrite anything stored on the Circuit Tracks.</td></tr>
+    <tr><th>Get</th><td>Fetches the patch the chosen synth is playing, so you can keep a sound you made on the hardware. You choose which pack slot it goes into.</td></tr>
+    <tr><th>Store…</th><td>Writes the current patch into one of the 128 patch slots on the Circuit Tracks itself, replacing what is there. PatchWorker asks first.</td></tr>
+    <tr><th>Hear on</th><td>Browser, Tracks or Both. Linking switches to Tracks, so notes from the page play the hardware.</td></tr>
+  </table>
+  <p>Turning a macro knob on the Circuit Tracks moves the same macro on the page. A second MIDI keyboard plugged into the computer plays the patch as well. On the Circuit Tracks, MIDI note and control receive must be on in Setup view.</p>
+  <p>To put a whole edited pack on the Circuit Tracks, download it here and send it with Novation Components.</p>
+
+  <h2 id="files">Files</h2>
+  <table>
+    <tr><th>Open pack…</th><td>Opens a <code>.circuittrackspack</code> from Components. Samples and projects are kept exactly as they are.</td></tr>
+    <tr><th>Download pack</th><td>Saves the pack with your patch edits and its name (up to 16 characters). If a project in the pack plays a patch you changed, PatchWorker offers to update that project's own copy of the patch too: projects carry their own copy of each synth patch, and only copies that still matched the pack are touched.</td></tr>
+    <tr><th>Open .syx…</th><td>Loads one patch, or a bank of many, into the slots you choose. Patches from the original Circuit load too. You can also drop <code>.syx</code> and pack files anywhere on the page.</td></tr>
+    <tr><th>Download .syx</th><td>The current patch as a 350-byte SysEx file.</td></tr>
+    <tr><th>Bank .syx</th><td>All 128 patches in one file.</td></tr>
+    <tr><th>Load TracksGM</th><td>Clears the session and starts again from the TracksGM pack.</td></tr>
+  </table>
+
+  <h2 id="sound">How close is the browser sound?</h2>
+  <p>The browser synth is an approximation, built on the Web Audio synth from <a href="https://github.com/namirsab/circuit-tracks-tools">circuit-tracks-tools</a> by Namir Sayed-Ahmad Baraza, with its parameter curves replaced by CircuitGM's measurements of a real Circuit Tracks (filter cutoff, envelope times, LFO rate, modulation depth to pitch and filter, EQ, and Pre / Post FX level). It is good for shaping a sound; the hardware has the last word. Known differences:</p>
+  <ul>
+    <li>The wavetable waves (Sine Table to Random Collection) are stand-in shapes. The Sine Table and the pulse and blend tables follow the measured behaviour; the vocal and random tables only resemble it.</li>
+    <li>Controls marked with a small orange ring (Q, pitch-bend range, LFO Slew) change the patch but not the browser sound. The same goes for Common Sync, and for mod matrix rows aimed at V-Sync, Pulse Width, Drive, LFO Rate and envelope Decay.</li>
+    <li>Distortion, filter drive, chorus and phaser are simpler than the hardware's.</li>
+    <li>How far a macro moves its destination is not yet measured on hardware, so macro ranges are estimates.</li>
+  </ul>
+  <p>Every byte of a patch is kept, including anything PatchWorker does not show, so a patch saved here is exactly what you edited plus what was already there.</p>
+
+  <h2 id="trouble">If something is not working</h2>
+  <ul>
+    <li><b>No sound in the browser:</b> click a key once (browsers only start audio after a click), and check Volume and that Hear on is Browser or Both.</li>
+    <li><b>"No Circuit Tracks found":</b> check the USB cable, close Components, then click Look again. Safari has no Web MIDI.</li>
+    <li><b>The Circuit Tracks does not play notes from the page:</b> switch on MIDI note receive in its Setup view.</li>
+  </ul>
+  <p>PatchWorker is alpha 0.1: keep copies of your packs, and please report problems on <a href="https://github.com/GuinanNo1/CircuitGM/issues">GitHub</a>. Not affiliated with Novation or Focusrite.</p>
+</main>
+</body>
+</html>

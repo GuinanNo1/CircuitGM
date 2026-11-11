@@ -1,5 +1,5 @@
 # CircuitGM
-General MIDI for the Novation Circuit Tracks and Circuit Rhythm: sound packs, and browser tools that convert MIDI files to Circuit packs and back.
+General MIDI for the Novation Circuit Tracks and Circuit Rhythm: sound packs, and browser tools that convert MIDI files to Circuit packs and back, edit synth patches and trim packs.
 
 **Website: https://guinanno1.github.io/CircuitGM/**
 
@@ -7,7 +7,8 @@ General MIDI for the Novation Circuit Tracks and Circuit Rhythm: sound packs, an
 |---|---|---|---|
 | **TracksGM** | General MIDI pack for the Circuit Tracks: 128 synth patches in GM order, 64 drum samples in 8 kits | Ready | [Page and patch list](https://guinanno1.github.io/CircuitGM/tracksgm/) · [Download](https://github.com/GuinanNo1/CircuitGM/raw/main/tracksgm/TracksGM_final.circuittrackspack) · [Code](tracksgm/) |
 | **RhythmGM** | General MIDI sample packs for the Circuit Rhythm: RhythmInstGM (all 128 GM instruments, slot = GM program) and RhythmDrumGM (8 kits × 16 hits, same order in every kit) | Beta | [Page and sample lists](https://guinanno1.github.io/CircuitGM/rhythmgm/) · Download [RhythmInstGM](https://github.com/GuinanNo1/CircuitGM/raw/main/rhythmgm/RhythmInstGM.circuitrhythmpack), [RhythmDrumGM](https://github.com/GuinanNo1/CircuitGM/raw/main/rhythmgm/RhythmDrumGM.circuitrhythmpack) · [Code](rhythmgm/) |
-| **PackTrim** | Trims a Circuit Tracks or Circuit Rhythm pack to the samples and patches its projects use | Coming soon | [Page](https://guinanno1.github.io/CircuitGM/packtrim/) |
+| **PatchWorker** | Synth patch editor for the Circuit Tracks: edit any patch in a pack, hear it in the browser or live on a linked Circuit Tracks, save `.syx` patches and whole packs | Alpha 0.1 | [Open](https://guinanno1.github.io/CircuitGM/patchworker/) · [Help](https://guinanno1.github.io/CircuitGM/patchworker/help.html) · [Code](patchworker/) |
+| **PackTrim** | Trims a Circuit Tracks or Circuit Rhythm pack to the samples and patches its projects use | Alpha 0.1 | [Open](https://guinanno1.github.io/CircuitGM/packtrim/) · [Code](packtrim/) |
 | **MIDI2Circuit** | MIDI files, or Circuit Tracks and Circuit Rhythm projects, to Circuit Tracks packs | Alpha 0.1 | [Open](https://guinanno1.github.io/CircuitGM/midi2circuit/) · [Help](https://guinanno1.github.io/CircuitGM/midi2circuit/help.html) · [Code](midi2circuit/) |
 | **Circuit2MIDI** | A project from a Circuit Tracks or Circuit Rhythm pack to a Standard MIDI file | Alpha 0.1 | [Open](https://guinanno1.github.io/CircuitGM/circuit2midi/) · [Help](https://guinanno1.github.io/CircuitGM/circuit2midi/help.html) · [Code](circuit2midi/) |
 
@@ -36,7 +37,8 @@ Then open <http://localhost:8765/>.
 | `css/app.css` | Styles shared by every page, including the site navigation. |
 | `tracksgm/` | The TracksGM pack, its web page, drum samples, build tools and patch data (see [`tracksgm/PACK.md`](tracksgm/PACK.md)). |
 | `rhythmgm/` | The RhythmInstGM and RhythmDrumGM packs, their SD-card versions, web page, build scripts and sample data (see [`rhythmgm/README.md`](rhythmgm/README.md)). |
-| `packtrim/` | PackTrim's page (coming soon). |
+| `patchworker/`, `css/patchworker.css`, `js/patchworker.js`, `js/pw/` | PatchWorker: page, help, styles, and its patch table, browser synth, MIDI link and pack code (see [`patchworker/README.md`](patchworker/README.md)). |
+| `packtrim/`, `js/packtrim.js`, `css/packtrim.css` | PackTrim's page, logic and styles. |
 | `midi2circuit/index.html`, `midi2circuit/help.html` | MIDI2Circuit's page and help. |
 | `circuit2midi/index.html`, `circuit2midi/help.html`, `css/c2m.css` | Circuit2MIDI's page and help. |
 | `js/app.js` | The page logic: loading, part picker, sounds, arrangement view, build. |

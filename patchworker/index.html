@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CircuitGM Patch Editor (PatchWorker)</title>
+<meta name="description" content="PatchWorker: a browser synth patch editor for the Novation Circuit Tracks. Edit patches with or without the hardware, hear them in the browser, and save .syx patches and complete .circuittrackspack packs.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../css/patchworker.css?v=20261112a">
+</head>
+<body>
+<nav class="topnav" aria-label="CircuitGM">
+  <a class="brand" href="../" title="CircuitGM home: all packs and tools">Circuit<b>GM</b></a>
+  <ul>
+    <li><a href="../tracksgm/">TracksGM</a></li>
+    <li><a href="../rhythmgm/">RhythmGM</a></li>
+    <li><a href="./" aria-current="page">PatchWorker</a></li>
+    <li><a href="../packtrim/">PackTrim</a></li>
+    <li><a href="../midi2circuit/">MIDI2Circuit</a></li>
+    <li><a href="../circuit2midi/">Circuit2MIDI</a></li>
+  </ul>
+  <span class="navfill"></span>
+  <a class="navhelp" href="help.html">Help</a>
+  <div class="link" id="link">
+    <span class="led" id="link-led"></span>
+    <span id="link-text">Circuit Tracks not linked</span>
+    <button type="button" id="link-btn" class="btn small">Link Circuit Tracks</button>
+  </div>
+</nav>
+
+<div class="app" id="app">
+  <aside class="side" aria-label="Pack">
+    <div class="packhead">
+      <p class="eyebrow">Pack</p>
+      <input id="pack-name" class="lcd" maxlength="16" spellcheck="false" aria-label="Pack name" title="Pack name (up to 16 characters)">
+      <p class="packinfo" id="pack-info">Loading…</p>
+      <div class="row">
+        <button type="button" class="btn" id="pack-open" title="Open a .circuittrackspack from your computer">Open pack…</button>
+        <button type="button" class="btn primary" id="pack-save" title="Download the pack with your edits, ready for Novation Components">Download pack</button>
+      </div>
+      <div class="row">
+        <button type="button" class="btn quiet" id="pack-bank" title="All 128 patches as one .syx file">Bank .syx</button>
+        <button type="button" class="btn quiet" id="pack-reset" title="Throw away this session and load the TracksGM pack again">Load TracksGM</button>
+      </div>
+    </div>
+    <div class="listhead">
+      <input id="search" type="search" placeholder="Search patches" aria-label="Search patches">
+      <select id="filter" aria-label="Show"></select>
+    </div>
+    <ol class="patchlist" id="patchlist" aria-label="Patches"></ol>
+  </aside>
+
+  <main class="device">
+    <header class="patchbar">
+      <button type="button" class="icon" id="undo" title="Undo (Ctrl/Cmd+Z)" aria-label="Undo">↶</button>
+      <button type="button" class="icon" id="redo" title="Redo (Ctrl/Cmd+Shift+Z)" aria-label="Redo">↷</button>
+      <span class="slot" id="slot-no">001</span>
+      <input id="patch-name" class="lcd big" maxlength="16" spellcheck="false" aria-label="Patch name" title="Patch name (up to 16 characters)">
+      <label class="mini">Category <select id="category"></select></label>
+      <label class="mini">Genre <select id="genre"></select></label>
+      <span class="navfill"></span>
+      <button type="button" class="btn" id="compare" title="Hold to hear the slot as it was when the pack was opened" hidden>Compare</button>
+      <div class="menu">
+        <button type="button" class="btn" id="patch-menu-btn" aria-haspopup="true" aria-expanded="false">Patch ▾</button>
+        <div class="menu-pop" id="patch-menu" hidden>
+          <button type="button" data-act="open-syx">Open .syx…</button>
+          <button type="button" data-act="save-syx">Download .syx</button>
+          <hr>
+          <button type="button" data-act="copy">Copy to another slot…</button>
+          <button type="button" data-act="init">Start from the Initial Patch</button>
+          <button type="button" data-act="revert">Revert to how the pack had it</button>
+        </div>
+      </div>
+      <div class="hw" id="hw" hidden>
+        <span class="seg" role="radiogroup" aria-label="Circuit Tracks synth">
+          <button type="button" data-synth="0" class="on" title="Work with Synth 1 on the Circuit Tracks">Synth 1</button>
+          <button type="button" data-synth="1" title="Work with Synth 2 on the Circuit Tracks">Synth 2</button>
+        </span>
+        <button type="button" class="btn primary" id="hw-send" title="Send this patch to the chosen synth now">Send</button>
+        <button type="button" class="btn" id="hw-get" title="Fetch the patch the chosen synth is playing">Get</button>
+        <button type="button" class="btn quiet" id="hw-store" title="Write this patch into a patch slot on the Circuit Tracks">Store…</button>
+        <label class="check" title="Send every edit to the Circuit Tracks as you make it"><input type="checkbox" id="hw-live" checked> Live</label>
+      </div>
+    </header>
+
+    <section class="macros" aria-label="Macros">
+      <p class="eyebrow">Macros</p>
+      <div class="macro-row" id="macro-row"></div>
+    </section>
+
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" data-page="main" aria-selected="true">Main</button>
+      <button type="button" role="tab" data-page="fx" aria-selected="false">Effects</button>
+      <button type="button" role="tab" data-page="mod" aria-selected="false">Modulation</button>
+    </div>
+
+    <div class="page" id="page-main"></div>
+    <div class="page" id="page-fx" hidden></div>
+    <div class="page" id="page-mod" hidden></div>
+
+    <p class="foot">Alpha 0.1, for testing: keep a copy of your packs. The browser sound is an approximation of the Circuit Tracks; the hardware is the reference. Not affiliated with Novation or Focusrite. Synth engine adapted from <a href="https://github.com/namirsab/circuit-tracks-tools">circuit-tracks-tools</a> by Namir Sayed-Ahmad Baraza. <a href="help.html">Help</a> · <a href="https://github.com/GuinanNo1/CircuitGM/issues">Report a problem</a></p>
+  </main>
+</div>
+
+<footer class="dock" aria-label="Play">
+  <div class="dock-ctl">
+    <div class="ctl">
+      <span class="eyebrow">Hear on</span>
+      <span class="seg" id="hear">
+        <button type="button" data-hear="browser" class="on">Browser</button>
+        <button type="button" data-hear="tracks" disabled title="Link a Circuit Tracks first">Tracks</button>
+        <button type="button" data-hear="both" disabled title="Link a Circuit Tracks first">Both</button>
+      </span>
+    </div>
+    <div class="ctl">
+      <span class="eyebrow">Octave</span>
+      <span class="seg"><button type="button" id="oct-down" title="Octave down (Z)">−</button><output id="oct">C3</output><button type="button" id="oct-up" title="Octave up (X)">+</button></span>
+    </div>
+    <label class="ctl"><span class="eyebrow">Velocity <output id="vel-out">100</output></span><input type="range" id="vel" min="1" max="127" value="100"></label>
+    <label class="ctl"><span class="eyebrow">Volume</span><input type="range" id="vol" min="0" max="100" value="80"></label>
+    <label class="ctl"><span class="eyebrow">Tempo</span><input type="number" id="bpm" min="40" max="240" value="120" title="Tempo for the loop and for tempo-synced LFOs in the browser"></label>
+    <div class="ctl">
+      <span class="eyebrow">Loop</span>
+      <span class="seg">
+        <select id="loop-kind" aria-label="Loop pattern">
+          <option value="bass">Bass line</option><option value="arp">Arpeggio</option><option value="chord">Chords</option><option value="note">Long note</option>
+        </select>
+        <button type="button" id="loop" title="Play a loop while you edit (Space)">▶</button>
+      </span>
+    </div>
+    <label class="check" title="Keep notes sounding after you let go"><input type="checkbox" id="hold"> Hold</label>
+    <canvas id="scope" width="180" height="46" aria-hidden="true"></canvas>
+  </div>
+  <div class="keys" id="keys" aria-label="Keyboard"></div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<dialog id="dlg">
+  <form method="dialog">
+    <h2 id="dlg-title"></h2>
+    <div id="dlg-body"></div>
+    <div class="row end">
+      <button type="button" class="btn" id="dlg-cancel">Cancel</button>
+      <button type="submit" value="ok" class="btn primary" id="dlg-ok">OK</button>
+    </div>
+  </form>
+</dialog>
+<input type="file" id="file-pack" accept=".circuittrackspack,.zip" hidden>
+<input type="file" id="file-syx" accept=".syx" multiple hidden>
+<script type="module" src="../js/patchworker.js?v=20261112a"></script>
+</body>
+</html>
