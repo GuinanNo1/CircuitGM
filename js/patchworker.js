@@ -1041,6 +1041,16 @@ function bindUI() {
   $('#bpm').addEventListener('change', (e) => { if (synth) { synth.bpm = clamp(+e.target.value || 120, 40, 240); synth.refresh(); } if (loopTimer) { stopLoop(); toggleLoop(); } });
   $('#hold').addEventListener('change', (e) => { S.hold = e.target.checked; if (!S.hold) panic(); });
   $('#loop').addEventListener('click', toggleLoop);
+  // Keyboard size (small / medium / large), remembered between visits.
+  const setKeySize = (size) => {
+    document.body.dataset.keys = size;
+    document.querySelectorAll('#keysize button').forEach((b) => b.classList.toggle('on', b.dataset.size === size));
+    try { localStorage.setItem('circuitgm-patchworker-keys', size); } catch { /* private mode */ }
+  };
+  document.querySelectorAll('#keysize button').forEach((b) => b.addEventListener('click', () => setKeySize(b.dataset.size)));
+  let keySize = 'm';
+  try { keySize = localStorage.getItem('circuitgm-patchworker-keys') || 'm'; } catch { /* private mode */ }
+  setKeySize(/^[sml]$/.test(keySize) ? keySize : 'm');
   window.addEventListener('beforeunload', saveSession);
 }
 
