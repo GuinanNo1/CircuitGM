@@ -3,11 +3,11 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261112g';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261112g';
-import { TracksLink } from './pw/midi.js?v=20261112g';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261112h';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261112h';
+import { TracksLink } from './pw/midi.js?v=20261112h';
 import { openPack, buildPack, bankSyx, slotEdited, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261112g';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261112h';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_final.circuittrackspack';
 const $ = (s) => document.querySelector(s);
@@ -933,7 +933,7 @@ function drawScope() {
       const y = cv.height / 2 - buf[s + Math.floor((x / cv.width) * 500)] * cv.height * 0.9;
       if (x) g.lineTo(x, y); else g.moveTo(x, y);
     }
-    g.strokeStyle = '#b9a8ff';
+    g.strokeStyle = getComputedStyle(document.body).getPropertyValue('--lcd-ink').trim() || '#b9a8ff';
     g.lineWidth = 1.5;
     g.stroke();
   };
@@ -1021,6 +1021,7 @@ function bindUI() {
   document.querySelectorAll('#hw [data-synth]').forEach((b) => b.addEventListener('click', () => {
     panic();
     S.synth = +b.dataset.synth;
+    document.body.dataset.synth = S.synth;
     document.querySelectorAll('#hw [data-synth]').forEach((x) => x.classList.toggle('on', x === b));
     if ($('#hw-live').checked) link.sendPatch(S.bytes, S.synth);
   }));

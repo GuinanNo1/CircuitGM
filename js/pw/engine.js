@@ -12,7 +12,7 @@
 //
 // It is still an approximation: the hardware is the reference.
 import { P, MACRO_DESTS, MOD_SLOTS, modAddr, macroPosAddr, macroRows, cutoffHz, attackSeconds,
-  decaySeconds, lfoHz, eqDb, eqHz, pitchSemis, filterSteps, syncBeats, initPatch } from './params.js?v=20261112g';
+  decaySeconds, lfoHz, eqDb, eqHz, pitchSemis, filterSteps, syncBeats, initPatch } from './params.js?v=20261112h';
 
 const MAX_VOICES = 6;
 // Pitch: the Circuit Tracks plays an incoming MIDI note at standard pitch (MIDI 60 measured at
@@ -205,7 +205,7 @@ function noiseBuffer(ctx) {
 }
 
 // Waveshaper curves for the filter drive and the distortion effect (types as on the hardware).
-function shaperCurve(type, amount) {
+function shaperShape(type, amount) {
   const n = 2048;
   const c = new Float32Array(n);
   const k = 1 + amount * 14;
@@ -223,6 +223,56 @@ function shaperCurve(type, amount) {
   }
   return c;
 }
+
+// Level each type adds, measured on the Circuit Tracks with a sine (RMS dB against the clean
+// patch, by 0-127 setting). Types without a row keep the level of the clean signal.
+const DRIVE_DB = [
+  [[0, 0], [32, 2], [64, 5], [127, 8]],                       // diode
+  [[0, 0], [32, 1], [64, 4], [127, 6]],                       // valve
+  [[0, 0], [32, 5], [64, 7], [127, 8]],                       // clipper
+];
+const DIST_DB = [
+  [[0, 0], [32, 1.4], [64, 4.6], [96, 9], [127, 10.8]],       // diode
+  [[0, 0], [32, 1.3], [64, 4.3], [96, 8.5], [127, 10.1]],     // valve
+  [[0, 0], [32, 5], [64, 9], [96, 12], [127, 15]],            // clipper
+  [[0, 0], [32, -3.6], [64, -9], [80, 0], [96, 7], [127, 11]], // cross-over
+];
+const tableDb = (rows, v) => {
+  if (!rows) return 0;
+  for (let i = 1; i < rows.length; i++) {
+    if (v <= rows[i][0]) return rows[i - 1][1] + ((rows[i][1] - rows[i - 1][1]) * (v - rows[i - 1][0])) / (rows[i][0] - rows[i - 1][0]);
+  }
+  return rows[rows.length - 1][1];
+};
+const curveAt = (c, x) => {
+  const p = clamp((x + 1) / 2, 0, 1) * (c.length - 1);
+  const i = Math.min(c.length - 2, Math.floor(p));
+  return c[i] + (c[i + 1] - c[i]) * (p - i);
+};
+
+// A shaper curve scaled so that a sine of peak `ref` going through `dry * x + wet * curve(x)`
+// comes out `db` louder (RMS) than it went in: the curve gives the tone, the hardware
+// measurement gives the level.
+function shaperCurve(type, amount, { ref, db, dry = 0, wet = 1 }) {
+  const c = shaperShape(type, amount);
+  if (wet <= 0) return c;
+  const N = 256;
+  const xs = [];
+  const ys = [];
+  for (let i = 0; i < N; i++) { const x = ref * Math.sin((2 * Math.PI * (i + 0.5)) / N); xs.push(x); ys.push(curveAt(c, x)); }
+  const target = (ref * ref / 2) * 10 ** (db / 10);
+  const power = (s) => { let a = 0; for (let i = 0; i < N; i++) a += (dry * xs[i] + wet * s * ys[i]) ** 2; return a / N; };
+  let lo = 0;
+  let hi = 1;
+  while (power(hi) < target && hi < 4096) hi *= 2;
+  for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; if (power(mid) < target) lo = mid; else hi = mid; }
+  if (power(lo) > target * 1.001 && power(0) > target) return c.fill(0);   // the dry part alone is already louder
+  for (let i = 0; i < c.length; i++) c[i] *= hi;
+  return c;
+}
+// Peak of one full-level sine voice where the filter drive and the distortion effect sit.
+const DRIVE_REF = 0.5;
+const DIST_REF = 0.175;
 
 const chorusHz = (v) => Math.max(0.02, 0.0013 * v * v);          // measured on the phaser: 40 -> 2 Hz, 100 -> 12.7 Hz
 const lfoDelaySeconds = (v) => (v / 127) ** 2 * 6;
@@ -352,12 +402,15 @@ export class PatchSynth {
     const now = c.currentTime;
     const set = (param, v) => param.setTargetAtTime(v, now, 0.015);
 
-    const dist = this.val('distortion_level') / 127;
+    const distLevel = this.val('distortion_level');
+    const dist = distLevel / 127;
     const dtype = this.bytes[P.distortion_type.a];
-    const ckey = `${dtype}|${Math.round(dist * 32)}`;
-    if (ckey !== this.curveKey) { this.shaper.curve = shaperCurve(dtype, dist); this.curveKey = ckey; }
-    const comp = this.val('distortion_compensation') / 127;
-    set(this.distWet.gain, dist * (1 - 0.45 * comp * dist));
+    const ckey = `${dtype}|${distLevel}`;
+    if (ckey !== this.curveKey) {
+      this.shaper.curve = shaperCurve(dtype, dist, { ref: DIST_REF, db: tableDb(DIST_DB[dtype], distLevel), dry: 1 - dist, wet: dist });
+      this.curveKey = ckey;
+    }
+    set(this.distWet.gain, dist);
     set(this.distDry.gain, 1 - dist);
 
     const level = this.val('chorus_level') / 127;
@@ -525,7 +578,8 @@ export class PatchSynth {
     const drive = this.val('filter_drive') / 127;
     if (drive > 0) {
       const sh = c.createWaveShaper();
-      sh.curve = shaperCurve(b[P.filter_drive_type.a], drive);
+      const dt = b[P.filter_drive_type.a];
+      sh.curve = shaperCurve(dt, drive, { ref: DRIVE_REF, db: tableDb(DRIVE_DB[dt], this.val('filter_drive')) });
       node.connect(sh);
       node = sh;
     }

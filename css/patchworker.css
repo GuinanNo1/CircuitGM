@@ -23,6 +23,8 @@
   --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
   color-scheme: dark;
 }
+/* Editing Synth 2: the lit parts of the panel turn green, as in Novation Components. */
+body[data-synth="1"] { --accent: #56dd8f; --lcd-ink: #a4f0c2; }
 * { box-sizing: border-box; scrollbar-width: thin; }
 html { scrollbar-color: #45415c transparent; -webkit-text-size-adjust: 100%; }
 html, body { height: 100%; margin: 0; }
@@ -96,7 +98,7 @@ input[type=number], input[type=search], input[type=text] { background: var(--wel
 .seg output { color: var(--lcd-ink); font-family: var(--mono); cursor: default; min-width: 3.2em; text-align: center; }
 .seg button + button, .seg output + button, .seg select + button { border-left: 1px solid var(--line); }
 .seg button:hover:not(:disabled) { color: var(--ink); }
-.seg button.on { background: #9c8bff3a; color: #fff; }
+.seg button.on { background: color-mix(in srgb, var(--accent) 23%, transparent); color: #fff; }
 .seg button:disabled { opacity: .4; cursor: default; }
 .seg.stack { display: flex; flex-direction: column; }
 .seg.stack button + button { border-left: 0; border-top: 1px solid var(--line); }
@@ -119,7 +121,7 @@ input[type=number], input[type=search], input[type=text] { background: var(--wel
   border-left: 3px solid transparent;
 }
 .patchlist li:hover { background: #ffffff0c; }
-.patchlist li.sel { background: #9c8bff26; border-left-color: var(--accent); }
+.patchlist li.sel { background: color-mix(in srgb, var(--accent) 15%, transparent); border-left-color: var(--accent); }
 .patchlist .n { font: 400 .78rem var(--mono); color: var(--faint); }
 .patchlist .nm { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .patchlist li.empty .nm { color: var(--faint); font-style: italic; }
@@ -144,7 +146,7 @@ input[type=number], input[type=search], input[type=text] { background: var(--wel
   background: #2b2b3a; border: 1px solid #4a4a62; border-radius: 9px; box-shadow: 0 10px 30px #000a;
 }
 .menu-pop button { display: block; width: 100%; text-align: left; background: none; border: 0; border-radius: 6px; padding: 6px 10px; cursor: pointer; }
-.menu-pop button:hover { background: #9c8bff33; }
+.menu-pop button:hover { background: color-mix(in srgb, var(--accent) 20%, transparent); }
 .menu-pop hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
 
 .panel { background: #1b1b25; border: 1px solid #34344a; border-radius: 10px; padding: 9px 11px 10px; min-width: 0; box-shadow: inset 0 1px 0 #ffffff08; }
@@ -157,7 +159,7 @@ input[type=number], input[type=search], input[type=text] { background: var(--wel
 .macro .k-label { font: 700 .95rem var(--head); color: var(--ink); }
 .macro-row { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
 .macro { border-radius: 8px; padding: 2px 2px 4px; text-align: center; border: 1px solid transparent; min-width: 0; }
-.macro.sel { border-color: #9c8bff88; background: #9c8bff14; }
+.macro.sel { border-color: color-mix(in srgb, var(--accent) 53%, transparent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
 .macro.unused .k-val { stroke: #55556f; }
 .m-cap { display: block; font-size: .72rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
 .macro.unused .m-cap { color: var(--faint); }
@@ -223,7 +225,7 @@ input[type=number], input[type=search], input[type=text] { background: var(--wel
 /* ---------- graphs ---------- */
 .graph { display: block; width: 100%; height: auto; aspect-ratio: var(--ar, 3); max-width: calc(210px * var(--ar, 3)); margin: 6px auto 0; background: var(--lcd); border-radius: 6px; }
 .g-line { fill: none; stroke: var(--accent); stroke-width: 1.6; vector-effect: non-scaling-stroke; }
-.g-fill { fill: #9c8bff2e; stroke: none; }
+.g-fill { fill: color-mix(in srgb, var(--accent) 18%, transparent); stroke: none; }
 
 /* ---------- modulation page ---------- */
 .macro-edit { margin-bottom: 10px; }
@@ -250,7 +252,7 @@ input.depth.zero::-webkit-slider-thumb { background: #8a88a3; border-color: #454
 .mrow select { width: 100%; padding-block: 4px; }
 .mrow.head { font: 700 .72rem var(--head); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); text-align: center; }
 .mrow:not(.head):not(.live) select { color: var(--faint); }
-.mrow.live { background: #9c8bff14; }
+.mrow.live { background: color-mix(in srgb, var(--accent) 8%, transparent); }
 .mnum { font: 500 .8rem var(--mono); color: var(--muted); text-align: right; }
 .foot { margin: 14px 0 0; color: var(--faint); font-size: .78rem; max-width: 110ch; }
 
