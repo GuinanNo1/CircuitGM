@@ -12,14 +12,13 @@
 //
 // It is still an approximation: the hardware is the reference.
 import { P, MACRO_DESTS, MOD_SLOTS, modAddr, macroPosAddr, macroRows, cutoffHz, attackSeconds,
-  decaySeconds, lfoHz, eqDb, eqHz, pitchSemis, filterSteps, syncBeats, initPatch } from './params.js?v=20261112f';
+  decaySeconds, lfoHz, eqDb, eqHz, pitchSemis, filterSteps, syncBeats, initPatch } from './params.js?v=20261112g';
 
 const MAX_VOICES = 6;
 // Pitch: the Circuit Tracks plays an incoming MIDI note at standard pitch (MIDI 60 measured at
 // 261.6 Hz on the hardware, calibration set 2, rec_cal2/mod "MOD ref"). The patch's Keyboard
 // Octave only sets the octave the Tracks' own pads and patch preview start in, so it does not
-// shift notes arriving over MIDI. `transpose` (octaves) lets the user line the browser up with the
-// Tracks if its octave buttons have been moved.
+// shift notes arriving over MIDI, and neither do the Tracks' octave buttons.
 export const HARDWARE_TRANSPOSE = 0;
 const TABLE = 1024;
 const HARMONICS = 96;
@@ -238,7 +237,6 @@ export class PatchSynth {
     this.contrib = new Map();
     this.lastNote = null;
     this.held = new Set();
-    this.transpose = 0;
 
     const c = ctx;
     this.voiceBus = c.createGain();
@@ -482,9 +480,9 @@ export class PatchSynth {
       for (const [sp, g] of density > 0 ? [[0, 1], [spread, density], [-spread, density]] : [[0, 1]]) {
         const osc = c.createOscillator();
         osc.setPeriodicWave(wave);
-        const target = midiHz(pitch + semis + HARDWARE_TRANSPOSE + this.transpose * 12);
+        const target = midiHz(pitch + semis + HARDWARE_TRANSPOSE);
         if (glideFrom != null && glideTime > 0.002) {
-          osc.frequency.setValueAtTime(midiHz(glideFrom + semis + HARDWARE_TRANSPOSE + this.transpose * 12), t);
+          osc.frequency.setValueAtTime(midiHz(glideFrom + semis + HARDWARE_TRANSPOSE), t);
           osc.frequency.exponentialRampToValueAtTime(target, t + glideTime);
         } else osc.frequency.value = target;
         osc.detune.value = cents + sp;

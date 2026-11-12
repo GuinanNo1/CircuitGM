@@ -3,11 +3,11 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261112f';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261112f';
-import { TracksLink } from './pw/midi.js?v=20261112f';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261112g';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261112g';
+import { TracksLink } from './pw/midi.js?v=20261112g';
 import { openPack, buildPack, bankSyx, slotEdited, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261112f';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261112g';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_final.circuittrackspack';
 const $ = (s) => document.querySelector(s);
@@ -69,7 +69,6 @@ function audio() {
     synth = new PatchSynth(ctx);
     synth.bpm = +$('#bpm').value;
     synth.setVolume($('#vol').value / 100);
-    synth.transpose = S.transpose ?? 0;
     synth.setPatch(S.bytes);
     drawScope();
   }
@@ -1044,18 +1043,6 @@ function bindUI() {
   $('#bpm').addEventListener('change', (e) => { if (synth) { synth.bpm = clamp(+e.target.value || 120, 40, 240); synth.refresh(); } if (loopTimer) { stopLoop(); toggleLoop(); } });
   $('#hold').addEventListener('change', (e) => { S.hold = e.target.checked; if (!S.hold) panic(); });
   $('#loop').addEventListener('click', toggleLoop);
-  // Browser pitch offset (octaves), remembered between visits.
-  const setTranspose = (t) => {
-    S.transpose = clamp(t, -2, 2);
-    $('#tr').textContent = `${S.transpose > 0 ? '+' : ''}${S.transpose} oct`;
-    if (synth) { synth.allNotesOff(); synth.transpose = S.transpose; }
-    try { localStorage.setItem('circuitgm-patchworker-transpose', String(S.transpose)); } catch { /* private mode */ }
-  };
-  $('#tr-down').addEventListener('click', () => setTranspose(S.transpose - 1));
-  $('#tr-up').addEventListener('click', () => setTranspose(S.transpose + 1));
-  let tr = 0;
-  try { tr = parseInt(localStorage.getItem('circuitgm-patchworker-transpose') ?? '0', 10) || 0; } catch { /* private mode */ }
-  setTranspose(tr);
   // Keyboard size (small / medium / large), remembered between visits.
   const setKeySize = (size) => {
     document.body.dataset.keys = size;
