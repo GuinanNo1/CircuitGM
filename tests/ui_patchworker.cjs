@@ -47,7 +47,7 @@ const fakeMidi = () => {
 
   // --- every patch makes sound in the browser synth, with nothing blowing up
   const render = await page.evaluate(async () => {
-    const { PatchSynth } = await import('/js/pw/engine.js?v=20261112h');
+    const { PatchSynth } = await import('/js/pw/engine.js?v=20261112j');
     const { S } = window.patchworker;
     const res = [];
     for (let i = 0; i < 128; i++) {
@@ -65,8 +65,8 @@ const fakeMidi = () => {
   });
   // Middle C plays at 261.6 Hz, as measured on the hardware.
   const c4 = await page.evaluate(async () => {
-    const { PatchSynth } = await import('/js/pw/engine.js?v=20261112h');
-    const { initPatch } = await import('/js/pw/params.js?v=20261112h');
+    const { PatchSynth } = await import('/js/pw/engine.js?v=20261112j');
+    const { initPatch } = await import('/js/pw/params.js?v=20261112j');
     const off = new OfflineAudioContext(1, 48000, 48000);
     const s = new PatchSynth(off); const b = initPatch(); b[36] = 0; b[35] = 63; s.setPatch(b);
     s.noteOn(60, 100, 0, 0.9);
@@ -83,7 +83,7 @@ const fakeMidi = () => {
 
   // --- an untouched pack saves back with every file identical
   const same = await page.evaluate(async () => {
-    const { openPack } = await import('/js/pw/packio.js?v=20261112h');
+    const { openPack } = await import('/js/pw/packio.js?v=20261112j');
     const { S, buildPack } = window.patchworker;
     const { blob } = await buildPack(S.pack);
     const again = await openPack(await blob.arrayBuffer());
@@ -130,8 +130,8 @@ const fakeMidi = () => {
   const packFile = `${out}/${pdl.suggestedFilename()}`;
   await pdl.saveAs(packFile);
   const packCheck = await page.evaluate(async (b64) => {
-    const { openPack } = await import('/js/pw/packio.js?v=20261112h');
-    const { getName } = await import('/js/pw/params.js?v=20261112h');
+    const { openPack } = await import('/js/pw/packio.js?v=20261112j');
+    const { getName } = await import('/js/pw/params.js?v=20261112j');
     const buf = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)).buffer;
     const p = await openPack(buf);
     return { n0: getName(p.patches[0]), n127: getName(p.patches[127]), i0: p.index.patches[0].name, i127: p.index.patches[127].name, f: p.patches[0][64], samples: p.samples };
@@ -148,8 +148,15 @@ const fakeMidi = () => {
   await page.click('#link-btn');
   await page.waitForSelector('#hw:not([hidden])');
   const sent = () => page.evaluate(() => window.__sent.splice(0));
+  // Linking sends nothing by itself: the page says what the synth is playing and asks.
+  await page.waitForSelector('#dlg[open]');
   let msgs = await sent();
-  check(msgs.some((m) => m.length === 350 && m[6] === 0 && m[7] === 0), 'linking sends the patch to Synth 1');
+  check(!msgs.some((m) => m.length === 350) && (await page.innerText('#dlg-title')) === 'Synth 1 on the Circuit Tracks', 'linking asks before replacing what Synth 1 is playing');
+  check((await page.getAttribute('#ed-hw', 'data-state')) === 'differs', `the status line says the synth has another patch (${await page.innerText('#ed-hw')})`);
+  await page.click('#dlg-ok');
+  await page.waitForTimeout(100);
+  msgs = await sent();
+  check(msgs.some((m) => m.length === 350 && m[6] === 0 && m[7] === 0) && (await page.getAttribute('#ed-hw', 'data-state')) === 'same', 'Send in that dialog sends the patch to Synth 1');
   await page.click('#patchlist li[data-slot="38"]');
   await page.waitForTimeout(100);
   msgs = await sent();
@@ -159,6 +166,10 @@ const fakeMidi = () => {
   msgs = await sent();
   check(msgs.length === 1 && msgs[0][0] === 0xb0 && msgs[0][1] === 74, `filter frequency goes out as CC 74 (${JSON.stringify(msgs)})`);
   await page.click('#hw [data-synth="1"]');
+  await page.waitForSelector('#dlg[open]');
+  check((await page.getAttribute('body', 'data-synth')) === '1', 'choosing Synth 2 switches the panel colour');
+  await page.click('#dlg-ok');
+  await page.waitForTimeout(100);
   await sent();
   await page.locator('.env .knob', { hasText: 'Attack' }).nth(1).evaluate(() => window.patchworker.setByte(75, 30));
   msgs = await sent();
@@ -177,10 +188,32 @@ const fakeMidi = () => {
   await page.keyboard.up('a');
   msgs = await sent();
   check(msgs.length >= 2 && msgs[0][0] === 0x91 && msgs[0][1] === 48 && msgs.some((m) => m[0] === 0x81), `computer keys play the linked synth (${JSON.stringify(msgs)})`);
+  // Get: names the slot it will replace, then marks the patch as fetched from the hardware.
   await page.click('#hw-get');
   await page.waitForSelector('#dlg[open]');
   check((await page.innerText('#dlg-title')).includes('From Synth 2'), 'Get fetches the synth\'s current patch');
+  check(/This replaces 039 "/.test(await page.innerText('#dlg-body')), `Get names the patch it will replace (${(await page.innerText('#dlg-body')).replace(/\n/g, ' | ')})`);
+  await page.click('#dlg-ok');
+  await page.waitForTimeout(150);
+  msgs = await sent();
+  check(await page.inputValue('#patch-name') === 'From Synth 2' && (await page.innerText('#ed-what')).includes('fetched from Synth 2 on the Circuit Tracks') && await page.locator('#patchlist li[data-slot="38"].from-hw').count() === 1,
+    `a fetched patch is labelled as from the Circuit Tracks (${await page.innerText('#ed-what')})`);
+  check(!msgs.some((m) => m.length === 350) && (await page.getAttribute('#ed-hw', 'data-state')) === 'same', 'a fetched patch is not sent back to the synth it came from');
+  // Live off: later edits leave the synth with an older version until Send.
+  await page.uncheck('#hw-live');
+  await page.evaluate(() => window.patchworker.setByte(75, 31));
+  msgs = await sent();
+  check(msgs.length === 0 && (await page.innerText('#ed-hw')).includes('older version'), 'with Live off the status line says the synth is behind');
+  await page.check('#hw-live');
+  msgs = await sent();
+  check(msgs.some((m) => m.length === 350) && (await page.getAttribute('#ed-hw', 'data-state')) === 'same', 'ticking Live sends the patch');
+  // Replacing a patch from the menu asks first.
+  await page.click('#patch-menu-btn');
+  await page.click('[data-act="init"]');
+  await page.waitForSelector('#dlg[open]');
+  check((await page.innerText('#dlg-body')).includes('including the changes you made'), 'the Initial Patch asks before replacing a changed patch');
   await page.click('#dlg-cancel');
+  check(await page.inputValue('#patch-name') === 'From Synth 2', 'cancelling leaves the patch alone');
 
   await page.click('[data-page="main"]');
   await page.screenshot({ path: `${out}/patchworker-main.png` });

@@ -3,11 +3,11 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261112h';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261112h';
-import { TracksLink } from './pw/midi.js?v=20261112h';
-import { openPack, buildPack, bankSyx, slotEdited, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261112h';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261112j';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261112j';
+import { TracksLink } from './pw/midi.js?v=20261112j';
+import { openPack, buildPack, bankSyx, slotEdited, slotBlank, editedSlots, projectsFollowing, download,
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261112j';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_final.circuittrackspack';
 const $ = (s) => document.querySelector(s);
@@ -48,6 +48,7 @@ const S = {
   hold: false,
   held: new Map(),             // key note -> true (sounding notes)
   restored: false,
+  hw: [{ slot: null, dirty: false }, { slot: null, dirty: false }],   // what each Circuit Tracks synth was last sent
 };
 const link = new TracksLink();
 let ctx = null;
@@ -139,17 +140,27 @@ function changed(addr) {
   paintSlot(S.slot);
   paintBar();
   sendLive(addr);
+  if (!hwLive() && S.hw[S.synth].slot === S.slot) S.hw[S.synth].dirty = true;   // the synth now has an older version
+  paintStatus();
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveSession, 500);
 }
 
 const PARAM_AT = new Map(Object.values(P).map((p) => [p.a, p]));
+// Replace the chosen synth's current patch with the one being edited, and remember that it has it.
+function hwSend() {
+  if (!link.sendPatch(S.bytes, S.synth)) return false;
+  S.hw[S.synth] = { slot: S.slot, dirty: false };
+  paintStatus();
+  return true;
+}
+const hwLive = () => link.connected && $('#hw-live').checked;
 function sendWhole(delay = 180) {
   clearTimeout(sendTimer);
-  sendTimer = setTimeout(() => link.sendPatch(S.bytes, S.synth), delay);
+  sendTimer = setTimeout(hwSend, delay);
 }
 function sendLive(addr) {
-  if (!link.connected || !$('#hw-live').checked) return;
+  if (!hwLive()) return;
   if (addr == null) { sendWhole(0); return; }
   const p = PARAM_AT.get(addr);
   if (p && (p.cc != null || p.nrpn)) { link.sendParam(S.synth, p.id, S.bytes[addr]); return; }
@@ -189,7 +200,8 @@ function selectSlot(slot, { send = true } = {}) {
   repaint();
   paintList();
   paintBar();
-  if (send && link.connected && $('#hw-live').checked) sendWhole(0);
+  paintStatus();
+  if (send && hwLive()) sendWhole(0);
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveSession, 500);
 }
@@ -639,7 +651,9 @@ function paintList() {
     if (filter.startsWith('c') && (b?.[P.category.a] ?? 0) !== +filter.slice(1)) continue;
     const li = h('li', { class: `${i === S.slot ? 'sel' : ''}${b ? '' : ' empty'}${edited ? ' edited' : ''}`, 'data-slot': i, tabindex: 0, role: 'option', 'aria-selected': i === S.slot },
       h('span', { class: 'n', text: pad3(i + 1) }), h('span', { class: 'nm', text: name || '(no name)' }),
+      h('span', { class: 'tag', text: 'Tracks', title: 'Fetched from the Circuit Tracks' }),
       h('span', { class: 'dot', title: 'Changed since the pack was opened' }));
+    li.classList.toggle('from-hw', edited && S.pack.origin?.[i]?.kind === 'tracks');
     list.append(li);
   }
   if (!list.children.length) list.append(h('li', { class: 'none', text: 'No patches match.' }));
@@ -649,6 +663,7 @@ function paintSlot(i) {
   if (!li) return;
   li.querySelector('.nm').textContent = getName(S.pack.patches[i]) || '(no name)';
   li.classList.toggle('edited', slotEdited(S.pack, i));
+  li.classList.toggle('from-hw', slotEdited(S.pack, i) && S.pack.origin?.[i]?.kind === 'tracks');
   li.classList.remove('empty');
 }
 function paintBar() {
@@ -661,6 +676,44 @@ function paintBar() {
   $('#redo').disabled = !u.future.length;
   $('#compare').hidden = !(S.pack.original[S.slot] && slotEdited(S.pack, S.slot));
   paintPack();
+}
+// Where a slot's patch came from, if it was brought in during this session.
+function setOrigin(slot, kind, label) {
+  S.pack.origin ??= {};
+  S.pack.origin[slot] = { kind, label, bytes: S.pack.patches[slot].slice() };
+}
+const sameBytes = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
+const slotLabel = (i) => `${pad3(i + 1)} "${S.pack.patches[i] ? getName(S.pack.patches[i]) : 'Initial Patch'}"`;
+// What replacing a slot's patch will cost, for the dialogs that do it.
+function replaceNote(i) {
+  if (slotBlank(S.pack, i)) return `Slot ${pad3(i + 1)} is empty.`;
+  return `This replaces ${slotLabel(i)} in the pack open here${slotEdited(S.pack, i) ? ', including the changes you made to it' : ''}. Undo brings it back.`;
+}
+// The line under the patch name: which patch is being edited, where it came from, and what the
+// linked synth is playing.
+function paintStatus() {
+  if (!S.pack) return;
+  const edited = slotEdited(S.pack, S.slot);
+  const o = S.pack.origin?.[S.slot];
+  let from;
+  if (!edited) from = S.pack.original[S.slot] ? 'as the pack has it' : 'an empty slot';
+  else if (o) from = `${o.label}${sameBytes(o.bytes, S.bytes) ? '' : ', then changed here'}`;
+  else from = 'changed here since the pack was opened';
+  $('#ed-what').textContent = `Editing slot ${pad3(S.slot + 1)} of "${S.pack.name || 'this pack'}": ${from}`;
+  const el = $('#ed-hw');
+  const n = `Synth ${S.synth + 1}`;
+  let text = 'Circuit Tracks not linked: you are hearing the browser';
+  let state = 'off';
+  if (link.connected) {
+    const hw = S.hw[S.synth];
+    if (hw.slot === S.slot && !hw.dirty) { text = `${n} is playing this patch${$('#hw-live').checked ? ': edits go to it as you make them' : ' (Live is off: later edits stay here)'}`; state = 'same'; }
+    else if (hw.slot === S.slot) { text = `${n} has an older version of this patch: press Send to update it`; state = 'differs'; }
+    else if (hw.slot != null) { text = `${n} is playing ${slotLabel(hw.slot)}, not this patch`; state = 'differs'; }
+    else { text = `${n} is playing its own patch, not this one`; state = 'differs'; }
+  }
+  el.textContent = text;
+  el.dataset.state = state;
+  $('#editing').title = 'Edits are kept in this browser until you download the pack. Nothing is stored on the Circuit Tracks unless you press Store.';
 }
 function paintPack() {
   const n = editedSlots(S.pack).length;
@@ -677,14 +730,18 @@ function toast(msg, ms = 3200) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), ms);
 }
-function ask(title, body, ok = 'OK') {
+// Resolves true for the main button, false for cancel, 'alt' for the optional second choice.
+function ask(title, body, ok = 'OK', { alt = null, cancel = 'Cancel' } = {}) {
   const dlg = $('#dlg');
+  $('#dlg-alt').hidden = !alt;
+  $('#dlg-alt').textContent = alt ?? '';
+  $('#dlg-cancel').textContent = cancel;
   $('#dlg-title').textContent = title;
   $('#dlg-body').replaceChildren(...[].concat(body).map((b) => (typeof b === 'string' ? h('p', { text: b }) : b)));
   $('#dlg-ok').textContent = ok;
   dlg.returnValue = 'cancel';
   dlg.showModal();
-  return new Promise((resolve) => dlg.addEventListener('close', () => resolve(dlg.returnValue === 'ok'), { once: true }));
+  return new Promise((resolve) => dlg.addEventListener('close', () => resolve(dlg.returnValue === 'ok' ? true : dlg.returnValue === 'alt' ? 'alt' : false), { once: true }));
 }
 function slotSelect(selected) {
   return h('select', { class: 'wide' }, Array.from({ length: PATCH_SLOTS }, (_, i) =>
@@ -701,6 +758,8 @@ async function loadPackBuffer(buffer, fileName, { remember = true, edits = null 
     for (const [slot, data] of Object.entries(edits.patches ?? {})) if (data?.length === PATCH_SIZE) pack.patches[+slot] = sanitise(new Uint8Array(data));
     if (typeof edits.name === 'string') pack.name = edits.name;
   }
+  pack.origin = edits?.origin ?? {};
+  S.hw = [{ slot: null, dirty: false }, { slot: null, dirty: false }];
   if (remember) { await session.savePack(buffer, fileName); await session.saveEdits(null); }
   selectSlot(edits?.slot ?? 0, { send: false });
   paintPack();
@@ -710,7 +769,9 @@ function saveSession() {
   if (!S.pack) return;
   const patches = {};
   for (const i of editedSlots(S.pack)) if (S.pack.patches[i]) patches[i] = S.pack.patches[i].slice();
-  session.saveEdits({ patches, name: S.pack.name, slot: S.slot });
+  const origin = {};
+  for (const i of Object.keys(patches)) if (S.pack.origin?.[i]) origin[i] = S.pack.origin[i];
+  session.saveEdits({ patches, name: S.pack.name, slot: S.slot, origin });
 }
 
 // The default pack is fetched each visit, so only edits to it are stored (not the pack file).
@@ -740,19 +801,23 @@ async function savePack() {
 }
 
 // Bring patches from a .syx file or the hardware into pack slots (the user picks where).
-async function importPatches(patches, source) {
-  if (!patches.length) { toast('No Circuit Tracks patch was found in that file.', 5000); return; }
+async function importPatches(patches, source, kind = 'file') {
+  if (!patches.length) { toast('No Circuit Tracks patch was found in that file.', 5000); return null; }
   const sel = slotSelect(S.slot);
   const many = patches.length > 1;
   const names = patches.slice(0, 6).map((p) => getName(p.data)).join(', ') + (patches.length > 6 ? '…' : '');
   const fit = () => Math.min(patches.length, PATCH_SLOTS - +sel.value);
   const note = h('p', { class: 'hint' });
-  const paintNote = () => { note.textContent = many ? `${fit()} patch(es) will replace slots ${pad3(+sel.value + 1)} to ${pad3(+sel.value + fit())}. You can undo each slot.` : 'This replaces the patch in that slot. Undo brings it back.'; };
+  const paintNote = () => {
+    const changed = Array.from({ length: fit() }, (_, k) => +sel.value + k).filter((i) => slotEdited(S.pack, i)).length;
+    note.textContent = many ? `${fit()} patch(es) will replace slots ${pad3(+sel.value + 1)} to ${pad3(+sel.value + fit())} in the pack open here${changed ? `, including ${changed} you have changed` : ''}. You can undo each slot.` : replaceNote(+sel.value);
+    note.classList.toggle('warn', changed > 0);
+  };
   sel.addEventListener('change', paintNote);
   paintNote();
   const ok = await ask(many ? `Load ${patches.length} patches` : `Load "${getName(patches[0].data)}"`,
-    [`From ${source}: ${names}`, h('label', { class: 'field' }, many ? 'Starting at slot ' : 'Into slot ', sel), note], 'Load');
-  if (!ok) return;
+    [`From ${source}: ${names}`, h('label', { class: 'field' }, many ? 'Starting at pack slot ' : 'Into pack slot ', sel), note], many ? 'Replace slots' : 'Replace slot');
+  if (!ok) return null;
   const first = +sel.value;
   const count = fit();
   for (let k = count - 1; k >= 0; k--) {
@@ -761,9 +826,35 @@ async function importPatches(patches, source) {
     S.bytes = S.pack.patches[S.slot];
     checkpoint(null);
     S.bytes.set(patches[k].data);
+    setOrigin(S.slot, kind, kind === 'tracks' ? `fetched from ${source}` : `loaded from ${source}`);
   }
-  selectSlot(first);
+  if (kind === 'tracks') S.hw[S.synth] = { slot: first, dirty: false };   // that synth already has it
+  selectSlot(first, { send: kind !== 'tracks' });
   toast(many ? `Loaded ${count} patches from ${source}.` : `Loaded "${getName(S.bytes)}" into slot ${pad3(first + 1)}.`);
+  return first;
+}
+// Fetch the chosen synth's current patch from the Circuit Tracks into a pack slot.
+async function getFromTracks() {
+  try { return await importPatches([{ data: await link.requestPatch(S.synth) }], `Synth ${S.synth + 1} on the Circuit Tracks`, 'tracks'); } catch (e) { toast(e.message, 5000); return null; }
+}
+// Before the page first replaces what a synth is playing, say so and offer the other way round.
+let offering = false;
+async function offerSync() {
+  const hw = S.hw[S.synth];
+  if (!hwLive() || offering || (hw.slot === S.slot && !hw.dirty)) return;
+  if (hw.slot === S.slot) { hwSend(); return; }
+  offering = true;
+  const n = `Synth ${S.synth + 1}`;
+  const name = getName(S.bytes);
+  const choice = await ask(`${n} on the Circuit Tracks`, [
+    `${n} is playing ${hw.slot != null ? slotLabel(hw.slot) : 'its own patch'}. Here you are editing ${slotLabel(S.slot)} from the pack.`,
+    `Sending replaces what ${n} is playing now. Nothing is stored on the Circuit Tracks unless you press Store, but a patch you have changed on the Circuit Tracks and not saved would be lost.`,
+  ], `Send "${name}"`, { alt: `Edit ${n}'s patch…`, cancel: 'Not now' });
+  offering = false;
+  if (choice === true) hwSend();
+  else if (choice === 'alt' && link.in) { if ((await getFromTracks()) == null) $('#hw-live').checked = false; }
+  else $('#hw-live').checked = false;
+  paintStatus();
 }
 
 async function openSyxFiles(files) {
@@ -775,17 +866,34 @@ async function openSyxFiles(files) {
 async function patchAction(act) {
   if (act === 'open-syx') $('#file-syx').click();
   else if (act === 'save-syx') download(toSyx(S.bytes), `${fileSafe(getName(S.bytes))}.syx`);
-  else if (act === 'init') { checkpoint(null); replacePatch(initPatch(), 'Initial Patch loaded. Undo brings the old patch back.'); } else if (act === 'revert') {
-    const orig = S.pack.original[S.slot];
+  else if (act === 'init') {
+    if (!slotBlank(S.pack, S.slot) && !(await ask('Start from the Initial Patch?', replaceNote(S.slot), 'Replace patch'))) return;
     checkpoint(null);
+    S.bytes.set(initPatch());
+    setOrigin(S.slot, 'init', 'started from the Initial Patch');
+    changed(null);
+    toast('Initial Patch loaded. Undo brings the old patch back.');
+  } else if (act === 'revert') {
+    const orig = S.pack.original[S.slot];
+    if (slotEdited(S.pack, S.slot) && !(await ask('Revert this patch?', `This throws away your changes to ${slotLabel(S.slot)} and puts back the patch the pack had. Undo brings them back.`, 'Revert'))) return;
+    checkpoint(null);
+    if (S.pack.origin) delete S.pack.origin[S.slot];
     replacePatch(orig ?? initPatch(), 'Reverted to how the pack had it.');
   } else if (act === 'copy') {
     const sel = slotSelect(Math.min(S.slot + 1, PATCH_SLOTS - 1));
-    if (!(await ask(`Copy "${getName(S.bytes)}"`, [h('label', { class: 'field' }, 'To slot ', sel), h('p', { class: 'hint', text: 'This replaces the patch in that slot. Undo brings it back.' })], 'Copy'))) return;
+    const note = h('p', { class: 'hint' });
+    const paintNote = () => { note.textContent = replaceNote(+sel.value); note.classList.toggle('warn', slotEdited(S.pack, +sel.value)); };
+    sel.addEventListener('change', paintNote);
+    paintNote();
+    if (!(await ask(`Copy "${getName(S.bytes)}"`, [h('label', { class: 'field' }, 'To pack slot ', sel), note], 'Replace slot'))) return;
     const src = S.bytes.slice();
+    const from = slotLabel(S.slot);
     selectSlot(+sel.value, { send: false });
     checkpoint(null);
-    replacePatch(src, `Copied to slot ${pad3(S.slot + 1)}.`);
+    S.bytes.set(src);
+    setOrigin(S.slot, 'copy', `copied from slot ${from}`);
+    changed(null);
+    toast(`Copied to slot ${pad3(S.slot + 1)}.`);
   }
 }
 
@@ -811,14 +919,16 @@ link.addEventListener('change', () => {
   paintLink();
   if (link.connected && !wasLinked) {
     setHear('tracks');
-    if ($('#hw-live').checked) link.sendPatch(S.bytes, S.synth);
-    toast(`Linked to ${link.out.name}. Edits now go to Synth ${S.synth + 1}; notes play on the Circuit Tracks.`, 5000);
+    S.hw = [{ slot: null, dirty: false }, { slot: null, dirty: false }];
+    toast(`Linked to ${link.out.name}. Notes now play on the Circuit Tracks.`, 5000);
+    offerSync();
   }
   wasLinked = link.connected;
+  paintStatus();
 });
 link.onMacro = (k, value, ch) => { if (ch === S.synth && S.bytes[macroPosAddr(k)] !== value) { S.bytes[macroPosAddr(k)] = value; synth?.refresh(); repaint(macroPosAddr(k)); } };
 link.onNote = (on, note, vel) => (on ? noteOn(note, vel) : noteOff(note));
-link.onPatch = (bytes) => importPatches([{ data: bytes }], 'the Circuit Tracks');
+link.onPatch = (bytes) => importPatches([{ data: bytes }], 'the Circuit Tracks', 'tracks');
 
 // ------------------------------------------------------------------ keyboard and loop
 const KEY_ROW = 'awsedftgyhujkolp;';
@@ -985,7 +1095,7 @@ function bindUI() {
     if (link.connected) link.sendPatch(orig, S.synth);
     e.preventDefault();
   };
-  const endCmp = () => { if (!comparing) return; comparing = false; cmp.classList.remove('on'); synth?.setPatch(S.bytes); if (link.connected) link.sendPatch(S.bytes, S.synth); };
+  const endCmp = () => { if (!comparing) return; comparing = false; cmp.classList.remove('on'); synth?.setPatch(S.bytes); if (link.connected) hwSend(); };
   cmp.addEventListener('pointerdown', startCmp);
   for (const ev of ['pointerup', 'pointerleave', 'pointercancel', 'blur']) cmp.addEventListener(ev, endCmp);
 
@@ -1023,12 +1133,12 @@ function bindUI() {
     S.synth = +b.dataset.synth;
     document.body.dataset.synth = S.synth;
     document.querySelectorAll('#hw [data-synth]').forEach((x) => x.classList.toggle('on', x === b));
-    if ($('#hw-live').checked) link.sendPatch(S.bytes, S.synth);
+    paintStatus();
+    offerSync();
   }));
-  $('#hw-send').addEventListener('click', () => { if (link.sendPatch(S.bytes, S.synth)) toast(`Sent "${getName(S.bytes)}" to Synth ${S.synth + 1}.`); });
-  $('#hw-get').addEventListener('click', async () => {
-    try { await importPatches([{ data: await link.requestPatch(S.synth) }], `Synth ${S.synth + 1} on the Circuit Tracks`); } catch (e) { toast(e.message, 5000); }
-  });
+  $('#hw-send').addEventListener('click', () => { if (hwSend()) toast(`Sent "${getName(S.bytes)}" to Synth ${S.synth + 1}.`); });
+  $('#hw-get').addEventListener('click', getFromTracks);
+  $('#hw-live').addEventListener('change', (e) => { if (e.target.checked && link.connected) hwSend(); paintStatus(); });
   $('#hw-store').addEventListener('click', async () => {
     const sel = slotSelect(S.slot);
     if (!(await ask('Store on the Circuit Tracks', [`Writes "${getName(S.bytes)}" into a patch slot on the Circuit Tracks itself, replacing the patch that is there now. This cannot be undone from here.`,
