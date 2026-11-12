@@ -47,7 +47,7 @@ const fakeMidi = () => {
 
   // --- every patch makes sound in the browser synth, with nothing blowing up
   const render = await page.evaluate(async () => {
-    const { PatchSynth } = await import('/js/pw/engine.js');
+    const { PatchSynth } = await import('/js/pw/engine.js?v=20261112b');
     const { S } = window.patchworker;
     const res = [];
     for (let i = 0; i < 128; i++) {
@@ -71,7 +71,7 @@ const fakeMidi = () => {
 
   // --- an untouched pack saves back with every file identical
   const same = await page.evaluate(async () => {
-    const { openPack } = await import('/js/pw/packio.js');
+    const { openPack } = await import('/js/pw/packio.js?v=20261112b');
     const { S, buildPack } = window.patchworker;
     const { blob } = await buildPack(S.pack);
     const again = await openPack(await blob.arrayBuffer());
@@ -118,8 +118,8 @@ const fakeMidi = () => {
   const packFile = `${out}/${pdl.suggestedFilename()}`;
   await pdl.saveAs(packFile);
   const packCheck = await page.evaluate(async (b64) => {
-    const { openPack } = await import('/js/pw/packio.js');
-    const { getName } = await import('/js/pw/params.js');
+    const { openPack } = await import('/js/pw/packio.js?v=20261112b');
+    const { getName } = await import('/js/pw/params.js?v=20261112b');
     const buf = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)).buffer;
     const p = await openPack(buf);
     return { n0: getName(p.patches[0]), n127: getName(p.patches[127]), i0: p.index.patches[0].name, i127: p.index.patches[127].name, f: p.patches[0][64], samples: p.samples };

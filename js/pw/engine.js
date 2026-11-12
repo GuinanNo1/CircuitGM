@@ -12,9 +12,13 @@
 //
 // It is still an approximation: the hardware is the reference.
 import { P, MACRO_DESTS, MOD_SLOTS, modAddr, macroPosAddr, macroRows, cutoffHz, attackSeconds,
-  decaySeconds, lfoHz, eqDb, eqHz, pitchSemis, filterSteps, syncBeats, initPatch } from './params.js';
+  decaySeconds, lfoHz, eqDb, eqHz, pitchSemis, filterSteps, syncBeats, initPatch } from './params.js?v=20261112b';
 
 const MAX_VOICES = 6;
+// The Circuit Tracks sounds an incoming MIDI note two octaves above concert pitch for that note
+// number (heard side by side with the hardware, 2026-11-12), so the browser synth does the same.
+// Filter key tracking still follows the note number, as in the cutoff measurements.
+export const HARDWARE_TRANSPOSE = 24;
 const TABLE = 1024;
 const HARMONICS = 96;
 const clamp = (v, lo, hi) => (Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : lo);
@@ -475,9 +479,9 @@ export class PatchSynth {
       for (const [sp, g] of density > 0 ? [[0, 1], [spread, density], [-spread, density]] : [[0, 1]]) {
         const osc = c.createOscillator();
         osc.setPeriodicWave(wave);
-        const target = midiHz(pitch + semis);
+        const target = midiHz(pitch + semis + HARDWARE_TRANSPOSE);
         if (glideFrom != null && glideTime > 0.002) {
-          osc.frequency.setValueAtTime(midiHz(glideFrom + semis), t);
+          osc.frequency.setValueAtTime(midiHz(glideFrom + semis + HARDWARE_TRANSPOSE), t);
           osc.frequency.exponentialRampToValueAtTime(target, t + glideTime);
         } else osc.frequency.value = target;
         osc.detune.value = cents + sp;
