@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/patchworker.css?v=20261112j">
+<link rel="stylesheet" href="../css/patchworker.css?v=20261113a">
 </head>
 <body class="doc">
 <nav class="topnav" aria-label="CircuitGM">
@@ -76,9 +76,11 @@
   </table>
 
   <h2 id="sound">How close is the browser sound?</h2>
-  <p>The browser synth is an approximation, built on the Web Audio synth from <a href="https://github.com/namirsab/circuit-tracks-tools">circuit-tracks-tools</a> by Namir Sayed-Ahmad Baraza, with its parameter curves replaced by CircuitGM's measurements of a real Circuit Tracks (filter cutoff, envelope times, LFO rate, modulation depth to pitch and filter, EQ, and Pre / Post FX level). It is good for shaping a sound; the hardware has the last word. Known differences:</p>
+  <p>The browser synth is an approximation, built on the Web Audio synth from <a href="https://github.com/namirsab/circuit-tracks-tools">circuit-tracks-tools</a> by Namir Sayed-Ahmad Baraza, with its parameter curves replaced by CircuitGM's measurements of a real Circuit Tracks (filter cutoff and resonance, envelope times, velocity response, oscillator, noise and ring-modulation levels, LFO rate, modulation depth to pitch and filter, EQ, and Pre / Post FX level). It is good for shaping a sound; the hardware has the last word. Known differences:</p>
   <ul>
     <li>The wavetable waves (Sine Table to Random Collection) are stand-in shapes. The Sine Table and the pulse and blend tables follow the measured behaviour; the vocal and random tables only resemble it.</li>
+    <li>When both oscillators play exactly the same pitch (same Semitones and Cents, no Density), the Circuit Tracks lets them sit at whatever point in their cycles earlier notes left them, so the same patch can come out louder or quieter, fuller or thinner, from one time to the next. The browser always uses the middle case.</li>
+    <li>At the top of the Resonance range the hardware's 24 dB filters and 12 dB band-pass ring by themselves; the browser stays just short of that.</li>
     <li>Controls marked with a small orange ring (Q, pitch-bend range, LFO Slew) change the patch but not the browser sound. The same goes for Common Sync, and for mod matrix rows aimed at V-Sync, Pulse Width, Drive, LFO Rate and envelope Decay.</li>
     <li><b>Keyboard Octave</b> sets the octave the Circuit Tracks' own pads and patch preview start in. It does not shift notes played from this page or over MIDI, on the hardware or in the browser. Both play MIDI note 60 (middle C) at 261.6 Hz.</li>
     <li>Distortion, filter drive, chorus and phaser are simpler than the hardware's.</li>

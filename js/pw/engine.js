@@ -12,7 +12,7 @@
 //
 // It is still an approximation: the hardware is the reference.
 import { P, MACRO_DESTS, MOD_SLOTS, modAddr, macroPosAddr, macroRows, cutoffHz, attackSeconds,
-  decaySeconds, lfoHz, eqDb, eqHz, pitchSemis, filterSteps, syncBeats, initPatch } from './params.js?v=20261112j';
+  decaySeconds, lfoHz, eqDb, eqHz, pitchSemis, filterSteps, syncBeats, initPatch } from './params.js?v=20261113a';
 
 const MAX_VOICES = 6;
 // Pitch: the Circuit Tracks plays an incoming MIDI note at standard pitch (MIDI 60 measured at
@@ -56,7 +56,9 @@ export function waveTable(wave, index = 64, interp = 127, vsync = 0) {
   const lo = Math.floor(pos);
   const f = pos - lo;
   const duty = clamp(0.5 + (x - 0.504) * 0.9, 0.04, 0.96);
-  const saw = (p) => 2 * p - 1;
+  // Measured (calibration set 3): every basic wave starts its cycle at zero going up, so the
+  // fundamentals of all of them line up. The saw therefore has its jump in mid-cycle.
+  const saw = (p) => 2 * frac(p + 0.5) - 1;
   const tri = (p) => 1 - 4 * Math.abs(frac(p + 0.25) - 0.5);
   const pulse = (p, d) => (p < d ? 1 : -1);
   let t = new Float32Array(TABLE);
@@ -110,12 +112,20 @@ export function waveTable(wave, index = 64, interp = 127, vsync = 0) {
   return t;
 }
 
+// How far oscillator 2 runs behind oscillator 1, as a fraction of a cycle, when both play the same
+// pitch. The hardware's oscillators run freely: the offset is whatever earlier notes left behind
+// and then stays put while the two pitches are equal. Calibration set 3 (2026-11-13) had 193.5
+// degrees on all 49 patches, where two equal waves nearly cancel; the same-pitch GM patches
+// recorded on 2026-11-05 fit anything from in phase to nearly opposite, patch by patch. A quarter
+// cycle gives the average loudness of all the offsets the hardware can land on.
+export const OSC2_PHASE = 0.25;
+
 const periodicCache = new WeakMap();
-function periodicWave(ctx, wave, index, interp, vsync) {
+function periodicWave(ctx, wave, index, interp, vsync, shift = 0) {
   let m = periodicCache.get(ctx);
   if (!m) { m = new Map(); periodicCache.set(ctx, m); }
   const usesIndex = wave >= 3 && wave !== 13;
-  const key = `${wave}|${usesIndex ? index : 0}|${usesIndex && interp > 63 ? 1 : 0}|${vsync}`;
+  const key = `${wave}|${usesIndex ? index : 0}|${usesIndex && interp > 63 ? 1 : 0}|${vsync}|${shift}`;
   if (m.has(key)) return m.get(key);
   if (m.size > 300) m.clear();
   const t = waveTable(wave, usesIndex ? index : 64, interp, vsync);
@@ -125,14 +135,16 @@ function periodicWave(ctx, wave, index, interp, vsync) {
     let re = 0;
     let im = 0;
     for (let i = 0; i < TABLE; i++) {
-      const a = 2 * Math.PI * h * i / TABLE;
+      const a = 2 * Math.PI * h * (i / TABLE + shift);
       re += t[i] * Math.cos(a);
       im += t[i] * Math.sin(a);
     }
     real[h] = (2 * re) / TABLE;
     imag[h] = (2 * im) / TABLE;
   }
-  const w = ctx.createPeriodicWave(real, imag);
+  // No normalising by the browser: the tables are peak-normalised, as the hardware's waves are
+  // (measured levels against a sine: triangle -1.7 dB, saw -1.9 dB, square +2.9 dB).
+  const w = ctx.createPeriodicWave(real, imag, { disableNormalization: true });
   m.set(key, w);
   return w;
 }
@@ -198,7 +210,25 @@ function noiseBuffer(ctx) {
   if (!noiseBuffers.has(ctx)) {
     const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
     const d = buf.getChannelData(0);
+    // The hardware's noise is flat to about 10 kHz and falls away above 14 kHz (calibration
+    // set 3): white noise through a 4-pole low-pass, brought back to the level of white noise.
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const w0 = (2 * Math.PI * Math.min(15000, ctx.sampleRate * 0.45)) / ctx.sampleRate;
+    const al = Math.sin(w0) / (2 * 0.707);
+    const cw = Math.cos(w0);
+    const b0 = (1 - cw) / 2 / (1 + al), b1 = (1 - cw) / (1 + al), a1 = (-2 * cw) / (1 + al), a2 = (1 - al) / (1 + al);
+    for (let pass = 0; pass < 2; pass++) {
+      let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+      for (let i = 0; i < d.length; i++) {
+        const x = d[i];
+        const y = b0 * x + b1 * x1 + b0 * x2 - a1 * y1 - a2 * y2;
+        x2 = x1; x1 = x; y2 = y1; y1 = y; d[i] = y;
+      }
+    }
+    let sum = 0;
+    for (let i = 0; i < d.length; i++) sum += d[i] * d[i];
+    const k = Math.sqrt(1 / 3) / Math.sqrt(sum / d.length);
+    for (let i = 0; i < d.length; i++) d[i] *= k;
     noiseBuffers.set(ctx, buf);
   }
   return noiseBuffers.get(ctx);
@@ -274,6 +304,24 @@ function shaperCurve(type, amount, { ref, db, dry = 0, wet = 1 }) {
 const DRIVE_REF = 0.5;
 const DIST_REF = 0.175;
 
+// Mixer gains of noise and ring modulation at 127, set so their levels against a full-level sine
+// match the hardware (calibration set 3: noise -3.0 dB, ring modulation -5.3 dB).
+const NOISE_GAIN = 0.46;
+const RING_GAIN = 0.384;
+
+// Filter resonance, measured with noise through every filter type (calibration set 3). All types
+// fit one two-pole section (two in series for the 24 dB types and the 12 dB band-pass) whose Q
+// follows the first table; the output drops as resonance rises (second table). The two-section
+// types level off above about 85, where the hardware filter starts to ring by itself. The
+// band-pass keeps its skirts and grows a peak, where Web Audio's keeps its peak and narrows.
+const RES_Q1 = [[0, 0.74], [20, 1.05], [40, 1.52], [60, 2.59], [80, 4.9], [100, 15], [127, 35]];
+const RES_Q2 = [[0, 0.74], [20, 1.03], [40, 1.5], [60, 2.59], [80, 4.4], [100, 5.2], [127, 5.9]];
+const RES_LNQ1 = RES_Q1.map(([v, q]) => [v, Math.log(q)]);
+const RES_LNQ2 = RES_Q2.map(([v, q]) => [v, Math.log(q)]);
+const RES_GAIN_DB = [[0, 0], [20, -0.8], [40, -1.3], [60, -2.3], [80, -3.0], [100, -4.1], [127, -5.7]];
+// Natural frequency of the filter against the measured -3 dB point of the 12 dB low-pass.
+const CUTOFF_TO_F0 = 0.93;
+
 const chorusHz = (v) => Math.max(0.02, 0.0013 * v * v);          // measured on the phaser: 40 -> 2 Hz, 100 -> 12.7 Hz
 const lfoDelaySeconds = (v) => (v / 127) ** 2 * 6;
 
@@ -282,6 +330,7 @@ export class PatchSynth {
   constructor(ctx, destination = ctx.destination) {
     this.ctx = ctx;
     this.bytes = initPatch();
+    this.osc2Phase = OSC2_PHASE;
     this.voices = [];
     this.bpm = 120;
     this.contrib = new Map();
@@ -453,8 +502,9 @@ export class PatchSynth {
     for (const v of this.voices) {
       if (v.dead) continue;
       const fc = this.filterHz(v.note);
-      const q = this.filterQ(v.filters.length);
+      const q = this.filterQParam(v.filters.length, v.ftype);
       for (const f of v.filters) { set(f.frequency, fc); set(f.Q, q); }
+      set(v.fgain.gain, this.filterGain(v.filters.length, v.ftype));
       const lv = this.mixLevels();
       set(v.g1.gain, lv.l1); set(v.g2.gain, lv.l2); set(v.gn.gain, lv.ln); set(v.gr.gain, lv.lr);
       set(v.pre.gain, lv.pre);
@@ -468,25 +518,37 @@ export class PatchSynth {
 
   oscWave(n) {
     return periodicWave(this.ctx, this.bytes[P[`osc${n}_wave`].a], this.val(`osc${n}_pw`),
-      this.val(`osc${n}_interpolate`), this.val(`osc${n}_vsync`));
+      this.val(`osc${n}_interpolate`), this.val(`osc${n}_vsync`), n === 2 ? this.osc2Phase : 0);
   }
 
   mixLevels() {
     return {
       l1: (this.val('osc1_level') / 127) * 0.5, l2: (this.val('osc2_level') / 127) * 0.5,
-      ln: (this.val('noise_level') / 127) * 0.4, lr: (this.val('ring_level') / 127) * 0.5,
+      ln: (this.val('noise_level') / 127) * NOISE_GAIN, lr: (this.val('ring_level') / 127) * RING_GAIN,
       pre: 10 ** ((this.val('pre_fx_level') - 64) / 20),
     };
   }
 
   filterHz(note) {
     const track = this.val('filter_tracking') / 127;
-    return clamp(cutoffHz(this.val('filter_frequency')) * 2 ** (((note - 60) / 12) * track), 20, 20000);
+    return clamp(cutoffHz(this.val('filter_frequency')) * CUTOFF_TO_F0 * 2 ** (((note - 60) / 12) * track), 20, 20000);
   }
 
+  // Q of each filter section (as a plain ratio), and what Web Audio wants for it: low- and
+  // high-pass take Q in dB, band-pass as a ratio.
   filterQ(stages) {
-    const r = this.val('filter_resonance') / 127;
-    return stages > 1 ? 0.6 + r * r * 9 : 0.707 + r * r * 20;
+    return Math.exp(tableDb(stages > 1 ? RES_LNQ2 : RES_LNQ1, this.val('filter_resonance')));
+  }
+
+  filterQParam(stages, ftype) {
+    const q = this.filterQ(stages);
+    return ftype === 2 || ftype === 3 ? q : 20 * Math.log10(q);
+  }
+
+  // Level after the filter: the drop with resonance, and the band-pass peak growing with Q.
+  filterGain(stages, ftype) {
+    const g = 10 ** (tableDb(RES_GAIN_DB, this.val('filter_resonance')) / 20);
+    return ftype === 2 || ftype === 3 ? g * this.filterQ(stages) ** stages : g;
   }
 
   // --- notes
@@ -591,22 +653,31 @@ export class PatchSynth {
       const f = c.createBiquadFilter();
       f.type = ftype <= 1 ? 'lowpass' : ftype <= 3 ? 'bandpass' : 'highpass';
       f.frequency.value = fc;
-      f.Q.value = ftype === 2 || ftype === 3 ? Math.max(0.7, this.filterQ(stages) * 0.6) : this.filterQ(stages);
+      f.Q.value = this.filterQParam(stages, ftype);
       node.connect(f);
       node = f;
       filters.push(f);
     }
+    const fgain = c.createGain();
+    fgain.gain.value = this.filterGain(stages, ftype);
+    node.connect(fgain);
+    node = fgain;
+    voice.nodes.push(fgain);
     const amp = c.createGain();
     amp.gain.value = 0;
     node.connect(amp);
     bypass.connect(amp);
     amp.connect(this.voiceBus);
-    Object.assign(voice, { g1, g2, gn, gr, pre, filters, amp });
+    Object.assign(voice, { g1, g2, gn, gr, pre, filters, fgain, ftype, amp });
 
     // An envelope as an AudioParam automation, kept as numbers so a release can re-anchor it.
+    // Velocity law measured on the Circuit Tracks (calibration set 3, sine, velocities 1-127 at
+    // ten settings): the envelope follows velocity squared, not velocity, with a small floor.
+    // Fits every measured point within about 0.3 dB. Measured on envelope 1; assumed for envelope 2.
+    const velCurve = 0.015 + 0.985 * vel * vel;
     const envVel = (id) => {
-      const amt = (this.val(id) - 64) / 63;
-      return amt >= 0 ? 1 - amt + amt * vel : 1 + amt * vel;
+      const v = this.val(id);
+      return v >= 64 ? 1 - ((v - 64) / 63) * (1 - velCurve) : Math.max(0.0075, 1 - ((64 - v) / 64) * velCurve);
     };
     const runEnv = (param, prefix, peak) => {
       const del = prefix === 'env3' ? (this.val('env3_delay') / 127) ** 2 * 4 : 0;
@@ -704,6 +775,8 @@ export class PatchSynth {
 
       scale *= (isStatic(s1) ? staticValue(s1) : 1) * (isStatic(s2) ? staticValue(s2) : 1);
       const dyn = [s1, s2].filter((x) => !isStatic(x)).map(sourceNode);
+      // A constant pulling a mixer level down stops at silence (measured), it does not invert.
+      if (dyn.length === 0 && dest >= 7 && dest <= 10) scale = Math.max(scale, -targets[0].value);
       const g = c.createGain();
       if (dyn.length === 0) {
         const k = c.createConstantSource();
