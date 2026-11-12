@@ -47,7 +47,7 @@ const fakeMidi = () => {
 
   // --- every patch makes sound in the browser synth, with nothing blowing up
   const render = await page.evaluate(async () => {
-    const { PatchSynth } = await import('/js/pw/engine.js?v=20261112e');
+    const { PatchSynth } = await import('/js/pw/engine.js?v=20261112f');
     const { S } = window.patchworker;
     const res = [];
     for (let i = 0; i < 128; i++) {
@@ -63,6 +63,18 @@ const fakeMidi = () => {
     }
     return res;
   });
+  // Middle C plays at 261.6 Hz, as measured on the hardware.
+  const c4 = await page.evaluate(async () => {
+    const { PatchSynth } = await import('/js/pw/engine.js?v=20261112f');
+    const { initPatch } = await import('/js/pw/params.js?v=20261112f');
+    const off = new OfflineAudioContext(1, 48000, 48000);
+    const s = new PatchSynth(off); const b = initPatch(); b[36] = 0; b[35] = 63; s.setPatch(b);
+    s.noteOn(60, 100, 0, 0.9);
+    const d = (await off.startRendering()).getChannelData(0);
+    let n = 0; for (let i = 9601; i < 33600; i++) if (d[i - 1] < 0 && d[i] >= 0) n++;
+    return n * 2;
+  });
+  check(Math.abs(c4 - 262) <= 2, `MIDI 60 plays at ~261.6 Hz with Keyboard Octave -1 stored (${c4} Hz)`);
   const silent = render.filter((r) => r.peak < 0.003).map((r) => r.i + 1);
   check(render.every((r) => !r.bad), 'no patch renders NaN or infinity');
   check(silent.length === 0, `all 128 patches are audible (silent: ${silent.join(', ') || 'none'})`);
@@ -71,7 +83,7 @@ const fakeMidi = () => {
 
   // --- an untouched pack saves back with every file identical
   const same = await page.evaluate(async () => {
-    const { openPack } = await import('/js/pw/packio.js?v=20261112e');
+    const { openPack } = await import('/js/pw/packio.js?v=20261112f');
     const { S, buildPack } = window.patchworker;
     const { blob } = await buildPack(S.pack);
     const again = await openPack(await blob.arrayBuffer());
@@ -118,8 +130,8 @@ const fakeMidi = () => {
   const packFile = `${out}/${pdl.suggestedFilename()}`;
   await pdl.saveAs(packFile);
   const packCheck = await page.evaluate(async (b64) => {
-    const { openPack } = await import('/js/pw/packio.js?v=20261112e');
-    const { getName } = await import('/js/pw/params.js?v=20261112e');
+    const { openPack } = await import('/js/pw/packio.js?v=20261112f');
+    const { getName } = await import('/js/pw/params.js?v=20261112f');
     const buf = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)).buffer;
     const p = await openPack(buf);
     return { n0: getName(p.patches[0]), n127: getName(p.patches[127]), i0: p.index.patches[0].name, i127: p.index.patches[127].name, f: p.patches[0][64], samples: p.samples };

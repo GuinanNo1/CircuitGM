@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/patchworker.css?v=20261112e">
+<link rel="stylesheet" href="../css/patchworker.css?v=20261112f">
 </head>
 <body>
 <nav class="topnav" aria-label="CircuitGM">
@@ -119,6 +119,10 @@
       <span class="eyebrow">Octave</span>
       <span class="seg"><button type="button" id="oct-down" title="Octave down (Z)">−</button><output id="oct">C3</output><button type="button" id="oct-up" title="Octave up (X)">+</button></span>
     </div>
+    <div class="ctl" title="Shifts only the browser sound, to line it up with the Circuit Tracks if its own octave has been moved">
+      <span class="eyebrow">Browser pitch</span>
+      <span class="seg"><button type="button" id="tr-down">−</button><output id="tr">0 oct</output><button type="button" id="tr-up">+</button></span>
+    </div>
     <label class="ctl"><span class="eyebrow">Velocity <output id="vel-out">100</output></span><input type="range" id="vel" min="1" max="127" value="100"></label>
     <label class="ctl"><span class="eyebrow">Volume</span><input type="range" id="vol" min="0" max="100" value="80"></label>
     <label class="ctl"><span class="eyebrow">Tempo</span><input type="number" id="bpm" min="40" max="240" value="120" title="Tempo for the loop and for tempo-synced LFOs in the browser"></label>
@@ -159,6 +163,6 @@
 </dialog>
 <input type="file" id="file-pack" accept=".circuittrackspack,.zip" hidden>
 <input type="file" id="file-syx" accept=".syx" multiple hidden>
-<script type="module" src="../js/patchworker.js?v=20261112e"></script>
+<script type="module" src="../js/patchworker.js?v=20261112f"></script>
 </body>
 </html>
