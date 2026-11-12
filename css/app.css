@@ -337,6 +337,7 @@ select, input[type="text"], input:not([type]) {
 .card p { margin: 0; }
 .card .links { margin-top: auto; font-weight: 600; }
 .status-tag { font: 600 0.72rem var(--mono); letter-spacing: 0.04em; border-radius: 6px; padding: 3px 7px; white-space: nowrap; }
+mark.note { background: var(--warn-bg); color: var(--ink); border-radius: 4px; padding: 1px 4px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 .status-tag.alpha { color: var(--warn); background: var(--warn-bg); }
 .status-tag.ready { color: var(--s2); background: color-mix(in srgb, var(--s2) 14%, transparent); }
 .status-tag.soon { color: var(--muted); background: var(--soft); }
