@@ -221,9 +221,7 @@ input[type=number], input[type=search], input[type=text] { background: var(--wel
 .k-type { width: 4.4em; font: 400 .72rem var(--mono); padding: 1px 3px; text-align: center; }
 
 /* ---------- graphs ---------- */
-.graph { display: block; width: 100%; height: 56px; background: var(--lcd); border-radius: 6px; margin-top: 6px; }
-.env .graph { height: 64px; }
-.eq .graph { height: 110px; }
+.graph { display: block; width: 100%; height: auto; aspect-ratio: var(--ar, 3); max-width: calc(210px * var(--ar, 3)); margin: 6px auto 0; background: var(--lcd); border-radius: 6px; }
 .g-line { fill: none; stroke: var(--accent); stroke-width: 1.6; vector-effect: non-scaling-stroke; }
 .g-fill { fill: #9c8bff2e; stroke: none; }
 

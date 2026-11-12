@@ -343,7 +343,8 @@ const knobs = (...ks) => h('div', { class: 'knobs' }, ...ks);
 function graph(w, hgt, cls = '') {
   const path = svg('path', { class: 'g-line' });
   const fill = svg('path', { class: 'g-fill' });
-  const el = svg('svg', { viewBox: `0 0 ${w} ${hgt}`, class: `graph ${cls}`, preserveAspectRatio: 'none' }, fill, path);
+  // Drawn at a fixed shape: the picture grows and shrinks with its panel but is never stretched.
+  const el = svg('svg', { viewBox: `0 0 ${w} ${hgt}`, class: `graph ${cls}`, style: `--ar:${(w / hgt).toFixed(3)}` }, fill, path);
   const draw = (pts, base = hgt) => {
     const d = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join('');
     path.setAttribute('d', d);
@@ -355,12 +356,12 @@ function graph(w, hgt, cls = '') {
 // ------------------------------------------------------------------ Main page
 function oscPanel(n) {
   const id = (s) => `osc${n}_${s}`;
-  const [g, draw] = graph(200, 64);
+  const [g, draw] = graph(200, 76);
   watch([P[id('wave')].a, P[id('pw')].a, P[id('interpolate')].a, P[id('vsync')].a], () => {
     const t = waveTable(S.bytes[P[id('wave')].a], S.bytes[P[id('pw')].a], S.bytes[P[id('interpolate')].a], S.bytes[P[id('vsync')].a]);
     const pts = [];
-    for (let i = 0; i <= 200; i++) pts.push([i, 32 - t[Math.floor((i / 200) * (t.length - 1))] * 26]);
-    draw(pts, 32);
+    for (let i = 0; i <= 200; i++) pts.push([i, 38 - t[Math.floor((i / 200) * (t.length - 1))] * 31]);
+    draw(pts, 38);
   });
   return panel(`Osc ${n}`, 'osc',
     picker(P[id('wave')].a, numbered(OSC_WAVES), { arrows: true, label: `Oscillator ${n} wave` }), g,
