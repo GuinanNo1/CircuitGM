@@ -1,7 +1,7 @@
 // PatchWorker: reading and writing Circuit Tracks packs and patch files, and keeping the working
 // session in the browser between visits.
 import { readZip, writeZipDeflate } from '../vendor/zip.js';
-import { PATCH_SIZE, SYX_SIZE, parseSyx, toSyx, getName, initPatch } from './params.js?v=20261112b';
+import { PATCH_SIZE, SYX_SIZE, parseSyx, toSyx, getName, initPatch } from './params.js?v=20261112e';
 
 export const PATCH_SLOTS = 128;
 const NCS_SIZE = 160780;

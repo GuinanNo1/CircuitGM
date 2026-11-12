@@ -43,6 +43,8 @@ The patch layout and MIDI numbers are from the Circuit Tracks Programmer's Refer
 
 It adds wavetable shapes, ring modulation, density, virtual sync, filter drive and bypass routing, mod matrix source 1 × source 2, LFO delay with the four fade modes, and a phaser.
 
+Pitch: the Circuit Tracks sounds MIDI note 60 at 523 Hz (one octave above concert pitch for the note number), and ignores the patch's Keyboard Octave for notes arriving over MIDI (that setting is the pads' and patch preview's starting octave). The browser synth does the same.
+
 Not emulated: Q normalise, pitch-bend range, LFO slew and common sync, and mod matrix destinations V-Sync, Pulse Width, Drive, LFO Rate and envelope Decay. The vocal and random wavetables are stand-ins. Macro depth scaling is an estimate (not yet measured).
 
 ## Testing

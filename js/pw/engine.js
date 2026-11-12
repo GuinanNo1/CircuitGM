@@ -12,13 +12,16 @@
 //
 // It is still an approximation: the hardware is the reference.
 import { P, MACRO_DESTS, MOD_SLOTS, modAddr, macroPosAddr, macroRows, cutoffHz, attackSeconds,
-  decaySeconds, lfoHz, eqDb, eqHz, pitchSemis, filterSteps, syncBeats, initPatch } from './params.js?v=20261112b';
+  decaySeconds, lfoHz, eqDb, eqHz, pitchSemis, filterSteps, syncBeats, initPatch } from './params.js?v=20261112e';
 
 const MAX_VOICES = 6;
-// The Circuit Tracks sounds an incoming MIDI note two octaves above concert pitch for that note
-// number (heard side by side with the hardware, 2026-11-12), so the browser synth does the same.
+// The Circuit Tracks sounds an incoming MIDI note one octave above concert pitch for that note
+// number (MIDI 60 = 523 Hz; checked by ear against the hardware on Grand Piano, 2026-11-12, and
+// in line with projects storing notes as MIDI + 12). The patch's Keyboard Octave is not part of
+// this: it only sets the octave the Tracks' own pads and patch preview start in, so notes arriving
+// over MIDI ignore it, and so does the browser synth.
 // Filter key tracking still follows the note number, as in the cutoff measurements.
-export const HARDWARE_TRANSPOSE = 24;
+export const HARDWARE_TRANSPOSE = 12;
 const TABLE = 1024;
 const HARMONICS = 96;
 const clamp = (v, lo, hi) => (Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : lo);
@@ -441,7 +444,7 @@ export class PatchSynth {
     const t = Math.max(time ?? c.currentTime, c.currentTime);
     const b = this.bytes;
     const mode = b[P.poly_mode.a];
-    const pitch = note + (this.val('octave') - 64) * 12;
+    const pitch = note;
     const vel = clamp(velocity, 1, 127) / 127;
 
     // Glide: Mono always glides when portamento is up; Auto-Glide only between overlapping notes.

@@ -3,11 +3,11 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261112b';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261112b';
-import { TracksLink } from './pw/midi.js?v=20261112b';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261112e';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261112e';
+import { TracksLink } from './pw/midi.js?v=20261112e';
 import { openPack, buildPack, bankSyx, slotEdited, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261112b';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261112e';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_final.circuittrackspack';
 const $ = (s) => document.querySelector(s);
@@ -197,7 +197,8 @@ function selectSlot(slot, { send = true } = {}) {
 // ------------------------------------------------------------------ controls
 // A binding says where a control's value lives: { addr, lo, hi, def, fmt, label }.
 const bindParam = (id, extra = {}) => ({ addr: P[id].a, lo: P[id].lo, hi: P[id].hi, def: P[id].d, fmt: FMT[P[id].fmt], label: P[id].label, id, ...extra });
-const NOT_IN_BROWSER = new Set(['filter_q_normalise', 'osc1_bend', 'osc2_bend', 'lfo1_slew', 'lfo2_slew']);
+const NOT_IN_BROWSER = new Set(['filter_q_normalise', 'osc1_bend', 'osc2_bend', 'lfo1_slew', 'lfo2_slew', 'octave']);
+const KNOB_NOTE = { octave: 'Sets the octave the Circuit Tracks\' own pads and patch preview start in. Notes played from here, or over MIDI, are not shifted.' };
 
 function knob(b, { small = false } = {}) {
   const A0 = -135;
@@ -216,7 +217,7 @@ function knob(b, { small = false } = {}) {
   const out = h('output', { class: 'k-out' });
   const el = h('div', { class: `knob${small ? ' small' : ''}${b.id && NOT_IN_BROWSER.has(b.id) ? ' hwonly' : ''}`, tabindex: 0, role: 'slider',
     'aria-label': b.aria ?? b.label, 'aria-valuemin': b.lo, 'aria-valuemax': b.hi,
-    title: `${b.aria ?? b.label}: drag up or down (Shift = fine), scroll, arrow keys, double-click to reset${b.id && NOT_IN_BROWSER.has(b.id) ? '. Heard on the Circuit Tracks only.' : ''}` },
+    title: `${b.aria ?? b.label}: drag up or down (Shift = fine), scroll, arrow keys, double-click to reset${b.id && KNOB_NOTE[b.id] ? `. ${KNOB_NOTE[b.id]}` : b.id && NOT_IN_BROWSER.has(b.id) ? '. Heard on the Circuit Tracks only.' : ''}` },
   dial, h('span', { class: 'k-label', text: b.label }), out);
   const get = () => S.bytes[b.addr];
   const set = (v) => setByte(b.addr, clamp(Math.round(v), b.lo, b.hi));
