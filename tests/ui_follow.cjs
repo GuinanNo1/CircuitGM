@@ -332,6 +332,36 @@ const { chromium } = require('playwright');
   check('reads the chosen pack as files 04/<pack x 16>…', /★ reading pack 1 \("15_TracksGM"\) as files 04\/16-31/.test(read.log) && !read.sentPack.length);
   check('and file 04/16 with its size, CRC and the 8-patch names', /★ file 04\/16 \(patches 1-8\): 852 bytes, CRC ok: STORE TEST \| SECOND ONE/.test(read.log) && /★ file 04\/17: none/.test(read.log));
   check('and downloads them as JSON', read.json && read.json.files[0].size === 852 && read.json.files[0].hex.startsWith('53544f5245') && read.json.packs[1] === '15_TracksGM' && read.json.pack === 1);
+  // Scan: every block's first patch names (the simulated Tracks has a file only at 04/16).
+  const scan = await q.evaluate(async () => {
+    const w = window.patchworker, L = w.link, H = [0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x03];
+    const file = Uint8Array.from({ length: 340 }, (_, i) => (i < 16 ? 'BLOCK ONE PATCH '.charCodeAt(i) : 0));
+    const nib = (v, n) => Array.from({ length: n }, (_, k) => (v >> (4 * (n - 1 - k))) & 15);
+    const pack7 = (b) => { const o = []; for (let i = 0; i < b.length; i += 7) { const g = [...b.slice(i, i + 7)]; o.push(g.reduce((h, x, j) => h | ((x >> 7) << j), 0), ...g.map((x) => x & 127)); } return o; };
+    const reply = (d) => setTimeout(() => L.receive({ name: 'Circuit Tracks' }, Uint8Array.from(d)), 1);
+    let crc = 0xffffffff; for (const b of file) { crc ^= b; for (let k = 0; k < 8; k++) crc = crc & 1 ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1; } crc = (crc ^ 0xffffffff) >>> 0;
+    L.in = { name: 'Circuit Tracks' };
+    L.out = { send(b) {
+      if (b[6] !== 3) return;
+      if (b[7] === 0x0b && b[8] === 2) reply([...H, 0x0c, 0x02, 0, 0x41, 0xf7]);
+      if (b[7] === 0x01 && b[16] === 4) {
+        const hi = b[17], lo = b[18], a = (k) => [0, 0, 0, 0, 0, 0, 0, k];
+        if (hi !== 0 || lo !== 16) return reply([...H, 0x06, 0x04, hi, lo, 0xf7]);
+        reply([...H, 0x01, ...a(0), 4, hi, lo, 1, 0, 0, 0, ...nib(file.length, 5), 0xf7]);
+        reply([...H, 0x02, ...a(1), 4, hi, lo, ...pack7(file), 0xf7]);
+        reply([...H, 0x03, ...a(2), 4, hi, lo, ...nib(crc, 8), 0xf7]);
+      }
+    } };
+    const dl = []; const orig = URL.createObjectURL; URL.createObjectURL = (blob) => { dl.push(blob); return 'blob:x'; };
+    document.querySelector('.midilog-box button:nth-of-type(3)').click();
+    await new Promise((r) => { const t = setInterval(() => { if (document.querySelector('#dlg').open) { clearInterval(t); r(); } }, 30); });
+    document.querySelector('#dlg select').value = 'scan';
+    document.querySelector('#dlg-ok').click();
+    await new Promise((r) => { const t = setInterval(() => { if (dl.length) { clearInterval(t); r(); } }, 50); setTimeout(r, 15000); });
+    URL.createObjectURL = orig; L.out = null; L.in = null;
+    return { json: dl.length ? JSON.parse(await dl[0].text()) : null, log: document.querySelector('.midilog').textContent };
+  });
+  check('the scan lists each block\'s first patch names', /★ block 1 \(files 16-31\): 1:BLOCK ONE PATCH/.test(scan.log) && /★ block 0 \(files 0-15\): empty/.test(scan.log) && scan.json?.blocks?.length === 32 && scan.json.blocks[1][0] === '1:BLOCK ONE PATCH');
   await q.close();
   check(`no console errors (${errs.length ? errs.join('; ') : 'none'})`, !errs.length);
   await b.close();

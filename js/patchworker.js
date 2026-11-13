@@ -3,12 +3,12 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114l';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114l';
-import { TracksLink, VIEW_CODES } from './pw/midi.js?v=20261114l';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114m';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114m';
+import { TracksLink, VIEW_CODES } from './pw/midi.js?v=20261114m';
 import { openPack, buildPack, bankSyx, slotEdited, slotBlank, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114l';
-import { buildPanel } from './pw/panel.js?v=20261114l';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114m';
+import { buildPanel } from './pw/panel.js?v=20261114m';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_v1.circuittrackspack';
 const $ = (s) => document.querySelector(s);
@@ -1088,9 +1088,23 @@ if (new URLSearchParams(location.search).has('midilog')) {
         note(`packs on the Circuit Tracks: ${packs.map((n, i) => `${i}=${n}`).join(', ')}`);
         // Test (2026-11-14): pack p's patch files may be entries p*16 … p*16+15 (file ID 04 <hi> <lo>).
         // Pack 0 = 0-15 matched BetterOffAlone. 03 0B 03 <pack> was answered but changed nothing.
-        const sel = h('select', { class: 'wide' }, packs.map((n, i) => h('option', { value: i, text: `${i}: ${n}` })));
-        const go = await ask('Read patch files', ['Read-only. Reads files 04/<pack × 16> to <pack × 16 + 15>: to test whether that is where the chosen pack\'s patches are.', h('label', { class: 'field' }, 'Pack ', sel)], 'Read', { cancel: 'Cancel' });
+        const sel = h('select', { class: 'wide' }, [h('option', { value: 'scan', text: 'Scan all 32 blocks (files 0-511): first patch names only' }), ...packs.map((n, i) => h('option', { value: i, text: `${i}: ${n}` }))]);
+        const go = await ask('Read patch files', ['Read-only. Pack p reads files 04/<p × 16> to <p × 16 + 15>. The scan reads every block and lists the first patch names, to match blocks to packs.', h('label', { class: 'field' }, 'Read ', sel)], 'Read', { cancel: 'Cancel' });
         if (!go) throw new Error('cancelled');
+        if (sel.value === 'scan') {
+          const blocks = [];
+          for (let b = 0; b < 32; b++) {
+            const names = [];
+            for (let e = 0; e < 16 && names.length < 4; e++) {
+              const f = await link.readFile(0x04, b * 16 + e).catch(() => null);
+              if (!f) continue;
+              for (let k = 0; k * 512 < f.data.length && names.length < 4; k++) if (f.data[k * 512] !== 0xff) names.push(`${e * 8 + k + 1}:${String.fromCharCode(...f.data.slice(k * 512, k * 512 + 16)).replace(/[^ -~]/g, '.').trimEnd()}`);
+            }
+            blocks.push(names);
+            note(`block ${b} (files ${b * 16}-${b * 16 + 15}): ${names.length ? names.join(' | ') : 'empty'}`);
+          }
+          return { packs, blocks };
+        }
         const res = { packs, pack: +sel.value, files: {} };
         note(`reading pack ${res.pack} ("${packs[res.pack]}") as files 04/${res.pack * 16}-${res.pack * 16 + 15}`);
         for (let e = 0; e < 16; e++) {   // 16 files x 8 patches = 128
@@ -1105,7 +1119,7 @@ if (new URLSearchParams(location.search).has('midilog')) {
         }
         return res;
       });
-      download(new Blob([JSON.stringify(out, null, 1)], { type: 'application/json' }), `circuit-tracks-patch-files${out.pack != null ? `-pack${out.pack}` : ''}.json`);
+      download(new Blob([JSON.stringify(out, null, 1)], { type: 'application/json' }), `circuit-tracks-patch-files${out.blocks ? '-scan' : out.pack != null ? `-pack${out.pack}` : ''}.json`);
     } catch (err) { note(`reading failed: ${err.message}`); }
     files.disabled = false;
   } });
