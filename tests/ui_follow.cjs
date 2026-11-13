@@ -201,6 +201,31 @@ const { chromium } = require('playwright');
     await r.close();
   }
 
+  // Linking while the Tracks' knobs have been turned: still the same patch, knobs taken over.
+  {
+    const r = await b.newPage({ viewport: { width: 1400, height: 950 } });
+    r.on('pageerror', (e) => errs.push(e.message));
+    await r.goto('http://localhost:8765/patchworker/');
+    await r.waitForFunction(() => window.patchworker?.S.pack && document.querySelectorAll('#patchlist li[data-slot]').length === 128);
+    const knob = await r.evaluate(async () => {
+      const w = window.patchworker, L = w.link;
+      const { macroPosAddr } = await import('/js/pw/params.js?v=' + (document.querySelector('script[type=module]').src.split('v=')[1]));
+      const playing = w.S.pack.patches[0].slice();
+      const a = macroPosAddr(0);
+      playing[a] = (playing[a] + 50) & 127;
+      L.out = { name: 'Circuit Tracks', send: () => {} };
+      L.in = {};
+      L.requestPatch = async () => playing.slice();
+      L.emit();
+      return { a, v: playing[a] };
+    });
+    await r.waitForTimeout(500);
+    check('a patch whose macro knobs were turned on the Tracks is still found (slot 1), knobs taken over', await r.evaluate(({ a, v }) => { const w = window.patchworker; return w.S.slot === 0 && w.S.bytes[a] === v && /Synth 1 is playing this patch/.test(document.querySelector('#ed-hw').textContent) && document.querySelector('#patchlist li[data-slot="0"]').classList.contains('edited'); }, knob));
+    await r.evaluate(() => window.patchworker.link.receive({ name: 'Circuit Tracks' }, new Uint8Array([0xb0, 80, 7])));
+    check('and the macro knob on the Tracks then moves the editor', await r.evaluate(({ a }) => window.patchworker.S.bytes[a] === 7, knob));
+    await r.close();
+  }
+
   // ?midilog shows what the Tracks sends.
   const q = await b.newPage();
   await q.goto('http://localhost:8765/patchworker/?midilog');

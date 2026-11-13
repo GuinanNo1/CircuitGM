@@ -3,12 +3,12 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261113p';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261113p';
-import { TracksLink } from './pw/midi.js?v=20261113p';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261113q';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261113q';
+import { TracksLink } from './pw/midi.js?v=20261113q';
 import { openPack, buildPack, bankSyx, slotEdited, slotBlank, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261113p';
-import { buildPanel } from './pw/panel.js?v=20261113p';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261113q';
+import { buildPanel } from './pw/panel.js?v=20261113q';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_v1.circuittrackspack';
 const $ = (s) => document.querySelector(s);
@@ -1128,8 +1128,12 @@ async function followTracks(synth, hint = null, given = null) {
   const packBytes = (i) => S.pack.patches[i] ?? initPatch();
   // The Tracks' patch is the pack's slot as it is here, or as the pack had it before it was
   // changed here (then the synth has an older version: dirty).
-  const asHere = (i) => sameBytes(packBytes(i), bytes);
-  const asOpened = (i) => !!S.pack.original[i] && sameBytes(S.pack.original[i], bytes);
+  // Macro knob positions are compared separately: the Tracks reports where its knobs are now,
+  // so a patch whose knobs were turned there is still the same patch.
+  const knobs = new Set(Array.from({ length: 8 }, (_, k) => macroPosAddr(k)));
+  const same = (a, b) => !!a && a.length === b.length && a.every((v, i) => v === b[i] || knobs.has(i));
+  const asHere = (i) => same(packBytes(i), bytes);
+  const asOpened = (i) => same(S.pack.original[i], bytes);
   let slot = null;
   if (!bytes) slot = hint;   // couldn't check (or nothing to go by): assume the same pack
   else if (hint != null) slot = asHere(hint) || asOpened(hint) ? hint : null;
@@ -1142,6 +1146,18 @@ async function followTracks(synth, hint = null, given = null) {
   if (slot != null) {
     S.hw[synth] = { slot, dirty: !!bytes && !asHere(slot), edited: false };
     if (synth === S.synth && slot !== S.slot) selectSlot(slot, { send: false });
+    // Knobs turned on the Tracks: the same edit here, as if they had been turned while linked.
+    if (bytes && synth === S.synth && [...knobs].some((a) => S.bytes[a] !== bytes[a])) {
+      checkpoint('tracks-macros');
+      for (const a of knobs) S.bytes[a] = bytes[a];
+      S.hw[synth].edited = true;
+      synthRefresh();
+      repaint();
+      paintSlot(S.slot);
+      paintBar();
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveSession, 500);
+    }
     paintStatus();
     return;
   }
