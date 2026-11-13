@@ -215,6 +215,23 @@ const fakeMidi = () => {
   await page.click('#dlg-cancel');
   check(await page.inputValue('#patch-name') === 'From Synth 2', 'cancelling leaves the patch alone');
 
+  // Unlink: disconnects, and the next visit doesn't link by itself until Link is pressed.
+  await page.click('#unlink-btn');
+  await page.waitForTimeout(100);
+  if (await page.evaluate(() => document.querySelector('#dlg').open)) await page.click('#dlg-alt2');   // Don't save
+  await page.waitForTimeout(100);
+  check(await page.isHidden('#hw') && !(await page.isHidden('#link-btn')) && (await page.innerText('#link-text')) === 'Unlinked' && (await page.innerText('#link-btn')) === 'Link Circuit Tracks', 'Unlink disconnects and offers Link again');
+  await sent();
+  await page.keyboard.press('a');
+  await page.keyboard.up('a');
+  check((await sent()).length === 0, 'after Unlink nothing goes to the Circuit Tracks');
+  await page.click('#link-btn');
+  await page.waitForSelector('#hw:not([hidden])');
+  check(!(await page.isHidden('#unlink-btn')), 'Link links again');
+  await page.click('#unlink-btn');
+  await page.waitForTimeout(100);
+  if (await page.evaluate(() => document.querySelector('#dlg').open)) await page.click('#dlg-alt2');
+
   await page.click('[data-page="main"]');
   await page.screenshot({ path: `${out}/patchworker-main.png` });
   await page.click('[data-page="fx"]');

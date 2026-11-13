@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/patchworker.css?v=20261113o">
+<link rel="stylesheet" href="../css/patchworker.css?v=20261113p">
 </head>
 <body>
 <nav class="topnav" aria-label="CircuitGM">
@@ -28,6 +28,7 @@
     <span class="led" id="link-led"></span>
     <span id="link-text">Circuit Tracks not linked</span>
     <button type="button" id="link-btn" class="btn small">Link Circuit Tracks</button>
+    <button type="button" id="unlink-btn" class="btn small quiet" hidden title="Disconnect from the Circuit Tracks. PatchWorker won't link by itself on your next visit until you press Link again.">Unlink</button>
   </div>
 </nav>
 
@@ -169,6 +170,6 @@
 </dialog>
 <input type="file" id="file-pack" accept=".circuittrackspack,.zip" hidden>
 <input type="file" id="file-syx" accept=".syx" multiple hidden>
-<script type="module" src="../js/patchworker.js?v=20261113o"></script>
+<script type="module" src="../js/patchworker.js?v=20261113p"></script>
 </body>
 </html>

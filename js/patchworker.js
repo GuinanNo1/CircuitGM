@@ -3,12 +3,12 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261113o';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261113o';
-import { TracksLink } from './pw/midi.js?v=20261113o';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261113p';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261113p';
+import { TracksLink } from './pw/midi.js?v=20261113p';
 import { openPack, buildPack, bankSyx, slotEdited, slotBlank, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261113o';
-import { buildPanel } from './pw/panel.js?v=20261113o';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261113p';
+import { buildPanel } from './pw/panel.js?v=20261113p';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_v1.circuittrackspack';
 const $ = (s) => document.querySelector(s);
@@ -984,9 +984,10 @@ async function auditionSample(i) {
 function paintLink() {
   const on = link.connected;
   $('#link-led').classList.toggle('on', on);
-  $('#link-text').textContent = on ? `${link.out.name} linked` : link.error ?? (link.access ? 'No Circuit Tracks found: plug it in by USB' : 'Circuit Tracks not linked');
+  $('#link-text').textContent = on ? `${link.out.name} linked` : link.off ? 'Unlinked' : link.error ?? (link.access ? 'No Circuit Tracks found: plug it in by USB' : 'Circuit Tracks not linked');
   $('#link-btn').hidden = on;
-  $('#link-btn').textContent = link.access ? 'Look again' : 'Link Circuit Tracks';
+  $('#unlink-btn').hidden = !on;
+  $('#link-btn').textContent = link.access && !link.off ? 'Look again' : 'Link Circuit Tracks';
   $('#hw').hidden = !on;
   $('#hw-get').disabled = !link.in;
   for (const b of document.querySelectorAll('#hear button')) if (b.dataset.hear !== 'browser') { b.disabled = !on; b.title = on ? '' : 'Link a Circuit Tracks first'; }
@@ -1381,7 +1382,19 @@ function bindUI() {
     if (pack) openPackFile(pack); else if (syx.length) openSyxFiles(syx); else if (files.length) toast('Drop a .circuittrackspack or .syx file.');
   });
 
-  $('#link-btn').addEventListener('click', async () => { await link.connect(); paintLink(); });
+  $('#link-btn').addEventListener('click', async () => {
+    try { localStorage.removeItem('circuitgm-patchworker-unlinked'); } catch { /* private mode */ }
+    await link.connect();
+    paintLink();
+  });
+  $('#unlink-btn').addEventListener('click', async () => {
+    const hw = S.hw[S.synth];
+    if (hw.slot === S.slot && hw.edited && !(await leaveEdited(true))) return;   // offer to store first
+    panic();
+    link.disconnect();
+    try { localStorage.setItem('circuitgm-patchworker-unlinked', '1'); } catch { /* private mode */ }
+    toast('Unlinked. The Circuit Tracks keeps what it is playing; PatchWorker plays the browser synth.');
+  });
   document.querySelectorAll('#hw [data-synth]').forEach((b) => b.addEventListener('click', () => {
     panic();
     S.synth = +b.dataset.synth;
@@ -1463,7 +1476,9 @@ async function start() {
   // If the browser already allows MIDI for this page, link without being asked.
   try {
     const perm = await navigator.permissions?.query({ name: 'midi', sysex: true });
-    if (perm?.state === 'granted') link.connect();
+    let unlinked = false;
+    try { unlinked = localStorage.getItem('circuitgm-patchworker-unlinked') === '1'; } catch { /* private mode */ }
+    if (perm?.state === 'granted' && !unlinked) link.connect();
   } catch { /* the permission query is optional */ }
 }
 

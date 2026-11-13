@@ -9,9 +9,9 @@
 // setProject() is given a Circuit Tracks project: then the project's levels, pans, sends,
 // reverb, delay, drum settings and sidechain apply as measured on the hardware (calibration
 // set 7), and the two synth tracks can play their patches on PatchWorker's browser synth.
-import { Mixer } from './pw/mixer.js?v=20261113o';
-import { projectMix, drumRate, drumDecaySeconds } from './pw/mixlaws.js?v=20261113o';
-import { PatchSynth } from './pw/engine.js?v=20261113o';
+import { Mixer } from './pw/mixer.js?v=20261113p';
+import { projectMix, drumRate, drumDecaySeconds } from './pw/mixlaws.js?v=20261113p';
+import { PatchSynth } from './pw/engine.js?v=20261113p';
 
 const LOOKAHEAD = 0.15;
 const TICK_MS = 25;
