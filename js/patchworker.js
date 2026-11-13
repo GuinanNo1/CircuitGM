@@ -3,12 +3,12 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261113f';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261113f';
-import { TracksLink } from './pw/midi.js?v=20261113f';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261113h';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261113h';
+import { TracksLink } from './pw/midi.js?v=20261113h';
 import { openPack, buildPack, bankSyx, slotEdited, slotBlank, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261113f';
-import { buildPanel } from './pw/panel.js?v=20261113f';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261113h';
+import { buildPanel } from './pw/panel.js?v=20261113h';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_final.circuittrackspack';
 const $ = (s) => document.querySelector(s);
@@ -677,6 +677,7 @@ function paintList() {
     list.append(li);
   }
   if (!list.children.length) list.append(h('li', { class: 'none', text: 'No patches match.' }));
+  tracksPanel?.refresh();
 }
 function paintSlot(i) {
   const li = $(`#patchlist li[data-slot="${i}"]`);
@@ -685,6 +686,7 @@ function paintSlot(i) {
   li.classList.toggle('edited', slotEdited(S.pack, i));
   li.classList.toggle('from-hw', slotEdited(S.pack, i) && S.pack.origin?.[i]?.kind === 'tracks');
   li.classList.remove('empty');
+  tracksPanel?.refresh();
 }
 function paintBar() {
   $('#slot-no').textContent = pad3(S.slot + 1);
@@ -906,15 +908,55 @@ async function patchAction(act) {
     sel.addEventListener('change', paintNote);
     paintNote();
     if (!(await ask(`Copy "${getName(S.bytes)}"`, [h('label', { class: 'field' }, 'To pack slot ', sel), note], 'Replace slot'))) return;
-    const src = S.bytes.slice();
-    const from = slotLabel(S.slot);
-    selectSlot(+sel.value, { send: false });
-    checkpoint(null);
-    S.bytes.set(src);
-    setOrigin(S.slot, 'copy', `copied from slot ${from}`);
-    changed(null);
-    toast(`Copied to slot ${pad3(S.slot + 1)}.`);
+    copyTo(+sel.value);
   }
+}
+// Copy the patch being edited into another slot and edit it there (undo brings the old one back).
+function copyTo(target) {
+  const src = S.bytes.slice();
+  const from = slotLabel(S.slot);
+  selectSlot(target, { send: false });
+  checkpoint(null);
+  S.bytes.set(src);
+  setOrigin(S.slot, 'copy', `copied from slot ${from}`);
+  changed(null);
+  toast(`Copied to slot ${pad3(S.slot + 1)}. Undo brings back what was there.`);
+}
+// Copy onto a pad in the Tracks panel: ask first unless the slot is empty.
+async function copyToPad(target) {
+  if (target === S.slot) return;
+  if (!slotBlank(S.pack, target) && !(await ask(`Copy "${getName(S.bytes)}" to slot ${pad3(target + 1)}?`, [h('p', { class: `hint${slotEdited(S.pack, target) ? ' warn' : ''}`, text: replaceNote(target) })], 'Replace slot'))) return;
+  copyTo(target);
+}
+
+// ------------------------------------------------------------------ drum samples (Tracks panel)
+// The pack's samples, decoded on first use and played straight to the output.
+const sampleBufs = new WeakMap();   // pack -> Map(slot -> AudioBuffer)
+let sampleSrc = null;
+let sampleGain = null;
+const sampleEntry = (i) => {
+  const e = S.pack?.index.samples?.[i];
+  return e?.url && S.pack.files.has(e.url) ? e : null;
+};
+function stopAudition() { try { sampleSrc?.stop(); } catch { /* already ended */ } sampleSrc = null; }
+async function auditionSample(i) {
+  const e = sampleEntry(i);
+  if (!e) return;
+  audio();
+  if (!sampleBufs.has(S.pack)) sampleBufs.set(S.pack, new Map());
+  const bufs = sampleBufs.get(S.pack);
+  let buf = bufs.get(i);
+  if (!buf) {
+    try { buf = await ctx.decodeAudioData(S.pack.files.get(e.url).slice().buffer); } catch { toast(`Sample ${pad3(i + 1)} could not be played.`); return; }
+    bufs.set(i, buf);
+  }
+  stopAudition();
+  if (!sampleGain) { sampleGain = ctx.createGain(); sampleGain.connect(ctx.destination); }
+  sampleGain.gain.value = 0.8 * ($('#vol').value / 100);
+  sampleSrc = ctx.createBufferSource();
+  sampleSrc.buffer = buf;
+  sampleSrc.connect(sampleGain);
+  sampleSrc.start();
 }
 
 // ------------------------------------------------------------------ Circuit Tracks link
@@ -1203,6 +1245,20 @@ async function start() {
     noteOn: (n) => noteOn(n),
     noteOff: (n) => noteOff(n),
     octave: () => S.octave,
+    slot: () => S.slot,
+    slotCount: () => PATCH_SLOTS,
+    slotInfo: (i) => {
+      const edited = !!S.pack && slotEdited(S.pack, i);
+      const b = S.pack?.patches[i];
+      return { name: b ? getName(b) : '', empty: !S.pack || slotBlank(S.pack, i), edited, fetched: edited && S.pack.origin?.[i]?.kind === 'tracks' };
+    },
+    selectSlot: (i) => selectSlot(i),
+    copyTo: (i) => copyToPad(i),
+    revert: () => patchAction('revert'),
+    sampleCount: () => 64,
+    sampleName: (i) => sampleEntry(i)?.name || (sampleEntry(i) ? `Sample ${i + 1}` : ''),
+    audition: (i) => auditionSample(i),
+    stopAudition,
   });
   let face = 'editor';
   try { face = localStorage.getItem('circuitgm-patchworker-face') || 'editor'; } catch { /* private mode */ }
@@ -1226,5 +1282,5 @@ async function start() {
 }
 
 // Handy when testing from the console, and for the automated tests.
-window.patchworker = { S, link, audio, selectSlot, setByte, toSyx, buildPack, undo, redo, setFace, panel: () => tracksPanel };
+window.patchworker = { S, link, audio, selectSlot, copyTo, setByte, toSyx, buildPack, undo, redo, setFace, panel: () => tracksPanel };
 start();

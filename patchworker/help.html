@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/patchworker.css?v=20261113f">
+<link rel="stylesheet" href="../css/patchworker.css?v=20261113h">
 </head>
 <body class="doc">
 <nav class="topnav" aria-label="CircuitGM">
@@ -46,6 +46,13 @@
   </table>
   <p>The eight <b>Macros</b> sit above every page. Their positions are saved in the patch. Click a macro to select it; the Modulation page then shows its destinations. The line under each knob names what it controls.</p>
   <p>Values shown with <code>~</code> (Hz, ms, dB) are measured from a real Circuit Tracks, so "Frequency ~650 Hz" is what the hardware does at that setting. A <code>Sync</code> box swaps a rate knob to tempo-locked note lengths.</p>
+
+  <h2 id="tracks">The TRACKS panel</h2>
+  <p>The <b>TRACKS / EDITOR</b> switch at the left of the patch bar swaps the editor's pages for a panel laid out like the Circuit Tracks: track buttons, view buttons and 32 pads. The patch bar, status line and macros stay. The panel is being built in steps; views not built yet say so.</p>
+  <table>
+    <tr><th>Note</th><td>Synth 1 or 2: the bottom two rows of pads are a keyboard that plays the patch, using the octave and velocity at the bottom of the page.</td></tr>
+    <tr><th>Preset</th><td>Synth 1 or 2: the pack's 128 patches as four pages of 32 pads. The lit pad is the patch being edited; press a pad to edit that patch (it plays while you hold the pad, and goes to the linked synth if Live is on). An orange dot marks a changed patch, as in the patch list, a ring one fetched from the Circuit Tracks. <b>Copy to pad…</b> then a pad copies the patch being edited there, asking first if that slot has a patch; Undo brings back what was there. <b>Revert</b> puts back the pack's version.<br>Drum 1 to 4: the pack's 64 samples as two pages. Press a pad to choose the drum's sample and hear it.</td></tr>
+  </table>
 
   <h2 id="link">Linking a Circuit Tracks</h2>
   <ol>
