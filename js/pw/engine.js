@@ -12,9 +12,9 @@
 //
 // It is still an approximation: the hardware is the reference.
 import { P, MACRO_DESTS, MOD_SLOTS, modAddr, macroPosAddr, macroRows, cutoffHz, attackSeconds,
-  decaySeconds, lfoHz, eqDb, eqHz, pitchSemis, filterSteps, syncBeats, initPatch } from './params.js?v=20261113d';
-import { WAVETABLES } from './wavetables.js?v=20261113d';
-import { SHAPERS } from './shapers.js?v=20261113d';
+  decaySeconds, lfoHz, eqDb, eqHz, pitchSemis, filterSteps, syncBeats, initPatch } from './params.js?v=20261113e';
+import { WAVETABLES } from './wavetables.js?v=20261113e';
+import { SHAPERS } from './shapers.js?v=20261113e';
 
 const MAX_VOICES = 6;
 // Pitch: the Circuit Tracks plays an incoming MIDI note at standard pitch (MIDI 60 measured at
@@ -254,6 +254,7 @@ function noiseBuffer(ctx) {
 
 const tableDb = (rows, v) => {
   if (!rows) return 0;
+  if (v <= rows[0][0]) return rows[0][1];               // hold the first value below the table
   for (let i = 1; i < rows.length; i++) {
     if (v <= rows[i][0]) return rows[i - 1][1] + ((rows[i][1] - rows[i - 1][1]) * (v - rows[i - 1][0])) / (rows[i][0] - rows[i - 1][0]);
   }
@@ -268,6 +269,10 @@ const tableDb = (rows, v) => {
 // +4.8 at 64, -7.2 at 127, against the default 100). Measured at one setting only: scaled with
 // the distortion level here.
 const COMP_DB = [[0, 10.9], [64, 4.8], [100, 0], [127, -7.2]];
+// Web Audio's WaveShaper clips any input beyond +/-1, which a Pre FX boost or a chord reaches; the
+// hardware has headroom (calibration set 6: valve drive at 25 with Pre FX +8 dB adds no loss). The
+// signal goes in at 1 / SHAPER_HEADROOM and the curve is stretched to match.
+const SHAPER_HEADROOM = 4;
 const curveCache = new Map();
 function shaperCurve(kind, type, level, ref, gainDb = 0) {
   const key = `${kind}|${type}|${level}|${ref}|${gainDb.toFixed(2)}`;
@@ -292,7 +297,7 @@ function shaperCurve(kind, type, level, ref, gainDb = 0) {
   const g = 10 ** (gainDb / 20);
   const n = 4096, c = new Float32Array(n);
   for (let i = 0; i < n; i++) {
-    const x = ((i / (n - 1)) * 2 - 1) / ref;
+    const x = (((i / (n - 1)) * 2 - 1) * SHAPER_HEADROOM) / ref;
     let v = at(x);
     // Past the measured range carry on along the end slope (calibration set 5: the valve drive
     // at 25 stays this straight with Pre FX +8 dB), levelling off well beyond it.
@@ -328,10 +333,27 @@ const F0_HZ = [[0, 12], [8, 21], [16, 41], [24, 64], [32, 100], [40, 164], [48, 
   [72, 1043], [80, 1652], [88, 2613], [96, 4137], [104, 6527], [112, 10310], [120, 16427], [127, 24000]];
 const LOG_F0 = F0_HZ.map(([v, f]) => [v, Math.log(f)]);
 const f0Hz = (v) => Math.exp(tableDb(LOG_F0, v));
-// The resonance weakens at high cutoffs (peak at resonance 100: -1.5 dB at 4 kHz, -4.3 at 6.5 kHz,
+// The hardware adds key tracking (1 step per semitone at 127), the filter envelope and modulation
+// to the Frequency setting in its own steps and caps the sum at 0..127 (calibration set 6: 110
+// tracked an octave up sounds as 122, two octaves up as 127; 100 with envelope +20 as 120).
+// Near the top the browser's high-pass (a digital biquad squeezed against Nyquist) cuts as the
+// hardware's does about 3 steps higher up, so it is set that much lower there.
+const HP24_TOP = [[100, 0], [105, 2], [110, 3], [127, 3.5]];
+const HP12_TOP = [[110, 0], [120, 1.5], [127, 5]];
+const stepsHz = (v, ftype) => {
+  const c = clamp(v, 0, 127);
+  const adj = ftype === 5 ? tableDb(HP24_TOP, c) : ftype === 4 ? tableDb(HP12_TOP, c) : 0;
+  return Math.min(23900, f0Hz(c - adj));
+};
+// Envelope / mod depth in Frequency steps: a + a^3 / 4300 (calibration set 2; set 6 at the top of
+// the range: +20 moves the cutoff about 21 steps).
+const depthSteps = (a) => filterSteps(a);
+const capCents = (v, ftype, ds) => 1200 * Math.log2(stepsHz(v + ds, ftype) / stepsHz(v, ftype));
+// The resonance weakens at high cutoffs (refitted with set 6: peak at resonance 100 needs -3.4 dB at
+// 2.6 kHz, -3.2 at 4.1, -6.8 at 6.5, -7 above 10 kHz on the resonant part of Q; earlier: -1.5 dB at 4 kHz, -4.3 at 6.5 kHz,
 // -5.3 at 10 kHz, -5.7 at 16 kHz), and Q Normalise trims it (at resonance 80: +3.6 dB at 0, +2.4
 // at 32, -2.4 at 96, -4.3 at 127, against the default 64). Both scale the resonant part of Q.
-const RES_HI_DB = [[2000, 0], [4000, -1.5], [6500, -4.3], [10300, -5.3], [16400, -5.7]];
+const RES_HI_DB = [[1700, 0], [2600, -3.4], [4100, -3.2], [6500, -6.8], [10300, -7], [16400, -7.2]];
 const QNORM_DB = [[0, 3.6], [32, 2.4], [64, 0], [96, -2.4], [127, -4.3]];
 // Level with a saw through the two-section types, against the noise-fitted tables (calibration
 // set 5, cutoff 50-65): the 24 dB low-pass comes out quieter as resonance rises, the 12 dB
@@ -365,9 +387,11 @@ export class PatchSynth {
     this.distWet = c.createGain();
     this.shaper = c.createWaveShaper();
     this.shaper.oversample = '2x';
+    this.distIn = c.createGain();
+    this.distIn.gain.value = 1 / SHAPER_HEADROOM;
     this.distSum = c.createGain();
     this.voiceBus.connect(this.distDry).connect(this.distSum);
-    this.voiceBus.connect(this.shaper).connect(this.distWet).connect(this.distSum);
+    this.voiceBus.connect(this.distIn).connect(this.shaper).connect(this.distWet).connect(this.distSum);
 
     // Chorus: modulated delay with feedback. Phaser: four swept all-pass stages.
     this.modLfo = c.createOscillator();
@@ -527,7 +551,7 @@ export class PatchSynth {
 
     for (const v of this.voices) {
       if (v.dead) continue;
-      const fc = this.filterHz(v.note);
+      const fc = this.filterHz(v.note, v.ftype);
       const q = this.filterQParam(v.filters.length, v.ftype);
       for (const f of v.filters) { set(f.frequency, fc); set(f.Q, q); }
       set(v.fgain.gain, this.filterGain(v.filters.length, v.ftype));
@@ -555,31 +579,37 @@ export class PatchSynth {
     };
   }
 
-  filterHz(note) {
-    const track = this.val('filter_tracking') / 127;
-    return clamp(f0Hz(this.val('filter_frequency')) * 2 ** (((note - 60) / 12) * track), 20, 20000);
+  filterSteps(note) {
+    return this.val('filter_frequency') + ((note - 60) * this.val('filter_tracking')) / 127;
+  }
+
+  filterHz(note, ftype = this.bytes[P.filter_type.a]) {
+    return clamp(stepsHz(this.filterSteps(note), ftype), 20, 23900);
   }
 
   // Q of each filter section (as a plain ratio), and what Web Audio wants for it: low- and
   // high-pass take Q in dB, band-pass as a ratio.
-  filterQ(stages) {
+  filterQ(stages, ftype = this.bytes[P.filter_type.a]) {
     const q = Math.exp(tableDb(stages > 1 ? RES_LNQ2 : RES_LNQ1, this.val('filter_resonance')));
-    const db = tableDb(QNORM_DB, this.val('filter_q_normalise')) + tableDb(RES_HI_DB, f0Hz(this.val('filter_frequency')));
+    // the high-cutoff weakening was fitted on the low-pass; the high-pass keeps more of its peak,
+    // and the band-pass (whose level goes with Q per section) only a little is taken from
+    const hi = tableDb(RES_HI_DB, f0Hz(this.val('filter_frequency'))) * (ftype >= 4 ? 0.4 : ftype >= 2 ? 0.3 : 1);
+    const db = tableDb(QNORM_DB, this.val('filter_q_normalise')) + hi;
     return RES_Q1[0][1] + (q - RES_Q1[0][1]) * 10 ** (db / 20);
   }
 
   filterQParam(stages, ftype) {
-    const q = this.filterQ(stages);
+    const q = this.filterQ(stages, ftype);
     return ftype === 2 || ftype === 3 ? q : 20 * Math.log10(q);
   }
 
   // Level after the filter: the drop with resonance, and the band-pass peak growing with Q.
   filterGain(stages, ftype) {
     const r = this.val('filter_resonance');
-    const extra = ftype === 1 ? tableDb(LP24_RES_DB, r)
+    const extra = ftype === 1 || ftype === 5 ? tableDb(LP24_RES_DB, r)
       : ftype === 3 ? tableDb(BP12_RES_DB, r) + tableDb(BP12_LOW_DB, this.val('filter_frequency')) : 0;
     const g = 10 ** ((tableDb(RES_GAIN_DB, r) + extra) / 20);
-    return ftype === 2 || ftype === 3 ? g * this.filterQ(stages) ** stages : g;
+    return ftype === 2 || ftype === 3 ? g * this.filterQ(stages, ftype) ** stages : g;
   }
 
   // --- notes
@@ -680,13 +710,17 @@ export class PatchSynth {
       const sh = c.createWaveShaper();
       const dt = b[P.filter_drive_type.a];
       sh.curve = shaperCurve('drive', dt, this.val('filter_drive'), DRIVE_REF);
-      node.connect(sh);
+      const shIn = c.createGain();
+      shIn.gain.value = 1 / SHAPER_HEADROOM;
+      node.connect(shIn).connect(sh);
+      voice.nodes.push(shIn);
       node = sh;
     }
     const ftype = b[P.filter_type.a];
     const stages = ftype === 1 || ftype === 3 || ftype === 5 ? 2 : 1;
     const filters = [];
-    const fc = this.filterHz(pitch);
+    const fc = this.filterHz(pitch, ftype);
+    const fSteps = this.filterSteps(pitch);
     for (let i = 0; i < stages; i++) {
       const f = c.createBiquadFilter();
       f.type = ftype <= 1 ? 'lowpass' : ftype <= 3 ? 'bandpass' : 'highpass';
@@ -737,7 +771,7 @@ export class PatchSynth {
 
     const envAmount = this.val('env2_to_filter') - 64;
     if (envAmount !== 0) {
-      const cents = (filterSteps(envAmount) / 11.5) * 1200 * envVel('env2_velocity');
+      const cents = capCents(fSteps, ftype, depthSteps(envAmount) * envVel('env2_velocity'));
       for (const f of filters) runEnv(f.detune, 'env2', cents);
     }
 
@@ -819,7 +853,7 @@ export class PatchSynth {
       else if (dest === 8) { scale = (depth / 64) * 0.5; targets = [g2.gain]; }
       else if (dest === 9) { scale = (depth / 64) * 0.4; targets = [gn.gain]; }
       else if (dest === 10) { scale = (depth / 64) * 0.5; targets = [gr.gain]; }
-      else if (dest === 12) { scale = (filterSteps(depth) / 11.5) * 1200; targets = filters.map((f) => f.detune); }
+      else if (dest === 12) { scale = capCents(fSteps, ftype, depthSteps(depth)); targets = filters.map((f) => f.detune); }
       else if (dest === 13) { scale = (depth / 64) * 12; targets = filters.map((f) => f.Q); }
       else continue;                                         // V-Sync, pulse width, drive, LFO rate, env decay: not emulated
 
