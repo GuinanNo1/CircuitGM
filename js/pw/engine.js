@@ -12,8 +12,9 @@
 //
 // It is still an approximation: the hardware is the reference.
 import { P, MACRO_DESTS, MOD_SLOTS, modAddr, macroPosAddr, macroRows, cutoffHz, attackSeconds,
-  decaySeconds, lfoHz, eqDb, eqHz, pitchSemis, filterSteps, syncBeats, initPatch } from './params.js?v=20261113b';
-import { WAVETABLES } from './wavetables.js?v=20261113b';
+  decaySeconds, lfoHz, eqDb, eqHz, pitchSemis, filterSteps, syncBeats, initPatch } from './params.js?v=20261113c';
+import { WAVETABLES } from './wavetables.js?v=20261113c';
+import { SHAPERS } from './shapers.js?v=20261113c';
 
 const MAX_VOICES = 6;
 // Pitch: the Circuit Tracks plays an incoming MIDI note at standard pitch (MIDI 60 measured at
@@ -85,8 +86,10 @@ export function waveTable(wave, index = 64, interp = 127, vsync = 0) {
   }
 
   if (vsync > 0) {
-    // Virtual sync: the shape runs faster than the note and restarts every cycle.
-    const ratio = 1 + (vsync / 127) * 3;
+    // Virtual sync: the shape runs faster than the note and restarts every cycle. Measured
+    // (calibration set 4): the speed-up is 1 + setting / 16, so 16, 32, 64 and 96 give the 2nd,
+    // 3rd, 5th and 7th harmonic as a clean wave and 127 lands just below the 9th.
+    const ratio = 1 + vsync / 16;
     const src = t;
     t = new Float32Array(TABLE);
     for (let i = 0; i < TABLE; i++) t[i] = src[Math.floor(frac((i / TABLE) * ratio) * TABLE)];
@@ -248,39 +251,6 @@ function noiseBuffer(ctx) {
   return noiseBuffers.get(ctx);
 }
 
-// Waveshaper curves for the filter drive and the distortion effect (types as on the hardware).
-function shaperShape(type, amount) {
-  const n = 2048;
-  const c = new Float32Array(n);
-  const k = 1 + amount * 14;
-  for (let i = 0; i < n; i++) {
-    const x = (i / (n - 1)) * 2 - 1;
-    let y;
-    if (type === 1) y = x >= 0 ? Math.tanh(x * k) : Math.tanh(x * k * 0.6) / 0.9;            // valve
-    else if (type === 2) y = clamp(x * (1 + amount * 5), -0.8, 0.8) / 0.8;                    // clipper
-    else if (type === 3) { const dz = amount * 0.25; y = Math.abs(x) < dz ? 0 : Math.tanh((x - Math.sign(x) * dz) * k); } // cross-over
-    else if (type === 4) y = (1 - amount) * x + amount * (Math.abs(x) * 2 - 1);                // rectifier
-    else if (type === 5) { const lv = Math.max(2, Math.round(24 - amount * 21)); y = Math.round(x * lv) / lv; } // bit reducer
-    else if (type === 6) { const st = Math.max(3, Math.round(40 - amount * 34)); y = Math.round(Math.sin(x * Math.PI / 2) * st) / st; } // rate reducer
-    else y = Math.tanh(x * k) / Math.tanh(k);                                                  // diode
-    c[i] = y;
-  }
-  return c;
-}
-
-// Level each type adds, measured on the Circuit Tracks with a sine (RMS dB against the clean
-// patch, by 0-127 setting). Types without a row keep the level of the clean signal.
-const DRIVE_DB = [
-  [[0, 0], [32, 2], [64, 5], [127, 8]],                       // diode
-  [[0, 0], [32, 1], [64, 4], [127, 6]],                       // valve
-  [[0, 0], [32, 5], [64, 7], [127, 8]],                       // clipper
-];
-const DIST_DB = [
-  [[0, 0], [32, 1.4], [64, 4.6], [96, 9], [127, 10.8]],       // diode
-  [[0, 0], [32, 1.3], [64, 4.3], [96, 8.5], [127, 10.1]],     // valve
-  [[0, 0], [32, 5], [64, 9], [96, 12], [127, 15]],            // clipper
-  [[0, 0], [32, -3.6], [64, -9], [80, 0], [96, 7], [127, 11]], // cross-over
-];
 const tableDb = (rows, v) => {
   if (!rows) return 0;
   for (let i = 1; i < rows.length; i++) {
@@ -288,30 +258,46 @@ const tableDb = (rows, v) => {
   }
   return rows[rows.length - 1][1];
 };
-const curveAt = (c, x) => {
-  const p = clamp((x + 1) / 2, 0, 1) * (c.length - 1);
-  const i = Math.min(c.length - 2, Math.floor(p));
-  return c[i] + (c[i + 1] - c[i]) * (p - i);
-};
 
-// A shaper curve scaled so that a sine of peak `ref` going through `dry * x + wet * curve(x)`
-// comes out `db` louder (RMS) than it went in: the curve gives the tone, the hardware
-// measurement gives the level.
-function shaperCurve(type, amount, { ref, db, dry = 0, wet = 1 }) {
-  const c = shaperShape(type, amount);
-  if (wet <= 0) return c;
-  const N = 256;
-  const xs = [];
-  const ys = [];
-  for (let i = 0; i < N; i++) { const x = ref * Math.sin((2 * Math.PI * (i + 0.5)) / N); xs.push(x); ys.push(curveAt(c, x)); }
-  const target = (ref * ref / 2) * 10 ** (db / 10);
-  const power = (s) => { let a = 0; for (let i = 0; i < N; i++) a += (dry * xs[i] + wet * s * ys[i]) ** 2; return a / N; };
-  let lo = 0;
-  let hi = 1;
-  while (power(hi) < target && hi < 4096) hi *= 2;
-  for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; if (power(mid) < target) lo = mid; else hi = mid; }
-  if (power(lo) > target * 1.001 && power(0) > target) return c.fill(0);   // the dry part alone is already louder
-  for (let i = 0; i < c.length; i++) c[i] *= hi;
+// Waveshaper curve for the filter drive or the distortion effect, from the curves measured on the
+// hardware (js/pw/shapers.js). The engine's signal at the shaper peaks at `ref` for one full-level
+// sine voice, which is where the measured curve reaches its ends; louder signals (chords) carry
+// on past them along the curve's end slope, levelling off.
+// Distortion Compensation only changes the level (calibration set 4, diode at 96: +10.9 dB at 0,
+// +4.8 at 64, -7.2 at 127, against the default 100). Measured at one setting only: scaled with
+// the distortion level here.
+const COMP_DB = [[0, 10.9], [64, 4.8], [100, 0], [127, -7.2]];
+const curveCache = new Map();
+function shaperCurve(kind, type, level, ref, gainDb = 0) {
+  const key = `${kind}|${type}|${level}|${ref}|${gainDb.toFixed(2)}`;
+  if (curveCache.has(key)) return curveCache.get(key);
+  const rows = SHAPERS[kind][type] ?? SHAPERS[kind][0];
+  const lv = Object.keys(rows).map(Number).sort((a, b) => a - b);
+  const M = rows[lv[0]].length - 1;
+  const ident = Array.from({ length: M + 1 }, (_, i) => (i / M) * 2 - 1);
+  // the measured curve for this setting: straight line at 0, interpolated between settings
+  let lo = 0, hi = lv[0], a = ident, b = rows[hi];
+  for (let k = 0; k < lv.length; k++) {
+    if (level >= lv[k]) { lo = lv[k]; a = rows[lv[k]]; hi = lv[k + 1] ?? lv[k]; b = rows[hi]; }
+  }
+  const f = hi === lo ? 0 : (level - lo) / (hi - lo);
+  const y = a.map((v, i) => v + (b[i] - v) * f);
+  const at = (x) => {
+    const p = ((clamp(x, -1, 1) + 1) / 2) * M;
+    const i = Math.min(M - 1, Math.floor(p));
+    return y[i] + (y[i + 1] - y[i]) * (p - i);
+  };
+  const sTop = ((y[M] - y[M - 1]) * M) / 2, sBot = ((y[1] - y[0]) * M) / 2;
+  const g = 10 ** (gainDb / 20);
+  const n = 4096, c = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const x = ((i / (n - 1)) * 2 - 1) / ref;
+    let v = at(x);
+    if (x > 1) v = y[M] + sTop * Math.tanh(x - 1);
+    else if (x < -1) v = y[0] - sBot * Math.tanh(-1 - x);
+    c[i] = v * ref * g;
+  }
+  curveCache.set(key, c);
   return c;
 }
 // Peak of one full-level sine voice where the filter drive and the distortion effect sit.
@@ -333,8 +319,17 @@ const RES_Q2 = [[0, 0.74], [20, 1.03], [40, 1.5], [60, 2.59], [80, 4.4], [100, 5
 const RES_LNQ1 = RES_Q1.map(([v, q]) => [v, Math.log(q)]);
 const RES_LNQ2 = RES_Q2.map(([v, q]) => [v, Math.log(q)]);
 const RES_GAIN_DB = [[0, 0], [20, -0.8], [40, -1.3], [60, -2.3], [80, -3.0], [100, -4.1], [127, -5.7]];
-// Natural frequency of the filter against the measured -3 dB point of the 12 dB low-pass.
-const CUTOFF_TO_F0 = 0.93;
+// Natural frequency of the filter by Frequency setting, measured as the resonant peak with
+// tracking off (calibration set 4): one octave per 12.07 steps from 32 to 120, slower below.
+const F0_HZ = [[0, 12], [8, 21], [16, 41], [24, 64], [32, 100], [40, 164], [48, 258], [56, 416], [64, 659],
+  [72, 1043], [80, 1652], [88, 2613], [96, 4137], [104, 6527], [112, 10310], [120, 16427], [127, 24000]];
+const LOG_F0 = F0_HZ.map(([v, f]) => [v, Math.log(f)]);
+const f0Hz = (v) => Math.exp(tableDb(LOG_F0, v));
+// The resonance weakens at high cutoffs (peak at resonance 100: -1.5 dB at 4 kHz, -4.3 at 6.5 kHz,
+// -5.3 at 10 kHz, -5.7 at 16 kHz), and Q Normalise trims it (at resonance 80: +3.6 dB at 0, +2.4
+// at 32, -2.4 at 96, -4.3 at 127, against the default 64). Both scale the resonant part of Q.
+const RES_HI_DB = [[2000, 0], [4000, -1.5], [6500, -4.3], [10300, -5.3], [16400, -5.7]];
+const QNORM_DB = [[0, 3.6], [32, 2.4], [64, 0], [96, -2.4], [127, -4.3]];
 
 const chorusHz = (v) => Math.max(0.02, 0.0013 * v * v);          // measured on the phaser: 40 -> 2 Hz, 100 -> 12.7 Hz
 // LFO delay and envelope 3 delay share one measured law: 40 -> 0.09 s, 70 -> 0.44 s, 100 -> 2.3 s.
@@ -469,13 +464,15 @@ export class PatchSynth {
     const distLevel = this.val('distortion_level');
     const dist = distLevel / 127;
     const dtype = this.bytes[P.distortion_type.a];
-    const ckey = `${dtype}|${distLevel}`;
+    const ckey = `${dtype}|${distLevel}|${this.val('distortion_compensation')}`;
     if (ckey !== this.curveKey) {
-      this.shaper.curve = shaperCurve(dtype, dist, { ref: DIST_REF, db: tableDb(DIST_DB[dtype], distLevel), dry: 1 - dist, wet: dist });
+      const comp = tableDb(COMP_DB, this.val('distortion_compensation')) * Math.min(1, distLevel / 96);
+      this.shaper.curve = shaperCurve('dist', dtype, distLevel, DIST_REF, comp);
       this.curveKey = ckey;
     }
-    set(this.distWet.gain, dist);
-    set(this.distDry.gain, 1 - dist);
+    // the measured curve is the whole output: no dry signal alongside it
+    set(this.distWet.gain, distLevel > 0 ? 1 : 0);
+    set(this.distDry.gain, distLevel > 0 ? 0 : 1);
 
     const level = this.val('chorus_level') / 127;
     const isChorus = this.bytes[P.chorus_type.a] === 1;
@@ -489,7 +486,9 @@ export class PatchSynth {
     set(this.chorusFb.gain, isChorus ? ((this.val('chorus_feedback') - 64) / 64) * 0.75 : 0);
     set(this.chorusWet.gain, isChorus ? level * 0.8 : 0);
     set(this.phaserWet.gain, isChorus ? 0 : level * 0.9);
-    set(this.phaserDepth.gain, 600 + depth * 2400);
+    // Phaser sweep, fitted to calibration set 4 (level wobble and pitch smearing of a saw): the
+    // hardware's notches move gently, about 1 to 10 semitones each way by Depth.
+    set(this.phaserDepth.gain, 100 + depth * 500);
     this.phaserStages.forEach((ap, i) => set(ap.frequency, (300 + delay * 30000) * (1 + i * 0.7)));
 
     set(this.eqBass.frequency, eqHz('bass', this.val('eq_bass_freq')));
@@ -546,13 +545,15 @@ export class PatchSynth {
 
   filterHz(note) {
     const track = this.val('filter_tracking') / 127;
-    return clamp(cutoffHz(this.val('filter_frequency')) * CUTOFF_TO_F0 * 2 ** (((note - 60) / 12) * track), 20, 20000);
+    return clamp(f0Hz(this.val('filter_frequency')) * 2 ** (((note - 60) / 12) * track), 20, 20000);
   }
 
   // Q of each filter section (as a plain ratio), and what Web Audio wants for it: low- and
   // high-pass take Q in dB, band-pass as a ratio.
   filterQ(stages) {
-    return Math.exp(tableDb(stages > 1 ? RES_LNQ2 : RES_LNQ1, this.val('filter_resonance')));
+    const q = Math.exp(tableDb(stages > 1 ? RES_LNQ2 : RES_LNQ1, this.val('filter_resonance')));
+    const db = tableDb(QNORM_DB, this.val('filter_q_normalise')) + tableDb(RES_HI_DB, f0Hz(this.val('filter_frequency')));
+    return RES_Q1[0][1] + (q - RES_Q1[0][1]) * 10 ** (db / 20);
   }
 
   filterQParam(stages, ftype) {
@@ -578,7 +579,10 @@ export class PatchSynth {
     // Glide: Mono always glides when portamento is up; Auto-Glide only between overlapping notes.
     let glideFrom = null;
     const porta = this.val('portamento');
-    const glideTime = (porta / 127) ** 2 * 1.5;
+    // Portamento, measured (calibration set 4, a two-octave glide): 90% of the way in
+    // 0.185 s x 2^((setting - 100) / 11.7) (0.07 s at 80, 0.92 s at 127), along a curve that
+    // slows into the note. glideTime here is that 90% time.
+    const glideTime = porta > 0 ? 0.185 * 2 ** ((porta - 100) / 11.7) : 0;
     if (mode < 2) {
       const overlapping = this.voices.some((v) => !v.released);
       if (porta > 0 && this.lastNote != null && this.lastNote !== pitch && (mode === 0 || overlapping)) glideFrom = this.lastNote;
@@ -602,18 +606,22 @@ export class PatchSynth {
       const semis = this.val(`osc${n}_semitones`) - 64;
       const cents = this.val(`osc${n}_cents`) - 64;
       const density = this.val(`osc${n}_density`) / 127;
-      const spread = 4 + (this.val(`osc${n}_density_detune`) / 127) * 44;
+      // Density detune, measured (calibration set 4): the copies sit +/- 45 cents x detune / 127
+      // from the note. At detune 0 they share its pitch at fixed offsets and partly cancel
+      // (-3.3 dB at full density), so that case is one oscillator turned down.
+      const spread = (this.val(`osc${n}_density_detune`) / 127) * 45;
       const wave = this.oscWave(n);
       const out = c.createGain();
-      out.gain.value = 1 / Math.sqrt(1 + 2 * density * density);
+      const stack = density > 0 && spread > 0.5;
+      out.gain.value = stack ? 1 / Math.sqrt(1 + 2 * density * density) : 1 - 0.32 * density;
       const list = [];
-      for (const [sp, g] of density > 0 ? [[0, 1], [spread, density], [-spread, density]] : [[0, 1]]) {
+      for (const [sp, g] of stack ? [[0, 1], [spread, density], [-spread, density]] : [[0, 1]]) {
         const osc = c.createOscillator();
         osc.setPeriodicWave(wave);
         const target = midiHz(pitch + semis + HARDWARE_TRANSPOSE);
         if (glideFrom != null && glideTime > 0.002) {
           osc.frequency.setValueAtTime(midiHz(glideFrom + semis + HARDWARE_TRANSPOSE), t);
-          osc.frequency.exponentialRampToValueAtTime(target, t + glideTime);
+          osc.frequency.setTargetAtTime(target, t, glideTime / 2);
         } else osc.frequency.value = target;
         osc.detune.value = cents + sp;
         const g1 = c.createGain();
@@ -656,7 +664,7 @@ export class PatchSynth {
     if (drive > 0) {
       const sh = c.createWaveShaper();
       const dt = b[P.filter_drive_type.a];
-      sh.curve = shaperCurve(dt, drive, { ref: DRIVE_REF, db: tableDb(DRIVE_DB[dt], this.val('filter_drive')) });
+      sh.curve = shaperCurve('drive', dt, this.val('filter_drive'), DRIVE_REF);
       node.connect(sh);
       node = sh;
     }
