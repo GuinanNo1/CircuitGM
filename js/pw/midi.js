@@ -1,7 +1,7 @@
 // PatchWorker's link to a Circuit Tracks over Web MIDI (Chrome, Edge, Opera; Firefox with its
 // site permission add-on). Everything here follows the Circuit Tracks Programmer's Reference
 // Guide v3: patches travel as SysEx, single parameters as CC or NRPN on the synth's channel.
-import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261113k';
+import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261113l';
 
 const isTracks = (port) => /circuit tracks/i.test(port.name ?? '');
 
@@ -15,7 +15,7 @@ export class TracksLink extends EventTarget {
     this.onPatch = null;      // (bytes, synth) when the Tracks sends a patch
     this.onMacro = null;      // (knob, value, synth) when a macro knob is turned on the Tracks
     this.onNote = null;       // (on, note, velocity) from any other MIDI keyboard
-    this.onTrack = null;      // (track) when a track is selected on the Tracks: 0 Synth 1, 1 Synth 2
+    this.onTrack = null;      // (track) when a track is selected on the Tracks: 0-1 synths, 2-3 MIDI, 4-7 drums
     this.onFocus = null;      // (synth) when the Tracks shows Synth 1 or 2 is in use (its pads or macros)
     this.log = null;          // an array to record what the Tracks sends (?midilog), or null
     this.onLog = null;
@@ -107,7 +107,7 @@ export class TracksLink extends EventTarget {
     if (data[0] === 0xf0) {
       if (!fromTracks) return;
       // Track selected on the Tracks (seen 2026-11-13, not in the Programmer's Reference):
-      // F0 00 20 29 01 64 04 03 <track> 00 F7, track 0 = Synth 1, 1 = Synth 2.
+      // F0 00 20 29 01 64 04 03 <track> 00 F7: 0 Synth 1, 1 Synth 2, 2-3 MIDI 1-2, 4-7 Drum 1-4.
       if (data.length === 11 && data[1] === 0x00 && data[2] === 0x20 && data[3] === 0x29 && data[4] === 0x01 && data[5] === PRODUCT_TRACKS && data[6] === 0x04 && data[7] === 0x03) {
         this.onTrack?.(data[8]);
         return;

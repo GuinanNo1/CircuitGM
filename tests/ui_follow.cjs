@@ -125,6 +125,14 @@ const { chromium } = require('playwright');
   await rx([0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x04, 0x03, 0x00, 0x00, 0xf7]);
   await p.waitForTimeout(300);
   check('and Synth 1 switches back', (await synthNow()) === 0);
+  await p.evaluate(() => window.patchworker.setFace('tracks'));
+  await rx([0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x04, 0x03, 0x06, 0x00, 0xf7]);
+  await p.waitForTimeout(200);
+  check('Drum 3 on the Tracks lights Drum 3 in the TRACKS panel, editor stays on Synth 1', (await synthNow()) === 0 && await p.evaluate(() => document.querySelector('.trk.on')?.dataset.track === '6'));
+  await rx([0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x04, 0x03, 0x01, 0x00, 0xf7]);
+  await p.waitForTimeout(300);
+  check('Synth 2 on the Tracks lights Synth 2 in the panel', (await synthNow()) === 1 && await p.evaluate(() => document.querySelector('.trk.on')?.dataset.track === '1'));
+  await p.evaluate(() => window.patchworker.setFace('editor'));
   await rx([0xfc]);
 
   // ?midilog shows what the Tracks sends.

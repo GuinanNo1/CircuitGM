@@ -293,5 +293,6 @@ export function buildPanel(root, api) {
   }
 
   paint();
-  return { paint, refresh, state: st };
+  // selectTrack: a track chosen on the Circuit Tracks itself (0 Synth 1 … 7 Drum 4).
+  return { paint, refresh, selectTrack: (i) => { if (i >= 0 && i < TRACKS.length) selectTrack(i); }, state: st };
 }
