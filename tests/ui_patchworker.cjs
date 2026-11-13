@@ -149,7 +149,7 @@ const fakeMidi = () => {
   await page.waitForSelector('#hw:not([hidden])');
   const sent = () => page.evaluate(() => window.__sent.splice(0));
   // Linking sends nothing by itself: Live is on, and the page asks the synth what it is playing.
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(900);   // a link counts once it has held 600 ms
   let msgs = await sent();
   check(!msgs.some((m) => m.length === 350) && await page.isChecked('#hw-live') && !(await page.evaluate(() => document.querySelector('#dlg').open)), 'linking turns Live on, sends no patch and asks nothing');
   check((await page.getAttribute('#ed-hw', 'data-state')) === 'differs' && /not in this pack/.test(await page.innerText('#ed-hw')), `the status line names the synth's patch (${await page.innerText('#ed-hw')})`);

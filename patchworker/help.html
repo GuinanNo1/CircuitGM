@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/patchworker.css?v=20261114h">
+<link rel="stylesheet" href="../css/patchworker.css?v=20261114j">
 </head>
 <body class="doc">
 <nav class="topnav" aria-label="CircuitGM">
@@ -60,7 +60,7 @@
     <li>Use Chrome, Edge or another browser with Web MIDI. Click <b>Link Circuit Tracks</b> and allow MIDI access when the browser asks. After that PatchWorker links by itself on each visit; <b>Unlink</b> disconnects it, and it then waits for Link again.</li>
     <li>In the Circuit Tracks' Setup view, turn on MIDI <b>Note</b>, <b>CC</b> and <b>Program Change</b> (PGM), both Rx and Tx, so patch changes follow both ways.</li>
     <li>Linking turns <b>Live</b> on and asks the Circuit Tracks what Synth 1 is playing. If that patch is in the pack open here, PatchWorker opens it for editing; if not, the line under the patch name names it (<b>Get</b> brings it in).</li>
-    <li><b>Edit Synth 1 / Synth 2</b> chooses which synth this page edits and plays (the panel turns green for Synth 2, as in Components). It can't change which track the Circuit Tracks shows, but pressing Synth 1 or Synth 2 on the Circuit Tracks switches the page to that synth, as in Components, and any track button there lights the same track in the TRACKS panel (so does playing a synth's pads or turning its macros, when the sequencer is stopped).</li>
+    <li><b>Edit Synth 1 / Synth 2</b> chooses which synth this page edits and plays (the panel turns green for Synth 2, as in Components). It can't change which track the Circuit Tracks shows, but pressing Synth 1 or Synth 2 on the Circuit Tracks switches the page to that synth, as in Components, and any track button there lights the same track in the TRACKS panel (so does playing a synth's pads or turning its macros, when the sequencer is stopped). Changing view on the Circuit Tracks (Note, Velocity, Gate, Mixer, FX, Preset and the rest) shows the same view in the TRACKS panel. Scenes are not reported by the Circuit Tracks, so the panel can't follow them.</li>
     <li>With Live on, every edit goes to the hardware as you make it. Choosing another patch here moves the synth to the same patch number and sends it the pack's version; changing patch on the Circuit Tracks moves this page to that slot, and asks if the Circuit Tracks' patch differs from the pack's.</li>
     <li>Before you leave a patch you changed while Live was on, PatchWorker offers to <b>Store</b> it on the Circuit Tracks or <b>Save .syx</b>, because the Circuit Tracks forgets changes it hasn't stored when it changes patch. Your changes stay in the pack here either way.</li>
   </ol>
@@ -69,12 +69,12 @@
   <table>
     <tr><th>Send</th><td>Sends the current patch to the chosen synth now. This loads it as that synth's working patch; it does not overwrite anything stored on the Circuit Tracks.</td></tr>
     <tr><th>Get</th><td>Fetches the patch the chosen synth is playing, so you can keep a sound you made on the hardware. You choose which pack slot it goes into.</td></tr>
-    <tr><th>Store…</th><td>Writes the current patch into one of the 128 patch slots on the Circuit Tracks itself, replacing what is there. PatchWorker asks first.</td></tr>
+    <tr><th>Store…</th><td>Writes the current patch into a patch slot of a pack on the Circuit Tracks itself, replacing what is there. PatchWorker first asks the Circuit Tracks for its list of packs; choose the pack that is loaded on it (and the slot) to change the patches you play. It takes about a second. PatchWorker remembers the pack you chose. Close Novation Components first: two programs using the Circuit Tracks at once can upset a Store.</td></tr>
     <tr><th>Hear on</th><td>Browser, Tracks or Both. Linking switches to Tracks, so notes from the page play the hardware.</td></tr>
   </table>
   <p>Turning a macro knob on the Circuit Tracks moves the same macro on the page and counts as a change to the patch (Undo takes it back, and PatchWorker offers to store it before the Circuit Tracks changes patch). A second MIDI keyboard plugged into the computer plays the patch as well. On the Circuit Tracks, MIDI note and control receive must be on in Setup view.</p>
   <p>To put a whole edited pack on the Circuit Tracks, download it here and send it with Novation Components.</p>
-  <p>To see what the Circuit Tracks sends, open PatchWorker with <code>?midilog</code> at the end of the address: a box lists every message from it, with a Copy button.</p>
+  <p>To see what goes to and from the Circuit Tracks, open PatchWorker with <code>?midilog</code> at the end of the address: a box lists every message (→ sent, ← received), with Copy, Clear and <b>Read patch files</b> (a read-only look at the Circuit Tracks' files, downloaded as JSON, for testing).</p>
 
   <h2 id="files">Files</h2>
   <table>

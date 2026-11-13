@@ -26,11 +26,31 @@ const { chromium } = require('playwright');
     L.requestPatch = async (synth) => window.tracks[synth].slice();
     L.emit();
   });
-  await p.waitForTimeout(300);
+  await p.waitForTimeout(1000);   // a link counts once it has held 600 ms
   const st = () => p.evaluate(() => ({ slot: window.patchworker.S.slot, live: document.querySelector('#hw-live').checked, hw: document.querySelector('#ed-hw').textContent, dlg: document.querySelector('#dlg').open }));
   let s = await st();
   check(`linking turns Live on and edits what Synth 1 plays (slot 10): ${s.slot + 1}, ${s.live}`, s.slot === 9 && s.live && !s.dlg);
   check(`status says Synth 1 plays this patch (${s.hw})`, /Synth 1 is playing this patch/.test(s.hw));
+  // The link flickering while the Tracks reconnects asks for its patch once, not once per flicker.
+  const asks = await p.evaluate(async () => {
+    const L = window.patchworker.link, out = L.out, inp = L.in;
+    let n = 0;
+    const req = L.requestPatch;
+    L.requestPatch = async (synth) => { n++; return req(synth); };
+    L.out = null; L.in = null; L.emit();
+    await new Promise((r) => setTimeout(r, 2500));          // really gone (Tracks switched off)
+    for (let k = 0; k < 6; k++) {                            // ports appear one at a time
+      L.out = out; L.in = inp; L.emit();
+      await new Promise((r) => setTimeout(r, 150));
+      L.out = null; L.in = null; L.emit();
+      await new Promise((r) => setTimeout(r, 150));
+    }
+    L.out = out; L.in = inp; L.emit();
+    await new Promise((r) => setTimeout(r, 1200));
+    L.requestPatch = req;
+    return n;
+  });
+  check(`a flickering reconnect asks the Tracks for its patch once (${asks})`, asks === 1);
 
   // The Tracks changes Synth 1 to patch 15 (same pack): the editor follows, no question.
   await p.evaluate(() => { window.tracks[0] = window.patchworker.S.pack.patches[14].slice(); window.patchworker.link.onProgram(0, 14); });
@@ -212,7 +232,7 @@ const { chromium } = require('playwright');
       L.requestPatch = async () => { if (calls++ === 0) throw new Error('no answer'); return playing.slice(); };
       L.emit();
     });
-    await r.waitForTimeout(800);
+    await r.waitForTimeout(1500);
     check('a lost first answer is asked again, and the editor follows (slot 12)', await r.evaluate(() => window.patchworker.S.slot === 11 && /Synth 1 is playing this patch/.test(document.querySelector('#ed-hw').textContent)));
     await r.close();
   }
@@ -235,7 +255,7 @@ const { chromium } = require('playwright');
       L.emit();
       return { a, v: playing[a] };
     });
-    await r.waitForTimeout(500);
+    await r.waitForTimeout(1200);
     check('a patch whose macro knobs were turned on the Tracks is still found (slot 1), knobs taken over', await r.evaluate(({ a, v }) => { const w = window.patchworker; return w.S.slot === 0 && w.S.bytes[a] === v && /Synth 1 is playing this patch/.test(document.querySelector('#ed-hw').textContent) && document.querySelector('#patchlist li[data-slot="0"]').classList.contains('edited'); }, knob));
     await r.evaluate(() => window.patchworker.link.receive({ name: 'Circuit Tracks' }, new Uint8Array([0xb0, 80, 7])));
     check('and the macro knob on the Tracks then moves the editor', await r.evaluate(({ a }) => window.patchworker.S.bytes[a] === 7, knob));
