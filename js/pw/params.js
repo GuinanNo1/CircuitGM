@@ -93,9 +93,10 @@ const EQ_TREBLE_HZ = [[0, 1100], [16, 1300], [32, 2000], [48, 2600], [64, 3600],
 
 // Measured on the hardware (filter at C4, key tracking 127): -3 dB point of the 12 dB low-pass.
 export const cutoffHz = (v) => interp(v, CUTOFF_HZ);
-// Amp-envelope times: +32 steps = 10x. Attack to full level; decay / release to -60 dB.
-export const attackSeconds = (v) => 0.18 * 10 ** ((v - 64) / 31.5);
-export const decaySeconds = (v) => 0.38 * 10 ** ((v - 64) / 31.5);
+// Envelope times (all three envelopes, calibration set 4): +31.5 steps = 10x. Attack is a straight
+// line to full level in this time; decay / release are exponential, this is the time to -60 dB.
+export const attackSeconds = (v) => 0.208 * 10 ** ((v - 64) / 31.5);
+export const decaySeconds = (v) => 0.445 * 10 ** ((v - 64) / 31.5);
 // LFO free-running rate: one octave per 12 steps.
 export const lfoHz = (v) => 3.39 * 2 ** ((v - 64) / 12);
 export const eqDb = (band, v) => interp(v, { bass: EQ_BASS_DB, mid: EQ_MID_DB, treble: EQ_TREBLE_DB }[band]);

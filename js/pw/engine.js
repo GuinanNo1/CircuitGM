@@ -12,7 +12,8 @@
 //
 // It is still an approximation: the hardware is the reference.
 import { P, MACRO_DESTS, MOD_SLOTS, modAddr, macroPosAddr, macroRows, cutoffHz, attackSeconds,
-  decaySeconds, lfoHz, eqDb, eqHz, pitchSemis, filterSteps, syncBeats, initPatch } from './params.js?v=20261113a';
+  decaySeconds, lfoHz, eqDb, eqHz, pitchSemis, filterSteps, syncBeats, initPatch } from './params.js?v=20261113b';
+import { WAVETABLES } from './wavetables.js?v=20261113b';
 
 const MAX_VOICES = 6;
 // Pitch: the Circuit Tracks plays an incoming MIDI note at standard pitch (MIDI 60 measured at
@@ -32,15 +33,6 @@ function rng(seed) {
   return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
 }
 
-function harmonicTable(amps) {
-  const t = new Float32Array(TABLE);
-  for (let h = 1; h < amps.length; h++) {
-    if (!amps[h]) continue;
-    for (let i = 0; i < TABLE; i++) t[i] += amps[h] * Math.sin(2 * Math.PI * h * i / TABLE);
-  }
-  return t;
-}
-
 const tableCache = new Map();
 
 // One cycle of an oscillator wave as TABLE samples, peak-normalised. `index` is the patch's
@@ -55,13 +47,17 @@ export function waveTable(wave, index = 64, interp = 127, vsync = 0) {
   if (interp <= 63) pos = Math.round(pos);
   const lo = Math.floor(pos);
   const f = pos - lo;
-  const duty = clamp(0.5 + (x - 0.504) * 0.9, 0.04, 0.96);
+  // Pulse width, measured (calibration set 4): the high part is index / 127 of the cycle (64 =
+  // square, 16 = one eighth, 112 = seven eighths); 0 and 127 give a flat line, so silence.
+  const duty = index / 127;
   // Measured (calibration set 3): every basic wave starts its cycle at zero going up, so the
   // fundamentals of all of them line up. The saw therefore has its jump in mid-cycle.
   const saw = (p) => 2 * frac(p + 0.5) - 1;
   const tri = (p) => 1 - 4 * Math.abs(frac(p + 0.25) - 0.5);
-  const pulse = (p, d) => (p < d ? 1 : -1);
+  // The pulse's falling edge sits on the saw's jump at mid-cycle (measured on the 5:5 mix).
+  const pulse = (p, d) => (frac(p - 0.5 + d) < d ? 1 : -1);
   let t = new Float32Array(TABLE);
+  let measured = false;
   const fill = (fn) => { for (let i = 0; i < TABLE; i++) t[i] = fn(i / TABLE); };
 
   if (wave === 0) fill((p) => Math.sin(2 * Math.PI * p));
@@ -72,30 +68,20 @@ export function waveTable(wave, index = 64, interp = 127, vsync = 0) {
     fill((p) => (1 - pw) * saw(p) + pw * pulse(p, duty));
   } else if (wave === 12) fill((p) => pulse(p, duty));
   else if (wave === 13) fill((p) => pulse(p, 0.5));
-  else if (wave === 14) {
-    // Measured: table position k is the pure k-th harmonic.
-    fill((p) => (1 - f) * Math.sin(2 * Math.PI * (lo + 1) * p) + f * Math.sin(2 * Math.PI * (lo + 2) * p));
-  } else if (wave === 15) fill((p) => pulse(p, 0.5 - (pos / 8) * 0.45));
-  else if (wave === 16) fill((p) => saw(frac(p * (1 + pos * 0.45))) * (1 - 0.5 * p));
-  else if (wave === 17) fill((p) => (1 - pos / 8) * tri(p) + (pos / 8) * saw(p));
-  else if (wave === 18) fill((p) => Math.sin(2 * Math.PI * p + (0.6 + pos * 0.5) * Math.sin(2 * Math.PI * 3 * p)));
-  else if (wave === 19) fill((p) => Math.tanh(3 * Math.sin(2 * Math.PI * p + (0.5 + pos * 0.45) * Math.sin(2 * Math.PI * 5 * p))));
-  else if (wave === 20) fill((p) => (1 - pos / 8) * saw(p) + (pos / 8) * pulse(p, 0.5));
-  else if (wave >= 21 && wave <= 26) {
-    // "Digital vocal": single-cycle harmonic shapes with two spectral bumps (no fixed formants,
-    // as measured), the bumps moving up with the table position.
-    const n = wave - 21;
-    const c1 = 2 + n * 0.8 + pos * 1.1;
-    const c2 = c1 * 2.4 + 2;
-    const amps = [0];
-    for (let h = 1; h <= 40; h++) amps.push((0.35 / h) + Math.exp(-((h - c1) ** 2) / 2.5) + 0.6 * Math.exp(-((h - c2) ** 2) / 6));
-    t = harmonicTable(amps);
-  } else {
-    // "Random collection": fixed pseudo-random harmonic sets, blended between table positions.
-    const set = (k) => { const r = rng(wave * 7919 + k * 104729); const a = [0]; for (let h = 1; h <= 24; h++) a.push(r() ** 2 / h ** 0.6); return a; };
-    const a = set(lo);
-    const b = set(lo + 1);
-    t = harmonicTable(a.map((v, h) => (1 - f) * v + f * b[h]));
+  else {
+    // Wavetable waves: the shapes measured on the hardware, blended between table positions.
+    measured = true;
+    const rows = WAVETABLES[wave];
+    const put = ([re, im], g) => {
+      if (!g) return;
+      for (let h = 0; h < re.length; h++) {
+        if (!re[h] && !im[h]) continue;
+        const a = (2 * Math.PI * (h + 1)) / TABLE;
+        for (let i = 0; i < TABLE; i++) t[i] += g * (re[h] * Math.cos(a * i) - im[h] * Math.sin(a * i)) / 1000;
+      }
+    };
+    put(rows[Math.min(lo, 8)], 1 - f);
+    if (lo < 8) put(rows[lo + 1], f);
   }
 
   if (vsync > 0) {
@@ -105,9 +91,13 @@ export function waveTable(wave, index = 64, interp = 127, vsync = 0) {
     t = new Float32Array(TABLE);
     for (let i = 0; i < TABLE; i++) t[i] = src[Math.floor(frac((i / TABLE) * ratio) * TABLE)];
   }
-  let peak = 0;
-  for (let i = 0; i < TABLE; i++) peak = Math.max(peak, Math.abs(t[i]));
-  if (peak > 0) for (let i = 0; i < TABLE; i++) t[i] /= peak;
+  // The basic waves already peak at 1 and the wavetables keep their measured level; only a
+  // virtual-synced basic wave is brought back to a peak of 1.
+  if (!measured && vsync > 0) {
+    let peak = 0;
+    for (let i = 0; i < TABLE; i++) peak = Math.max(peak, Math.abs(t[i]));
+    if (peak > 0) for (let i = 0; i < TABLE; i++) t[i] /= peak;
+  }
   tableCache.set(key, t);
   return t;
 }
@@ -150,19 +140,41 @@ function periodicWave(ctx, wave, index, interp, vsync, shift = 0) {
 }
 
 // ------------------------------------------------------------------ LFO shapes
-const LFO_LEVEL_SEQ = {
-  7: [1, 0, 1, 0, 1, 1, 0, 0], 8: [1, 1, 0, 1, 0, 0, 1, 0], 9: [1, 0, 0, 0, 1, 0, 1, 1],
-  10: [1, 0, 1, 1, 0, 1, 0, 0], 11: [1, 1, 1, 0, 0, 1, 0, 1], 12: [1, 0, 0, 1, 0, 0, 1, 0],
-  13: [1, 1, 0, 0, 1, 0, 1, 1], 14: [1, -1], 15: [1, -1, 1, -1, 1, 1, -1, -1], 16: [1, 0, -1, 0],
-  17: [1, 1, -1, -1], 18: [1, -1, -1, 1], 19: [1, 0.5, -0.5, -1], 20: [1, -0.5, 1, -1, 0.5, -1],
-  21: [0.5, 1, -1, -0.5],
-};
-const LFO_PITCH_SEQ = {
-  22: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], 23: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-  24: [0, 2, 4, 5, 7, 9, 11, 12], 25: [0, 4, 7, 11], 26: [0, 3, 7, 10], 27: [0, 3, 7, 12],
-  28: [0, 3, 7, 12, 7, 3], 29: [0, 3, 6, 9], 30: [12, 10, 8, 7, 5, 3, 2, 0], 31: [0, 3],
-  32: [0, 0, 12, 0], 33: [0, 5], 34: [0, 5, 10, 3, 8, 1, 6, 11, 4, 9, 2, 7], 35: [0, 9, 2, 7],
-  36: [0, 8, 2, 7], 37: [2, 7, 0, 0],
+// Step waves as measured on the hardware (calibration set 4), one entry per step of the cycle, in
+// twelfths of the LFO's full swing (so with the depth set for 12 semitones the pitch waves play
+// semitones). Sequences 1-7 are 16 steps of mixed heights, the Alternatives are two-level rhythms.
+const LFO_STEPS = {
+  7: [8.5, 3, 6.5, 4.5, 7.5, 1.5, 5.5, 3.5, 9.5, 0, 4.5, 2.5, 6.5, 0.5, 12, 3],
+  8: [1.5, 9, 3, 6, 2, 1, 4, 0, 1.5, 6, 2, 1, 9.5, 2.5, 5.5, 12],
+  9: [2, 9.5, 1.5, 7.5, 0, 3, 5, 1.5, 12, 2.5, 7.5, 4.5, 3, 11, 2.5, 5.5],
+  10: [12, 3.5, 6, 10.5, 3, 4.5, 8.5, 2.5, 4.5, 6.5, 2.5, 1, 4.5, 0, 1, 3.5],
+  11: [3, 1.5, 0, 5.5, 2.5, 1, 7.5, 3, 1, 10.5, 7.5, 1, 12, 5, 2.5, 9],
+  12: [4.5, 9, 6.5, 2.5, 10.5, 4, 8.5, 5.5, 3, 8, 6, 11, 4, 6.5, 12, 3],
+  13: [7, 0, 2.5, 0, 6.5, 0, 12, 0, 5, 0, 10, 0, 2.5, 0, 4, 0],
+  14: [12, 12, 0, 0, 12, 0, 12, 0],
+  15: [12, 0, 12, 0, 12, 12, 0, 0],
+  16: [12, 12, 12, 12, 12, 12, 12, 12, 12, 0, 0, 0, 12, 12, 12, 0, 12, 12, 12, 0, 12, 12, 12, 0],
+  17: [12, 12, 12, 0, 12, 12, 12, 0, 12, 12, 12, 0, 12, 12, 12, 12, 12, 12, 12, 12, 12, 0, 0, 0],
+  18: [12, 12, 12, 12, 12, 12, 0, 12, 12, 12, 12, 0],
+  19: [12, 12, 0, 12, 12, 0, 12, 12, 0, 12, 12, 0, 12, 12, 12, 12, 12, 0, 12, 12, 12, 12, 12, 0],
+  20: [12, 12, 0, 12, 12, 0, 12, 12, 12, 0, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 0],
+  21: [12, 12, 0, 12, 12, 0, 12, 0, 12, 0, 12, 0],
+  22: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+  23: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 10, 9, 8, 7],
+  24: [0, 2, 4, 5, 7, 9, 11, 12],
+  25: [0, 4, 7, 11],
+  26: [0, 3, 7, 10],
+  27: [0, 7, 3, 7, 3, 10, 7, 3],
+  28: [0, 3, 7, 3, 7, 10, 3, 7],
+  29: [0, 2, 3, 5, 6, 8, 9, 11],
+  30: [7, 5, 3, 2, 0, 12, 10, 8],
+  31: [0, 1.5, 3, 4.5, 6, 7.5, 9, 10.5],
+  32: [5, 0, 6, 0, 1, 0, 3, 0],
+  33: [0, 2.5, 5, 7.5, 0.5, 3, 5.5, 8],
+  34: [0, 2.5, 5, 7.5, 0.5, 3, 5.5, 8, 1, 3.5, 6, 8.5],
+  35: [0, 9, 2, 7],
+  36: [0, 8, 2, 7],
+  37: [2, 7, 0, 0],
 };
 const SH_STEPS = 64;
 const SH_VALUES = (() => { const r = rng(20261112); return Array.from({ length: SH_STEPS }, () => r() * 2 - 1); })();
@@ -180,8 +192,10 @@ export function lfoShape(wave, n = 256) {
     }
     return d;
   }
-  if (wave === 6) { for (let i = 0; i < n; i++) d[i] = Math.exp((-5 * i) / n); return d; }
-  const values = wave === 4 || wave === 5 ? SH_VALUES : LFO_LEVEL_SEQ[wave] ?? (LFO_PITCH_SEQ[wave] ?? [0]).map((s) => s / 12);
+  // Piano Envelope, measured: starts at the middle and falls to the bottom (time constant 0.15 cycle).
+  if (wave === 6) { for (let i = 0; i < n; i++) d[i] = Math.exp(-i / n / 0.15) - 1; return d; }
+  // Random S/H holds one random value per cycle; Time S/H flips between top and bottom.
+  const values = wave === 4 ? SH_VALUES : wave === 5 ? SH_VALUES.map((v) => (v >= 0 ? 1 : -1)) : LFO_STEPS[wave].map((st) => st / 6 - 1);
   const stepLen = n / values.length;
   const ramp = Math.min(48, stepLen / 4);
   for (let i = 0; i < n; i++) {
@@ -323,7 +337,8 @@ const RES_GAIN_DB = [[0, 0], [20, -0.8], [40, -1.3], [60, -2.3], [80, -3.0], [10
 const CUTOFF_TO_F0 = 0.93;
 
 const chorusHz = (v) => Math.max(0.02, 0.0013 * v * v);          // measured on the phaser: 40 -> 2 Hz, 100 -> 12.7 Hz
-const lfoDelaySeconds = (v) => (v / 127) ** 2 * 6;
+// LFO delay and envelope 3 delay share one measured law: 40 -> 0.09 s, 70 -> 0.44 s, 100 -> 2.3 s.
+const delaySeconds = (v) => (v <= 0 ? 0 : 0.148 * 10 ** ((v - 50) / 42.4));
 
 // ------------------------------------------------------------------ the synth
 export class PatchSynth {
@@ -673,17 +688,19 @@ export class PatchSynth {
     // An envelope as an AudioParam automation, kept as numbers so a release can re-anchor it.
     // Velocity law measured on the Circuit Tracks (calibration set 3, sine, velocities 1-127 at
     // ten settings): the envelope follows velocity squared, not velocity, with a small floor.
-    // Fits every measured point within about 0.3 dB. Measured on envelope 1; assumed for envelope 2.
+    // Fits every measured point within about 0.3 dB, for envelope 1 and for envelope 2.
     const velCurve = 0.015 + 0.985 * vel * vel;
     const envVel = (id) => {
       const v = this.val(id);
       return v >= 64 ? 1 - ((v - 64) / 63) * (1 - velCurve) : Math.max(0.0075, 1 - ((64 - v) / 64) * velCurve);
     };
     const runEnv = (param, prefix, peak) => {
-      const del = prefix === 'env3' ? (this.val('env3_delay') / 127) ** 2 * 4 : 0;
+      const del = prefix === 'env3' ? delaySeconds(this.val('env3_delay')) : 0;
       const a = Math.max(0.0015, attackSeconds(this.val(`${prefix}_attack`)));
       const dTau = Math.max(0.003, decaySeconds(this.val(`${prefix}_decay`)) / 6.9);
-      const sus = this.val(`${prefix}_sustain`) / 127;
+      // The amp envelope's sustain level is the square of the setting (measured: 64 -> a quarter);
+      // envelopes 2 and 3 are linear.
+      const sus = prefix === 'env1' ? (this.val('env1_sustain') / 127) ** 2 : this.val(`${prefix}_sustain`) / 127;
       const rTau = Math.max(0.003, decaySeconds(this.val(`${prefix}_release`)) / 6.9);
       param.setValueAtTime(0, t);
       if (del) param.setValueAtTime(0, t + del);
@@ -714,6 +731,14 @@ export class PatchSynth {
           voice.sources.push(s);
           nodeL = s;
         } else nodeL = this.lfos[n].out;
+        // Measured (calibration set 4, LFO -> oscillator level): the "+" source runs 0..1 and the
+        // "+/-" source -0.5..+0.5, where a constant ("direct") is 1.
+        if (src === 7 || src === 9) {
+          const half = c.createGain(); half.gain.value = 0.5;
+          link(nodeL, half);
+          voice.nodes.push(half);
+          nodeL = half;
+        }
         if (src === 6 || src === 8) {                      // unipolar: (x + 1) / 2
           const half = c.createGain(); half.gain.value = 0.5;
           const sum = c.createGain();
@@ -722,7 +747,7 @@ export class PatchSynth {
           voice.sources.push(k); voice.nodes.push(half);
           nodeL = sum;
         }
-        const dly = lfoDelaySeconds(this.val(`lfo${n + 1}_delay`));
+        const dly = delaySeconds(this.val(`lfo${n + 1}_delay`));
         if (dly > 0.01) {                                  // delay with fade / gate, in or out
           const fade = c.createGain();
           const fm = (flags >> 4) & 3;
@@ -741,7 +766,8 @@ export class PatchSynth {
         if (!envNodes[prefix]) {
           const k = c.createConstantSource();
           k.offset.value = 0;
-          runEnv(k.offset, prefix, 1);
+          // Envelopes 1 and 2 keep their velocity setting as mod sources (measured on envelope 2).
+          runEnv(k.offset, prefix, prefix === 'env3' ? 1 : envVel(`${prefix}_velocity`));
           k.start(t);
           voice.sources.push(k);
           envNodes[prefix] = k;
@@ -750,7 +776,8 @@ export class PatchSynth {
       }
       return null;
     };
-    const staticValue = (src) => (src === 4 ? vel : src === 5 ? (pitch - 60) / 60 : 1);
+    // Measured: velocity as a source is velocity squared; keyboard is 1/64 per semitone from C4.
+    const staticValue = (src) => (src === 4 ? vel * vel : src === 5 ? (pitch - 60) / 64 : 1);
     const isStatic = (src) => !(src >= 6 && src <= 12);
     const allOscs = (n) => voice[`oscs${n}`].map((o) => o.osc.detune);
 
