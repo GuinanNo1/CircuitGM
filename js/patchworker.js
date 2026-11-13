@@ -3,12 +3,12 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261113q';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261113q';
-import { TracksLink } from './pw/midi.js?v=20261113q';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114a';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114a';
+import { TracksLink } from './pw/midi.js?v=20261114a';
 import { openPack, buildPack, bankSyx, slotEdited, slotBlank, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261113q';
-import { buildPanel } from './pw/panel.js?v=20261113q';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114a';
+import { buildPanel } from './pw/panel.js?v=20261114a';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_v1.circuittrackspack';
 const $ = (s) => document.querySelector(s);
@@ -1044,16 +1044,30 @@ link.onTrack = (track) => {
   if (track <= 1 && track !== S.synth) document.querySelector(`#hw [data-synth="${track}"]`)?.click();
   tracksPanel?.selectTrack(track);   // the TRACKS panel shows the same track (2-3 MIDI, 4-7 drums)
 };
-// ?midilog: list what the Tracks sends, to find out what it says when Synth 1 / Synth 2 is pressed.
+// ?midilog: list every MIDI message to and from the Tracks (for hardware tests). A patch message
+// is summed up: command (00 current / 01 flash / 40 request), location, name, macro knob positions.
 if (new URLSearchParams(location.search).has('midilog')) {
   link.log = [];
-  const pre = h('pre', { class: 'midilog', 'aria-label': 'MIDI from the Circuit Tracks' });
+  const pre = h('pre', { class: 'midilog', 'aria-label': 'MIDI to and from the Circuit Tracks' });
   const copy = h('button', { type: 'button', class: 'btn small', text: 'Copy log', onclick: () => navigator.clipboard?.writeText(pre.textContent) });
   const clear = h('button', { type: 'button', class: 'btn small', text: 'Clear', onclick: () => { link.log.length = 0; pre.textContent = ''; } });
-  document.body.append(h('section', { class: 'midilog-box' }, h('p', { class: 'eyebrow', text: 'MIDI from the Circuit Tracks' }), copy, clear, pre));
+  document.body.append(h('section', { class: 'midilog-box' }, h('p', { class: 'eyebrow', text: 'MIDI to (→) and from (←) the Circuit Tracks' }), copy, clear, pre));
   const t0 = performance.now();
+  const hex = (a) => a.map((b) => b.toString(16).padStart(2, '0')).join(' ');
+  const line = (e) => {
+    const arrow = e.dir === 'in' ? '←' : e.dir === 'out' ? '→' : '✗ NOT SENT →';
+    const d = e.d;
+    let text = hex(d);
+    if (d.length === 350 && d[0] === 0xf0) {
+      const name = String.fromCharCode(...d.slice(9, 25)).trimEnd();
+      const macros = Array.from({ length: 8 }, (_, k) => d[9 + 204 + 17 * k]);
+      const what = d[6] === 0 ? `current patch, synth ${d[7] + 1}` : d[6] === 1 ? `STORE to flash slot ${d[7] + 1} (byte ${d[7].toString(16).padStart(2, '0')})` : `command ${d[6]}`;
+      text = `${hex(d.slice(0, 9))} … ${what}: "${name}", macros ${macros.join(' ')}`;
+    } else if (d.length > 24) text = `${hex(d.slice(0, 24))} … (${d.length} bytes)`;
+    return `${((e.t - t0) / 1000).toFixed(3).padStart(8)} ${arrow} ${text}`;
+  };
   link.onLog = () => {
-    pre.textContent = link.log.map((e) => `${((e.t - t0) / 1000).toFixed(3).padStart(8)}  ${e.d.length > 24 ? `${e.d.slice(0, 24).map((b) => b.toString(16).padStart(2, '0')).join(' ')} … (${e.d.length} bytes)` : e.d.map((b) => b.toString(16).padStart(2, '0')).join(' ')}`).join('\n');
+    pre.textContent = link.log.map(line).join('\n');
     pre.scrollTop = pre.scrollHeight;
   };
 }

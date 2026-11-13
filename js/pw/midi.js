@@ -1,7 +1,7 @@
 // PatchWorker's link to a Circuit Tracks over Web MIDI (Chrome, Edge, Opera; Firefox with its
 // site permission add-on). Everything here follows the Circuit Tracks Programmer's Reference
 // Guide v3: patches travel as SysEx, single parameters as CC or NRPN on the synth's channel.
-import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261113q';
+import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261114a';
 
 const isTracks = (port) => /circuit tracks/i.test(port.name ?? '');
 
@@ -70,8 +70,16 @@ export class TracksLink extends EventTarget {
   emit() { this.dispatchEvent(new Event('change')); }
 
   send(bytes) {
-    if (!this.out) return false;
-    try { this.out.send(bytes); return true; } catch { return false; }
+    let ok = false;
+    if (this.out) { try { this.out.send(bytes); ok = true; } catch { ok = false; } }
+    if (this.log) this.record([...bytes], ok ? 'out' : 'fail');
+    return ok;
+  }
+  // ?midilog: keep the last 400 messages either way (clock and active sensing left out).
+  record(d, dir) {
+    this.log.push({ t: performance.now(), d, dir });
+    if (this.log.length > 400) this.log.shift();
+    this.onLog?.();
   }
 
   // --- to the Tracks
@@ -113,11 +121,7 @@ export class TracksLink extends EventTarget {
   receive(port, data) {
     if (!data || !data.length) return;
     const fromTracks = isTracks(port);
-    if (fromTracks && this.log && !(data[0] === 0xf8 || data[0] === 0xfe)) {
-      this.log.push({ t: performance.now(), d: [...data] });
-      if (this.log.length > 400) this.log.shift();
-      this.onLog?.();
-    }
+    if (fromTracks && this.log && !(data[0] === 0xf8 || data[0] === 0xfe)) this.record([...data], 'in');
     if (data[0] === 0xf0) {
       if (!fromTracks) return;
       // Track selected on the Tracks (seen 2026-11-13, not in the Programmer's Reference):
