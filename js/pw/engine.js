@@ -12,9 +12,9 @@
 //
 // It is still an approximation: the hardware is the reference.
 import { P, MACRO_DESTS, MOD_SLOTS, modAddr, macroPosAddr, macroRows, cutoffHz, attackSeconds,
-  decaySeconds, lfoHz, eqDb, eqHz, pitchSemis, filterSteps, syncBeats, initPatch } from './params.js?v=20261113c';
-import { WAVETABLES } from './wavetables.js?v=20261113c';
-import { SHAPERS } from './shapers.js?v=20261113c';
+  decaySeconds, lfoHz, eqDb, eqHz, pitchSemis, filterSteps, syncBeats, initPatch } from './params.js?v=20261113d';
+import { WAVETABLES } from './wavetables.js?v=20261113d';
+import { SHAPERS } from './shapers.js?v=20261113d';
 
 const MAX_VOICES = 6;
 // Pitch: the Circuit Tracks plays an incoming MIDI note at standard pitch (MIDI 60 measured at
@@ -227,14 +227,15 @@ function noiseBuffer(ctx) {
   if (!noiseBuffers.has(ctx)) {
     const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
     const d = buf.getChannelData(0);
-    // The hardware's noise is flat to about 10 kHz and falls away above 14 kHz (calibration
-    // set 3): white noise through a 4-pole low-pass, brought back to the level of white noise.
+    // The hardware's noise is flat to about 10 kHz and falls away gently above (calibration
+    // sets 3 and 5: -4 dB at 15 kHz, -7 at 17, -10 at 19, -16 at 21.5): white noise through a
+    // 2-pole low-pass at 13 kHz, brought back to the level of white noise.
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    const w0 = (2 * Math.PI * Math.min(15000, ctx.sampleRate * 0.45)) / ctx.sampleRate;
+    const w0 = (2 * Math.PI * Math.min(13000, ctx.sampleRate * 0.45)) / ctx.sampleRate;
     const al = Math.sin(w0) / (2 * 0.707);
     const cw = Math.cos(w0);
     const b0 = (1 - cw) / 2 / (1 + al), b1 = (1 - cw) / (1 + al), a1 = (-2 * cw) / (1 + al), a2 = (1 - al) / (1 + al);
-    for (let pass = 0; pass < 2; pass++) {
+    for (let pass = 0; pass < 1; pass++) {
       let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
       for (let i = 0; i < d.length; i++) {
         const x = d[i];
@@ -261,8 +262,8 @@ const tableDb = (rows, v) => {
 
 // Waveshaper curve for the filter drive or the distortion effect, from the curves measured on the
 // hardware (js/pw/shapers.js). The engine's signal at the shaper peaks at `ref` for one full-level
-// sine voice, which is where the measured curve reaches its ends; louder signals (chords) carry
-// on past them along the curve's end slope, levelling off.
+// sine voice, which is where the measured curve reaches its ends; louder signals (chords, Pre FX
+// boost) carry on past them along the curve's end slope, levelling off.
 // Distortion Compensation only changes the level (calibration set 4, diode at 96: +10.9 dB at 0,
 // +4.8 at 64, -7.2 at 127, against the default 100). Measured at one setting only: scaled with
 // the distortion level here.
@@ -293,8 +294,10 @@ function shaperCurve(kind, type, level, ref, gainDb = 0) {
   for (let i = 0; i < n; i++) {
     const x = ((i / (n - 1)) * 2 - 1) / ref;
     let v = at(x);
-    if (x > 1) v = y[M] + sTop * Math.tanh(x - 1);
-    else if (x < -1) v = y[0] - sBot * Math.tanh(-1 - x);
+    // Past the measured range carry on along the end slope (calibration set 5: the valve drive
+    // at 25 stays this straight with Pre FX +8 dB), levelling off well beyond it.
+    if (x > 1) v = y[M] + sTop * 3 * Math.tanh((x - 1) / 3);
+    else if (x < -1) v = y[0] - sBot * 3 * Math.tanh((-1 - x) / 3);
     c[i] = v * ref * g;
   }
   curveCache.set(key, c);
@@ -330,6 +333,13 @@ const f0Hz = (v) => Math.exp(tableDb(LOG_F0, v));
 // at 32, -2.4 at 96, -4.3 at 127, against the default 64). Both scale the resonant part of Q.
 const RES_HI_DB = [[2000, 0], [4000, -1.5], [6500, -4.3], [10300, -5.3], [16400, -5.7]];
 const QNORM_DB = [[0, 3.6], [32, 2.4], [64, 0], [96, -2.4], [127, -4.3]];
+// Level with a saw through the two-section types, against the noise-fitted tables (calibration
+// set 5, cutoff 50-65): the 24 dB low-pass comes out quieter as resonance rises, the 12 dB
+// band-pass 1 dB quieter at low cutoffs (none by cutoff 80, where set 3 fitted it) and more so
+// near self-oscillation.
+const LP24_RES_DB = [[0, 0], [20, 0], [40, -0.5], [70, -1.4], [90, -3.5], [127, -4.5]];
+const BP12_RES_DB = [[0, 0], [70, -0.1], [90, -2.1], [127, -3]];
+const BP12_LOW_DB = [[0, -1], [65, -1], [80, 0], [127, 0]];
 
 const chorusHz = (v) => Math.max(0.02, 0.0013 * v * v);          // measured on the phaser: 40 -> 2 Hz, 100 -> 12.7 Hz
 // LFO delay and envelope 3 delay share one measured law: 40 -> 0.09 s, 70 -> 0.44 s, 100 -> 2.3 s.
@@ -506,7 +516,9 @@ export class PatchSynth {
         if (lfo.src) { try { lfo.src.stop(); lfo.src.disconnect(); } catch { /* gone */ } }
         lfo.src = this.makeLfoSource(n);
         lfo.src.connect(lfo.out);
-        lfo.src.start();
+        // Free-running LFOs: where in its cycle the LFO starts (a test hook; the hardware's
+        // free-running LFO is at whatever point it has reached when a note starts).
+        lfo.src.start(0, this.lfoStart || 0);
         lfo.wave = wave;
       } else {
         set(lfo.src.playbackRate, wave === 4 || wave === 5 ? this.lfoRateHz(n) / SH_STEPS : this.lfoRateHz(n));
@@ -563,7 +575,10 @@ export class PatchSynth {
 
   // Level after the filter: the drop with resonance, and the band-pass peak growing with Q.
   filterGain(stages, ftype) {
-    const g = 10 ** (tableDb(RES_GAIN_DB, this.val('filter_resonance')) / 20);
+    const r = this.val('filter_resonance');
+    const extra = ftype === 1 ? tableDb(LP24_RES_DB, r)
+      : ftype === 3 ? tableDb(BP12_RES_DB, r) + tableDb(BP12_LOW_DB, this.val('filter_frequency')) : 0;
+    const g = 10 ** ((tableDb(RES_GAIN_DB, r) + extra) / 20);
     return ftype === 2 || ftype === 3 ? g * this.filterQ(stages) ** stages : g;
   }
 
@@ -862,7 +877,10 @@ export class PatchSynth {
     for (const e of voice.envs) {
       const tau = forceTau ?? e.rTau;
       e.param.cancelScheduledValues(time);
-      e.param.setValueAtTime(PatchSynth.envAt(e, time), time);
+      // Released during the attack: cancelling removed the attack ramp, so ramp again to the
+      // value reached by now (a plain set would leave the envelope at 0 until the release).
+      if (time > e.t0 && time < e.t0 + e.a) e.param.linearRampToValueAtTime(PatchSynth.envAt(e, time), time);
+      else e.param.setValueAtTime(PatchSynth.envAt(e, time), time);
       e.param.setTargetAtTime(0, time, tau);
       if (e === voice.ampEnv) tail = tau * 7;
     }
