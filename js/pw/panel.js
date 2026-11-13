@@ -294,5 +294,6 @@ export function buildPanel(root, api) {
 
   paint();
   // selectTrack: a track chosen on the Circuit Tracks itself (0 Synth 1 … 7 Drum 4).
-  return { paint, refresh, selectTrack: (i) => { if (i >= 0 && i < TRACKS.length) selectTrack(i); }, state: st };
+  // selectView: a view chosen on the Circuit Tracks itself (an id from VIEWS).
+  return { paint, refresh, selectTrack: (i) => { if (i >= 0 && i < TRACKS.length) selectTrack(i); }, selectView: (id) => { if (VIEWS.some((v) => v.id === id) && id !== st.view) selectView(id); }, state: st };
 }

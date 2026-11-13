@@ -178,6 +178,22 @@ const { chromium } = require('playwright');
   await rx([0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x04, 0x03, 0x01, 0x00, 0xf7]);
   await p.waitForTimeout(300);
   check('Synth 2 on the Tracks lights Synth 2 in the panel', (await synthNow()) === 1 && await p.evaluate(() => document.querySelector('.trk.on')?.dataset.track === '1'));
+  // View changes on the Tracks (04 <view> <track>): the panel follows the view, and the track
+  // where the message carries one (not Mixer / FX / Patterns, which send track 00).
+  const viewNow = () => p.evaluate(() => [document.querySelector('.views .view[aria-pressed="true"]')?.dataset.view, document.querySelector('.trk.on')?.dataset.track]);
+  await rx([0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x04, 0x0d, 0x00, 0x00, 0xf7]);
+  await p.waitForTimeout(200);
+  check(`FX on the Tracks shows FX, track stays Synth 2 (${await viewNow()})`, (await viewNow()).join() === 'fx,1');
+  await rx([0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x04, 0x07, 0x05, 0x00, 0xf7]);
+  await p.waitForTimeout(200);
+  check(`Probability on Drum 2 shows Probability and Drum 2 (${await viewNow()})`, (await viewNow()).join() === 'probability,5');
+  for (const [code, id] of [[0x02, 'preset'], [0x08, 'note'], [0x0a, 'micro'], [0x09, 'sidechain'], [0x0b, 'patterns'], [0x0c, 'mixer'], [0x04, 'velocity'], [0x05, 'gate'], [0x06, 'pattern'], [0x03, 'note']]) {
+    await rx([0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x04, code, 0x01, 0x00, 0xf7]);
+    await p.waitForTimeout(60);
+    const v = await viewNow();
+    if (v[0] !== id) check(`view code ${code.toString(16)} shows ${id} (got ${v[0]})`, false);
+  }
+  check('every view code seen on the hardware maps to its panel view', (await viewNow()).join() === 'note,1');
   await p.evaluate(() => window.patchworker.setFace('editor'));
   await rx([0xfc]);
 

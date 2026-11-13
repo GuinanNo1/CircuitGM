@@ -1,8 +1,12 @@
 // PatchWorker's link to a Circuit Tracks over Web MIDI (Chrome, Edge, Opera; Firefox with its
 // site permission add-on). Everything here follows the Circuit Tracks Programmer's Reference
 // Guide v3: patches travel as SysEx, single parameters as CC or NRPN on the synth's channel.
-import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261114f';
+import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261114g';
 
+// Views on the Tracks whose message carries the selected track (not Mixer 0C, FX 0D, Patterns 0B).
+export const TRACK_VIEWS = new Set([0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a]);
+// The TRACKS panel view for each view code the Tracks sends.
+export const VIEW_CODES = { 0x02: 'preset', 0x03: 'note', 0x08: 'note', 0x04: 'velocity', 0x05: 'gate', 0x0a: 'micro', 0x06: 'pattern', 0x07: 'probability', 0x0b: 'patterns', 0x0c: 'mixer', 0x0d: 'fx', 0x09: 'sidechain' };
 export const SYX_GAP = 20;           // ms between SysEx messages (Programmer's Reference)
 export const SYX_STORE_GAP = 500;    // ms after a Store before the next SysEx
 
@@ -19,6 +23,7 @@ export class TracksLink extends EventTarget {
     this.onMacro = null;      // (knob, value, synth) when a macro knob is turned on the Tracks
     this.onNote = null;       // (on, note, velocity) from any other MIDI keyboard
     this.onTrack = null;      // (track) when a track is selected on the Tracks: 0-1 synths, 2-3 MIDI, 4-7 drums
+    this.onView = null;       // (view code, track) when the Tracks changes view (see VIEW_CODES)
     this.onFocus = null;      // (synth) when the Tracks shows Synth 1 or 2 is in use (its pads or macros)
     this.log = null;          // an array to record what the Tracks sends (?midilog), or null
     this.onLog = null;
@@ -230,10 +235,15 @@ export class TracksLink extends EventTarget {
     if (fromTracks && this.log && !(data[0] === 0xf8 || data[0] === 0xfe)) this.record([...data], 'in');
     if (data[0] === 0xf0) {
       if (!fromTracks) return;
-      // Track selected on the Tracks (seen 2026-11-13, not in the Programmer's Reference):
-      // F0 00 20 29 01 64 04 03 <track> 00 F7: 0 Synth 1, 1 Synth 2, 2-3 MIDI 1-2, 4-7 Drum 1-4.
-      if (data.length === 11 && data[1] === 0x00 && data[2] === 0x20 && data[3] === 0x29 && data[4] === 0x01 && data[5] === PRODUCT_TRACKS && data[6] === 0x04 && data[7] === 0x03) {
-        this.onTrack?.(data[8]);
+      // View changed on the Tracks (seen 2026-11-13/14, not in the Programmer's Reference):
+      // F0 00 20 29 01 64 04 <view> <track> 00 F7. Track 0-1 Synth 1-2, 2-3 MIDI 1-2, 4-7 Drum 1-4
+      // (always 00 for Mixer, FX, Patterns). Views: 02 Preset, 03 Note, 08 Expanded Note,
+      // 04 Velocity, 05 Gate, 0A Micro Step, 06 Pattern Settings, 07 Probability, 0B Patterns,
+      // 0C Mixer, 0D FX, 09 Sidechain. A track button sends its track's view (Note: 03).
+      if (data.length === 11 && data[1] === 0x00 && data[2] === 0x20 && data[3] === 0x29 && data[4] === 0x01 && data[5] === PRODUCT_TRACKS && data[6] === 0x04) {
+        const view = data[7], track = data[8];
+        this.onView?.(view, track);
+        if (TRACK_VIEWS.has(view)) this.onTrack?.(track);
         return;
       }
       // File-protocol replies (03 ...) go to readFile() while it waits for them.

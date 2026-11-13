@@ -3,12 +3,12 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114f';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114f';
-import { TracksLink } from './pw/midi.js?v=20261114f';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114g';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114g';
+import { TracksLink, VIEW_CODES } from './pw/midi.js?v=20261114g';
 import { openPack, buildPack, bankSyx, slotEdited, slotBlank, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114f';
-import { buildPanel } from './pw/panel.js?v=20261114f';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114g';
+import { buildPanel } from './pw/panel.js?v=20261114g';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_v1.circuittrackspack';
 const $ = (s) => document.querySelector(s);
@@ -1038,11 +1038,16 @@ link.onFocus = (synth) => {
   if (synth === S.synth || !$('#hw-live').checked) return;
   document.querySelector(`#hw [data-synth="${synth}"]`)?.click();
 };
-// A track selected on the Tracks (F0 00 20 29 01 64 04 03 <track> 00 F7, 0 Synth 1 … 7 Drum 4):
-// edit that synth here too, and show that track in the TRACKS panel.
+// A track selected on the Tracks (any view message that carries the track, e.g. 04 03 <track>, the
+// Note view a track button opens): edit that synth here too, and show that track in the TRACKS panel.
 link.onTrack = (track) => {
   if (track <= 1 && track !== S.synth) document.querySelector(`#hw [data-synth="${track}"]`)?.click();
   tracksPanel?.selectTrack(track);   // the TRACKS panel shows the same track (2-3 MIDI, 4-7 drums)
+};
+// A view chosen on the Tracks (04 <view> <track>): the TRACKS panel shows the same view.
+link.onView = (view) => {
+  const id = VIEW_CODES[view];
+  if (id) tracksPanel?.selectView(id);
 };
 // ?midilog: list every MIDI message to and from the Tracks (for hardware tests). A patch message
 // is summed up: command (00 current / 01 flash / 40 request), location, name, macro knob positions.
