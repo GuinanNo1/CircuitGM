@@ -116,6 +116,17 @@ const { chromium } = require('playwright');
   await p.waitForTimeout(300);
   check('a macro turned on Synth 1 switches back', (await synthNow()) === 0);
 
+  // Pressing Synth 2 / Synth 1 on the Tracks (its track-select SysEx) switches the editor, even
+  // while the sequencer runs.
+  await rx([0xfa]);
+  await rx([0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x04, 0x03, 0x01, 0x00, 0xf7]);
+  await p.waitForTimeout(300);
+  check('the Synth 2 button on the Tracks switches the editor to Synth 2', (await synthNow()) === 1);
+  await rx([0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x04, 0x03, 0x00, 0x00, 0xf7]);
+  await p.waitForTimeout(300);
+  check('and Synth 1 switches back', (await synthNow()) === 0);
+  await rx([0xfc]);
+
   // ?midilog shows what the Tracks sends.
   const q = await b.newPage();
   await q.goto('http://localhost:8765/patchworker/?midilog');
