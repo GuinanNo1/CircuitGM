@@ -3,12 +3,12 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114c';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114c';
-import { TracksLink } from './pw/midi.js?v=20261114c';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114d';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114d';
+import { TracksLink } from './pw/midi.js?v=20261114d';
 import { openPack, buildPack, bankSyx, slotEdited, slotBlank, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114c';
-import { buildPanel } from './pw/panel.js?v=20261114c';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114d';
+import { buildPanel } from './pw/panel.js?v=20261114d';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_v1.circuittrackspack';
 const $ = (s) => document.querySelector(s);
@@ -1058,11 +1058,13 @@ if (new URLSearchParams(location.search).has('midilog')) {
     const arrow = e.dir === 'in' ? '←' : e.dir === 'out' ? '→' : '✗ NOT SENT →';
     const d = e.d;
     let text = hex(d);
-    if (d.length === 350 && d[0] === 0xf0) {
-      const name = String.fromCharCode(...d.slice(9, 25)).trimEnd();
-      const macros = Array.from({ length: 8 }, (_, k) => d[9 + 204 + 17 * k]);
-      const what = d[6] === 0 ? `current patch, synth ${d[7] + 1}` : d[6] === 1 ? `STORE to flash slot ${d[7] + 1} (byte ${d[7].toString(16).padStart(2, '0')})` : `command ${d[6]}`;
-      text = `${hex(d.slice(0, 9))} … ${what}: "${name}", macros ${macros.join(' ')}`;
+    if ((d.length === 350 || d.length === 352) && d[0] === 0xf0 && d[6] <= 1) {
+      const at = d.length === 352 ? 11 : 9;   // 352: Components' Store layout, 01 00 00 <slot> 00
+      const slot = d.length === 352 ? d[9] : d[7];
+      const name = String.fromCharCode(...d.slice(at, at + 16)).trimEnd();
+      const macros = Array.from({ length: 8 }, (_, k) => d[at + 204 + 17 * k]);
+      const what = d[6] === 0 ? `current patch, synth ${d[7] + 1}` : `STORE to flash slot ${slot + 1} (${d.length} bytes)`;
+      text = `${hex(d.slice(0, at))} … ${what}: "${name}", macros ${macros.join(' ')}`;
     } else if (d.length > 24) text = `${hex(d.slice(0, 24))} … (${d.length} bytes)`;
     return `${((e.t - t0) / 1000).toFixed(3).padStart(8)} ${arrow} ${text}`;
   };
@@ -1096,7 +1098,8 @@ async function storeOnTracks(slot = S.slot) {
   const sel = slotSelect(slot);
   if (!(await ask('Store on the Circuit Tracks', [`Writes "${getName(S.bytes)}" into a patch slot on the Circuit Tracks itself, replacing the patch that is there now. This cannot be undone from here.`,
     h('label', { class: 'field' }, 'Circuit Tracks patch slot ', sel), h('p', { class: 'hint', text: 'The names listed are from the pack open here, which may not be the pack on your Circuit Tracks.' })], 'Store'))) return false;
-  if (!link.writeSlot(S.bytes, +sel.value)) return false;
+  toast('Storing on the Circuit Tracks…');
+  if (!(await link.writeSlot(S.bytes, +sel.value))) { toast('The Circuit Tracks could not be reached: nothing was stored.'); return false; }
   for (const hw of S.hw) if (hw.slot === S.slot) hw.edited = false;
   toast(`Stored in Circuit Tracks patch slot ${pad3(+sel.value + 1)}.`);
   return true;

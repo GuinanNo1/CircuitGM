@@ -232,24 +232,32 @@ const { chromium } = require('playwright');
   await q.waitForFunction(() => window.patchworker?.S.pack);
   await q.evaluate(() => window.patchworker.link.receive({ name: 'Circuit Tracks' }, new Uint8Array([0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x7f, 0xf7])));
   check('?midilog lists messages from the Tracks', /← f0 00 20 29 01 64 7f f7/.test(await q.textContent('.midilog')));
-  await q.evaluate(() => { const w = window.patchworker; w.link.out = { send() {} }; w.link.writeSlot(w.S.bytes, 0); w.link.out = null; w.link.writeSlot(w.S.bytes, 5); });
-  const logText = await q.textContent('.midilog');
-  check('?midilog sums up a Store sent to the Tracks (slot, name, macro positions)', /→ f0 00 20 29 01 64 01 00 00 … STORE to flash slot 1 \(byte 00\): ".+", macros( \d+){8}/.test(logText));
-  check('?midilog marks a message that could not be sent', /✗ NOT SENT → .*STORE to flash slot 6/.test(logText));
-  // After a Store nothing goes to the Tracks for 500 ms (a patch request 2 ms later made the Tracks drop it).
-  const gaps = await q.evaluate(async () => {
-    const w = window.patchworker, sent = [];
-    w.link.out = { send(b) { sent.push({ t: performance.now(), b: [...b] }); } };
-    w.link.writeSlot(w.S.bytes, 0);
-    w.link.send([0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x40, 0x00, 0x00, 0xf7]);
+  // Store follows Components: file session (open, handshake, 16 directory reads of the slot's page,
+  // close), then 01 00 00 <slot> 00 + patch (352 bytes); nothing else goes out until 500 ms after.
+  const stored = await q.evaluate(async () => {
+    const w = window.patchworker, out = [];
+    w.link.out = { send(b) { out.push({ t: performance.now(), b: [...b] }); } };
+    const done = w.link.writeSlot(w.S.bytes, 69);
+    await new Promise((r) => setTimeout(r, 200));
+    w.link.send([0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x40, 0x00, 0x00, 0xf7]);   // a patch request mid-Store
     w.link.program(0, 3);
-    w.link.send([0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x40, 0x01, 0x00, 0xf7]);
-    await new Promise((r) => setTimeout(r, 1600));   // the Store above may itself wait for an earlier one
+    const ok = await done;
+    await new Promise((r) => setTimeout(r, 900));
     w.link.out = null;
-    return sent.map((e) => [Math.round(e.t - sent[0].t), e.b[0], e.b[6] ?? null]);
+    const t0 = out[0].t;
+    return { ok, msgs: out.map((e) => ({ t: Math.round(e.t - t0), b: e.b })) };
   });
-  check(`after a Store the next messages wait 500 ms, SysEx 20 ms apart (${JSON.stringify(gaps)})`,
-    gaps.length === 4 && gaps[0][1] === 0xf0 && gaps[0][2] === 1 && gaps.slice(1).every((g) => g[0] >= 495) && gaps[3][0] - gaps[1][0] >= 18 && gaps[2][1] === 0xc0);
+  const m = stored.msgs, hx = (b) => b.map((x) => x.toString(16).padStart(2, '0')).join(' ');
+  const storeAt = m.findIndex((e) => e.b.length === 352);
+  check('Store opens a file session first (03 40)', hx(m[0].b) === 'f0 00 20 29 01 64 03 40 f7');
+  check('then reads the 16 patches of the slot\'s page (slot 70 -> entries 64-79)', m.filter((e) => e.b[6] === 3 && e.b[7] === 1).map((e) => e.b[18]).join() === Array.from({ length: 16 }, (_, i) => 64 + i).join() && m.filter((e) => e.b[7] === 1 && e.b[6] === 3).every((e) => e.b[16] === 4 && e.b[17] === 0 && e.b[19] === 2));
+  check('closes the session (03 41) before the Store', storeAt > 0 && hx(m[storeAt - 1].b) === 'f0 00 20 29 01 64 03 41 f7');
+  check('Store message is 01 00 00 <slot> 00 + patch, 352 bytes', storeAt > 0 && hx(m[storeAt].b.slice(0, 11)) === 'f0 00 20 29 01 64 01 00 00 45 00' && m[storeAt].b[351] === 0xf7 && stored.ok);
+  check(`a request and a Program Change made mid-Store wait until 500 ms after it (${m.slice(storeAt).map((e) => e.t).join(', ')})`,
+    m.length === storeAt + 3 && m[storeAt + 1].t - m[storeAt].t >= 495 && m[storeAt + 2].t - m[storeAt].t >= 495);
+  const logText = await q.textContent('.midilog');
+  check('?midilog sums up the Store (slot, name, macro positions)', /→ f0 00 20 29 01 64 01 00 00 45 00 … STORE to flash slot 70 \(352 bytes\): ".+", macros( \d+){8}/.test(logText));
+  check('?midilog shows the file-session messages', /→ f0 00 20 29 01 64 03 40 f7/.test(logText));
   await q.close();
   check(`no console errors (${errs.length ? errs.join('; ') : 'none'})`, !errs.length);
   await b.close();

@@ -1,7 +1,7 @@
 // PatchWorker's link to a Circuit Tracks over Web MIDI (Chrome, Edge, Opera; Firefox with its
 // site permission add-on). Everything here follows the Circuit Tracks Programmer's Reference
 // Guide v3: patches travel as SysEx, single parameters as CC or NRPN on the synth's channel.
-import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261114c';
+import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261114d';
 
 export const SYX_GAP = 20;           // ms between SysEx messages (Programmer's Reference)
 export const SYX_STORE_GAP = 500;    // ms after a Store before the next SysEx
@@ -78,9 +78,10 @@ export class TracksLink extends EventTarget {
   // (hardware, 2026-11-14). Other messages go straight out, as before.
   send(bytes) {
     if (!this.out) return this.sendNow(bytes);
+    if (this.held) { this.held.push(Uint8Array.from(bytes)); return true; }   // a Store is under way
     const now = performance.now();
     const sysex = bytes[0] === 0xf0;
-    const store = sysex && bytes[6] === 0x01 && bytes.length === 350;
+    const store = sysex && bytes[5] === PRODUCT_TRACKS && bytes[6] === 0x01 && bytes.length >= 350;   // a Store (either layout)
     // Nothing at all goes out while a Store is being written; SysEx also keeps its 20 ms spacing.
     let at = Math.max(now, this.storeUntil ?? 0);
     if (sysex) at = Math.max(at, this.sysexFree ?? 0);
@@ -106,7 +107,46 @@ export class TracksLink extends EventTarget {
 
   // --- to the Tracks
   sendPatch(bytes, synth) { return this.send(toSyx(bytes, { command: 0, location: synth })); }
-  writeSlot(bytes, slot) { return this.send(toSyx(bytes, { command: 1, location: slot })); }
+  // Store a patch in a flash slot (0-127) as Novation Components does. The Programmer's Reference's
+  // "Replace Patch" (01 <slot> 00) alone is ignored by the Tracks (hardware, 2026-11-14). Components
+  // first opens a file session and reads the slot's page of the patch directory, closes it, then
+  // sends 01 00 00 <slot> 00 + the patch (352 bytes). Sequence as captured from Components' Web MIDI
+  // output by namirsab/circuit-tracks-tools (MIT), ncs_transfer.send_patch_to_slot.
+  // Nothing else goes to the Tracks until it is done. Resolves true if everything was sent.
+  async writeSlot(bytes, slot) {
+    if (!this.out) return false;
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const file = (sub, payload = []) => [...SYX_HEAD, PRODUCT_TRACKS, 0x03, sub, ...payload, 0xf7];
+    const steps = [
+      [file(0x40), 300],                      // open session
+      [file(0x0b, [0x01]), 100],              // directory handshake
+      [file(0x09, [0x01, 0x00]), 100],
+      [file(0x0b, [0x02]), 100],
+    ];
+    const page = slot & 0x70;                 // Components reads the 16-patch page holding the slot
+    for (let i = 0; i < 16; i++) steps.push([file(0x01, [0, 0, 0, 0, 0, 0, 0, 0, 0x04, 0x00, page + i, 0x02]), 20]);
+    steps[steps.length - 1][1] = 300;
+    steps.push([file(0x41), 100]);            // close session
+    let ok = true;
+    // Wait for anything already queued, then hold every other message until the Store is sent.
+    const free = Math.max(this.storeUntil ?? 0, this.sysexFree ?? 0) - performance.now();
+    if (free > 0) await wait(free);
+    this.held = [];
+    for (const [msg, ms] of steps) {
+      ok = this.sendNow(msg) && ok;
+      await wait(ms);
+    }
+    const store = new Uint8Array(352);
+    store.set([...SYX_HEAD, PRODUCT_TRACKS, 0x01, 0x00, 0x00, slot & 0x7f, 0x00]);
+    store.set(bytes.subarray(0, 340), 11);
+    store[351] = 0xf7;
+    const held = this.held;
+    this.held = null;
+    this.storeUntil = this.sysexFree = 0;
+    ok = this.send(store) && ok;              // send() then holds everything else back SYX_STORE_GAP ms
+    for (const msg of held) this.send(msg);
+    return ok;
+  }
   // Program Change on a synth's channel: the Tracks loads its own patch from that slot (needs PGM Rx on).
   program(synth, slot) { return this.send([0xc0 | synth, slot & 0x7f]); }
   noteOn(synth, note, velocity) { return this.send([0x90 | synth, note & 0x7f, velocity & 0x7f]); }

@@ -1,6 +1,6 @@
 import { parseMidi, GM_NAMES } from './midifile.js';
 import { arrange, playOrder, laneOf, partOf, patternBars, projectColours, PROJECT_COLOURS, RATES, TRACKS, KITS, KIT_PARTS, MELODIC_ROLES } from './convert.js';
-import { loadBase, loadBaseFromBuffers, buildProjects, buildPack, composePack, SAMPLE_CAP_S } from './build.js?v=20261114c';
+import { loadBase, loadBaseFromBuffers, buildProjects, buildPack, composePack, SAMPLE_CAP_S } from './build.js?v=20261114d';
 import { loadPack, PRODUCTS } from './pack.js';
 import { packSong, projectChoices, setLane } from './packsong.js';
 import { takeHandoff } from './handoff.js';
