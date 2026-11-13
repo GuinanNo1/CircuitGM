@@ -148,26 +148,26 @@ const fakeMidi = () => {
   await page.click('#link-btn');
   await page.waitForSelector('#hw:not([hidden])');
   const sent = () => page.evaluate(() => window.__sent.splice(0));
-  // Linking sends nothing by itself: the page says what the synth is playing and asks.
-  await page.waitForSelector('#dlg[open]');
+  // Linking sends nothing by itself: Live is on, and the page asks the synth what it is playing.
+  await page.waitForTimeout(200);
   let msgs = await sent();
-  check(!msgs.some((m) => m.length === 350) && (await page.innerText('#dlg-title')) === 'Synth 1 on the Circuit Tracks', 'linking asks before replacing what Synth 1 is playing');
-  check((await page.getAttribute('#ed-hw', 'data-state')) === 'differs', `the status line says the synth has another patch (${await page.innerText('#ed-hw')})`);
-  await page.click('#dlg-ok');
-  await page.waitForTimeout(100);
-  msgs = await sent();
-  check(msgs.some((m) => m.length === 350 && m[6] === 0 && m[7] === 0) && (await page.getAttribute('#ed-hw', 'data-state')) === 'same', 'Send in that dialog sends the patch to Synth 1');
+  check(!msgs.some((m) => m.length === 350) && await page.isChecked('#hw-live') && !(await page.evaluate(() => document.querySelector('#dlg').open)), 'linking turns Live on, sends no patch and asks nothing');
+  check((await page.getAttribute('#ed-hw', 'data-state')) === 'differs' && /not in this pack/.test(await page.innerText('#ed-hw')), `the status line names the synth's patch (${await page.innerText('#ed-hw')})`);
   await page.click('#patchlist li[data-slot="38"]');
-  await page.waitForTimeout(100);
+  await page.waitForTimeout(200);
   msgs = await sent();
-  check(msgs.some((m) => m.length === 350), 'choosing a slot sends its patch');
+  check(msgs.some((m) => m[0] === 0xc0 && m[1] === 38) && msgs.some((m) => m.length === 350 && m[6] === 0 && m[7] === 0), 'choosing a slot sends Program Change and its patch');
   await freq.focus();
   await page.keyboard.press('ArrowUp');
   msgs = await sent();
   check(msgs.length === 1 && msgs[0][0] === 0xb0 && msgs[0][1] === 74, `filter frequency goes out as CC 74 (${JSON.stringify(msgs)})`);
   await page.click('#hw [data-synth="1"]');
-  await page.waitForSelector('#dlg[open]');
+  await page.waitForTimeout(200);
   check((await page.getAttribute('body', 'data-synth')) === '1', 'choosing Synth 2 switches the panel colour');
+  // Synth 2 plays something else: the first edit asks before replacing it.
+  await page.evaluate(() => window.patchworker.setByte(75, 29));
+  await page.waitForSelector('#dlg[open]');
+  check((await page.innerText('#dlg-title')) === 'Synth 2 on the Circuit Tracks', 'the first edit asks before replacing what Synth 2 is playing');
   await page.click('#dlg-ok');
   await page.waitForTimeout(100);
   await sent();

@@ -3,12 +3,12 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261113i';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261113i';
-import { TracksLink } from './pw/midi.js?v=20261113i';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261113j';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261113j';
+import { TracksLink } from './pw/midi.js?v=20261113j';
 import { openPack, buildPack, bankSyx, slotEdited, slotBlank, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261113i';
-import { buildPanel } from './pw/panel.js?v=20261113i';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261113j';
+import { buildPanel } from './pw/panel.js?v=20261113j';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_v1.circuittrackspack';
 const $ = (s) => document.querySelector(s);
@@ -151,7 +151,7 @@ const PARAM_AT = new Map(Object.values(P).map((p) => [p.a, p]));
 // Replace the chosen synth's current patch with the one being edited, and remember that it has it.
 function hwSend() {
   if (!link.sendPatch(S.bytes, S.synth)) return false;
-  S.hw[S.synth] = { slot: S.slot, dirty: false };
+  S.hw[S.synth] = { slot: S.slot, dirty: false, edited: slotEdited(S.pack, S.slot) };
   paintStatus();
   return true;
 }
@@ -162,6 +162,8 @@ function sendWhole(delay = 180) {
 }
 function sendLive(addr) {
   if (!hwLive()) return;
+  if (S.hw[S.synth].slot !== S.slot) { offerSync(); return; }   // the synth is playing another patch
+  S.hw[S.synth].edited = true;                                   // the Tracks now has changes it hasn't stored
   if (addr == null) { sendWhole(0); return; }
   const p = PARAM_AT.get(addr);
   if (p && (p.cc != null || p.nrpn)) { link.sendParam(S.synth, p.id, S.bytes[addr]); return; }
@@ -192,6 +194,7 @@ function redo() {
   replacePatch(u.future.pop());
 }
 
+let pcSent = null;
 function selectSlot(slot, { send = true } = {}) {
   panic();
   S.slot = clamp(slot, 0, PATCH_SLOTS - 1);
@@ -202,7 +205,12 @@ function selectSlot(slot, { send = true } = {}) {
   paintList();
   paintBar();
   paintStatus();
-  if (send && hwLive()) sendWhole(0);
+  if (send && hwLive()) {
+    // The Tracks moves to the same patch number (PGM Rx), then gets the pack's version of it.
+    link.program(S.synth, S.slot);
+    pcSent = { synth: S.synth, slot: S.slot, at: performance.now() };
+    sendWhole(120);
+  }
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveSession, 500);
 }
@@ -731,6 +739,7 @@ function paintStatus() {
     if (hw.slot === S.slot && !hw.dirty) { text = `${n} is playing this patch${$('#hw-live').checked ? ': edits go to it as you make them' : ' (Live is off: later edits stay here)'}`; state = 'same'; }
     else if (hw.slot === S.slot) { text = `${n} has an older version of this patch: press Send to update it`; state = 'differs'; }
     else if (hw.slot != null) { text = `${n} is playing ${slotLabel(hw.slot)}, not this patch`; state = 'differs'; }
+    else if (hw.bytes) { text = `${n} is playing "${getName(hw.bytes)}", which is not in this pack: Get brings it in`; state = 'differs'; }
     else { text = `${n} is playing its own patch, not this one`; state = 'differs'; }
   }
   el.textContent = text;
@@ -753,17 +762,19 @@ function toast(msg, ms = 3200) {
   toastTimer = setTimeout(() => el.classList.remove('show'), ms);
 }
 // Resolves true for the main button, false for cancel, 'alt' for the optional second choice.
-function ask(title, body, ok = 'OK', { alt = null, cancel = 'Cancel' } = {}) {
+function ask(title, body, ok = 'OK', { alt = null, alt2 = null, cancel = 'Cancel' } = {}) {
   const dlg = $('#dlg');
   $('#dlg-alt').hidden = !alt;
   $('#dlg-alt').textContent = alt ?? '';
+  $('#dlg-alt2').hidden = !alt2;
+  $('#dlg-alt2').textContent = alt2 ?? '';
   $('#dlg-cancel').textContent = cancel;
   $('#dlg-title').textContent = title;
   $('#dlg-body').replaceChildren(...[].concat(body).map((b) => (typeof b === 'string' ? h('p', { text: b }) : b)));
   $('#dlg-ok').textContent = ok;
   dlg.returnValue = 'cancel';
   dlg.showModal();
-  return new Promise((resolve) => dlg.addEventListener('close', () => resolve(dlg.returnValue === 'ok' ? true : dlg.returnValue === 'alt' ? 'alt' : false), { once: true }));
+  return new Promise((resolve) => dlg.addEventListener('close', () => resolve(dlg.returnValue === 'ok' ? true : dlg.returnValue === 'alt' || dlg.returnValue === 'alt2' ? dlg.returnValue : false), { once: true }));
 }
 function slotSelect(selected) {
   return h('select', { class: 'wide' }, Array.from({ length: PATCH_SLOTS }, (_, i) =>
@@ -864,19 +875,19 @@ async function getFromTracks() {
 let offering = false;
 async function offerSync() {
   const hw = S.hw[S.synth];
-  if (!hwLive() || offering || (hw.slot === S.slot && !hw.dirty)) return;
+  if (!hwLive() || offering || (hw.slot === S.slot && !hw.dirty) || hw.declined === S.slot) return;
   if (hw.slot === S.slot) { hwSend(); return; }
   offering = true;
   const n = `Synth ${S.synth + 1}`;
   const name = getName(S.bytes);
   const choice = await ask(`${n} on the Circuit Tracks`, [
-    `${n} is playing ${hw.slot != null ? slotLabel(hw.slot) : 'its own patch'}. Here you are editing ${slotLabel(S.slot)} from the pack.`,
+    `${n} is playing ${hw.slot != null ? slotLabel(hw.slot) : hw.bytes ? `"${getName(hw.bytes)}", which is not in this pack` : 'its own patch'}. Here you are editing ${slotLabel(S.slot)} from the pack.`,
     `Sending replaces what ${n} is playing now. Nothing is stored on the Circuit Tracks unless you press Store, but a patch you have changed on the Circuit Tracks and not saved would be lost.`,
-  ], `Send "${name}"`, { alt: `Edit ${n}'s patch…`, cancel: 'Not now' });
+  ], `Send "${name}"`, { alt: `Edit ${n}'s patch…`, cancel: 'Not now: keep my edits here' });
   offering = false;
   if (choice === true) hwSend();
-  else if (choice === 'alt' && link.in) { if ((await getFromTracks()) == null) $('#hw-live').checked = false; }
-  else $('#hw-live').checked = false;
+  else if (choice === 'alt' && link.in) { if ((await getFromTracks()) == null) S.hw[S.synth].declined = S.slot; }
+  else S.hw[S.synth].declined = S.slot;   // don't ask again for this patch: its edits stay here
   paintStatus();
 }
 
@@ -916,7 +927,7 @@ async function patchAction(act) {
 function copyTo(target) {
   const src = S.bytes.slice();
   const from = slotLabel(S.slot);
-  selectSlot(target, { send: false });
+  selectSlot(target);
   checkpoint(null);
   S.bytes.set(src);
   setOrigin(S.slot, 'copy', `copied from slot ${from}`);
@@ -983,8 +994,9 @@ link.addEventListener('change', () => {
   if (link.connected && !wasLinked) {
     setHear('tracks');
     S.hw = [{ slot: null, dirty: false }, { slot: null, dirty: false }];
-    toast(`Linked to ${link.out.name}. Notes now play on the Circuit Tracks.`, 5000);
-    offerSync();
+    $('#hw-live').checked = true;
+    toast(`Linked to ${link.out.name}. Notes now play on the Circuit Tracks. Turn on Program Change Rx and Tx in its Setup view so patch changes follow both ways.`, 7000);
+    followTracks(S.synth);   // edit what the synth is playing, if it is in the pack
   }
   wasLinked = link.connected;
   paintStatus();
@@ -992,6 +1004,115 @@ link.addEventListener('change', () => {
 link.onMacro = (k, value, ch) => { if (ch === S.synth && S.bytes[macroPosAddr(k)] !== value) { S.bytes[macroPosAddr(k)] = value; synth?.refresh(); repaint(macroPosAddr(k)); } };
 link.onNote = (on, note, vel) => (on ? noteOn(note, vel) : noteOff(note));
 link.onPatch = (bytes) => importPatches([{ data: bytes }], 'the Circuit Tracks', 'tracks');
+// The Tracks shows which synth is in use when its pads or macro knobs are played on it (Note and
+// CC Tx on): edit that synth here too, as Components does.
+link.onFocus = (synth) => {
+  if (synth === S.synth || !$('#hw-live').checked) return;
+  document.querySelector(`#hw [data-synth="${synth}"]`)?.click();
+};
+// ?midilog: list what the Tracks sends, to find out what it says when Synth 1 / Synth 2 is pressed.
+if (new URLSearchParams(location.search).has('midilog')) {
+  link.log = [];
+  const pre = h('pre', { class: 'midilog', 'aria-label': 'MIDI from the Circuit Tracks' });
+  const copy = h('button', { type: 'button', class: 'btn small', text: 'Copy log', onclick: () => navigator.clipboard?.writeText(pre.textContent) });
+  const clear = h('button', { type: 'button', class: 'btn small', text: 'Clear', onclick: () => { link.log.length = 0; pre.textContent = ''; } });
+  document.body.append(h('section', { class: 'midilog-box' }, h('p', { class: 'eyebrow', text: 'MIDI from the Circuit Tracks' }), copy, clear, pre));
+  const t0 = performance.now();
+  link.onLog = () => {
+    pre.textContent = link.log.map((e) => `${((e.t - t0) / 1000).toFixed(3).padStart(8)}  ${e.d.length > 24 ? `${e.d.slice(0, 24).map((b) => b.toString(16).padStart(2, '0')).join(' ')} … (${e.d.length} bytes)` : e.d.map((b) => b.toString(16).padStart(2, '0')).join(' ')}`).join('\n');
+    pre.scrollTop = pre.scrollHeight;
+  };
+}
+// Synth 1 or 2 changed patch on the Tracks: offer to keep changes it just forgot, then follow it.
+link.onProgram = async (synth, slot) => {
+  if (!S.pack || !$('#hw-live').checked) return;
+  if (pcSent && pcSent.synth === synth && pcSent.slot === slot && performance.now() - pcSent.at < 1000) return;   // our own
+  if (synth === S.synth) await leaveEdited(false);
+  followTracks(synth, slot);
+};
+
+// Write the patch being edited into a slot on the Tracks itself. Returns true if it was sent.
+async function storeOnTracks(slot = S.slot) {
+  const sel = slotSelect(slot);
+  if (!(await ask('Store on the Circuit Tracks', [`Writes "${getName(S.bytes)}" into a patch slot on the Circuit Tracks itself, replacing the patch that is there now. This cannot be undone from here.`,
+    h('label', { class: 'field' }, 'Circuit Tracks patch slot ', sel), h('p', { class: 'hint', text: 'The names listed are from the pack open here, which may not be the pack on your Circuit Tracks.' })], 'Store'))) return false;
+  if (!link.writeSlot(S.bytes, +sel.value)) return false;
+  for (const hw of S.hw) if (hw.slot === S.slot) hw.edited = false;
+  toast(`Stored in Circuit Tracks patch slot ${pad3(+sel.value + 1)}.`);
+  return true;
+}
+
+// Before leaving a patch whose edits only the Tracks' synth has (it forgets them when it changes
+// patch), offer to store them on the Tracks or save a .syx. The pack here keeps them anyway.
+// cancellable: the change starts here, so it can still be called off. Returns false if it was.
+async function leaveEdited(cancellable) {
+  const hw = S.hw[S.synth];
+  if (!link.connected || hw.slot !== S.slot || !hw.edited) return true;
+  const n = `Synth ${S.synth + 1}`;
+  const choice = await ask(`Keep your changes to "${getName(S.bytes)}"?`, [
+    `${n} on the Circuit Tracks ${cancellable ? 'is playing' : 'was playing'} your changed ${slotLabel(S.slot)}. The Circuit Tracks forgets those changes when it changes patch unless they are stored on it.`,
+    'They stay in the pack open here either way, until you download the pack.',
+  ], 'Store on the Circuit Tracks…', { alt: 'Save .syx', alt2: cancellable ? 'Don\'t save' : null, cancel: cancellable ? 'Cancel' : 'Don\'t save' });
+  if (choice === false && cancellable) return false;
+  hw.edited = false;
+  if (choice === true) await storeOnTracks();
+  else if (choice === 'alt') download(toSyx(S.bytes), `${fileSafe(getName(S.bytes))}.syx`);
+  return true;
+}
+// Choosing a patch here (patch list, Preset pads).
+async function chooseSlot(i) {
+  if (i === S.slot) return;
+  if (hwLive() && !(await leaveEdited(true))) return;
+  selectSlot(i);
+}
+
+// Find out what a synth on the Tracks is playing and edit that patch if the pack has it.
+// hint: the slot the Tracks just changed to (from its Program Change).
+let following = 0;
+async function followTracks(synth, hint = null) {
+  if (!S.pack) return;
+  const id = ++following;
+  let bytes = null;
+  if (link.in) { try { bytes = await link.requestPatch(synth); } catch { /* no answer: go by the slot number */ } }
+  if (id !== following) return;
+  const packBytes = (i) => S.pack.patches[i] ?? initPatch();
+  let slot = null;
+  if (!bytes) slot = hint;   // couldn't check (or nothing to go by): assume the same pack
+  else if (hint != null) slot = sameBytes(packBytes(hint), bytes) ? hint : null;
+  else {
+    for (let i = 0; i < PATCH_SLOTS; i++) {
+      if (sameBytes(packBytes(i), bytes)) { slot = i; break; }
+    }
+  }
+  if (slot != null) {
+    S.hw[synth] = { slot, dirty: false, edited: false };
+    if (synth === S.synth && slot !== S.slot) selectSlot(slot, { send: false });
+    paintStatus();
+    return;
+  }
+  S.hw[synth] = { slot: null, dirty: false, edited: false, bytes };
+  if (synth === S.synth && hint != null) {
+    selectSlot(hint, { send: false });
+    const ok = await ask(`Synth ${synth + 1} changed to patch ${pad3(hint + 1)}`, [
+      `Patch ${pad3(hint + 1)} on the Circuit Tracks, "${getName(bytes)}", is not the same as ${slotLabel(hint)} in the pack open here, so the Circuit Tracks probably holds a different pack.`,
+      h('p', { class: `hint${slotEdited(S.pack, hint) ? ' warn' : ''}`, text: replaceNote(hint) }),
+    ], `Load it into slot ${pad3(hint + 1)}`, { cancel: 'Keep the pack\'s version' });
+    if (ok && S.slot === hint) {
+      checkpoint(null);
+      S.bytes.set(bytes);
+      setOrigin(S.slot, 'tracks', `fetched from Synth ${synth + 1} on the Circuit Tracks`);
+      S.hw[synth] = { slot: hint, dirty: false, edited: false };
+      synthRefresh();
+      repaint();
+      paintSlot(S.slot);
+      paintBar();
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveSession, 500);
+    }
+  }
+  paintStatus();
+}
+function synthRefresh() { synth?.refresh(); }
 
 // ------------------------------------------------------------------ keyboard and loop
 const KEY_ROW = 'awsedftgyhujkolp;';
@@ -1123,13 +1244,13 @@ function bindUI() {
   $('#search').addEventListener('input', paintList);
   $('#filter').addEventListener('change', paintList);
   const list = $('#patchlist');
-  list.addEventListener('click', (e) => { const li = e.target.closest('li[data-slot]'); if (li) selectSlot(+li.dataset.slot); });
+  list.addEventListener('click', (e) => { const li = e.target.closest('li[data-slot]'); if (li) chooseSlot(+li.dataset.slot); });
   list.addEventListener('keydown', (e) => {
     const li = e.target.closest('li[data-slot]');
     if (!li) return;
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectSlot(+li.dataset.slot); $(`#patchlist li[data-slot="${S.slot}"]`)?.focus(); }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); chooseSlot(+li.dataset.slot).then(() => $(`#patchlist li[data-slot="${S.slot}"]`)?.focus()); }
     const next = e.key === 'ArrowDown' ? li.nextElementSibling : e.key === 'ArrowUp' ? li.previousElementSibling : null;
-    if (next?.dataset.slot) { e.preventDefault(); selectSlot(+next.dataset.slot); $(`#patchlist li[data-slot="${S.slot}"]`)?.focus(); }
+    if (next?.dataset.slot) { e.preventDefault(); chooseSlot(+next.dataset.slot).then(() => $(`#patchlist li[data-slot="${S.slot}"]`)?.focus()); }
   });
 
   $('#category').append(...CATEGORIES.map((c, i) => h('option', { value: i, text: c })));
@@ -1199,17 +1320,12 @@ function bindUI() {
     document.querySelectorAll('#hw [data-synth]').forEach((x) => x.classList.toggle('on', x === b));
     paintStatus();
     tracksPanel?.paint();
-    offerSync();
+    if (hwLive()) followTracks(S.synth);
   }));
   $('#hw-send').addEventListener('click', () => { if (hwSend()) toast(`Sent "${getName(S.bytes)}" to Synth ${S.synth + 1}.`); });
   $('#hw-get').addEventListener('click', getFromTracks);
   $('#hw-live').addEventListener('change', (e) => { if (e.target.checked && link.connected) hwSend(); paintStatus(); });
-  $('#hw-store').addEventListener('click', async () => {
-    const sel = slotSelect(S.slot);
-    if (!(await ask('Store on the Circuit Tracks', [`Writes "${getName(S.bytes)}" into a patch slot on the Circuit Tracks itself, replacing the patch that is there now. This cannot be undone from here.`,
-      h('label', { class: 'field' }, 'Circuit Tracks patch slot ', sel), h('p', { class: 'hint', text: 'The names listed are from the pack open here, which may not be the pack on your Circuit Tracks.' })], 'Store'))) return;
-    if (link.writeSlot(S.bytes, +sel.value)) toast(`Stored in Circuit Tracks patch slot ${pad3(+sel.value + 1)}.`);
-  });
+  $('#hw-store').addEventListener('click', () => storeOnTracks());
 
   document.querySelectorAll('#hear button').forEach((b) => b.addEventListener('click', () => setHear(b.dataset.hear)));
   $('#oct-down').addEventListener('click', () => setOctave(S.octave - 1));
@@ -1253,7 +1369,7 @@ async function start() {
       const b = S.pack?.patches[i];
       return { name: b ? getName(b) : '', empty: !S.pack || slotBlank(S.pack, i), edited, fetched: edited && S.pack.origin?.[i]?.kind === 'tracks' };
     },
-    selectSlot: (i) => selectSlot(i),
+    selectSlot: (i) => chooseSlot(i),
     copyTo: (i) => copyToPad(i),
     revert: () => patchAction('revert'),
     sampleCount: () => 64,

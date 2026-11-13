@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/patchworker.css?v=20261113i">
+<link rel="stylesheet" href="../css/patchworker.css?v=20261113j">
 </head>
 <body>
 <nav class="topnav" aria-label="CircuitGM">
@@ -79,14 +79,15 @@
         </div>
       </div>
       <div class="hw" id="hw" hidden>
-        <span class="seg" role="radiogroup" aria-label="Circuit Tracks synth">
-          <button type="button" data-synth="0" class="on" title="Work with Synth 1 on the Circuit Tracks">Synth 1</button>
-          <button type="button" data-synth="1" title="Work with Synth 2 on the Circuit Tracks">Synth 2</button>
+        <span class="hwlabel" id="hw-label">Edit</span>
+        <span class="seg" role="radiogroup" aria-labelledby="hw-label">
+          <button type="button" data-synth="0" class="on" title="Edit and play Synth 1 on the Circuit Tracks. This page can't change which track the Circuit Tracks itself shows.">Synth 1</button>
+          <button type="button" data-synth="1" title="Edit and play Synth 2 on the Circuit Tracks. This page can't change which track the Circuit Tracks itself shows.">Synth 2</button>
         </span>
         <button type="button" class="btn primary" id="hw-send" title="Replace what the chosen synth is playing with this patch (not stored on the Circuit Tracks)">Send</button>
         <button type="button" class="btn" id="hw-get" title="Fetch the patch the chosen synth is playing into a pack slot, to edit it here">Get</button>
         <button type="button" class="btn quiet" id="hw-store" title="Write this patch into a patch slot on the Circuit Tracks">Store…</button>
-        <label class="check" title="Send every edit, and each patch you choose, to the Circuit Tracks as you go. Ticking this sends the patch you are editing."><input type="checkbox" id="hw-live" checked> Live</label>
+        <label class="check" title="Send every edit, and each patch you choose, to the Circuit Tracks as you go, and follow patch changes made on the Circuit Tracks. Ticking this sends the patch you are editing."><input type="checkbox" id="hw-live" checked> Live</label>
       </div>
     </header>
     <p class="editing" id="editing" role="status"><span id="ed-what"></span><span id="ed-hw" data-state="off"></span></p>
@@ -160,6 +161,7 @@
     <div id="dlg-body"></div>
     <div class="row end">
       <button type="button" class="btn" id="dlg-cancel">Cancel</button>
+      <button type="submit" value="alt2" class="btn" id="dlg-alt2" hidden></button>
       <button type="submit" value="alt" class="btn" id="dlg-alt" hidden></button>
       <button type="submit" value="ok" class="btn primary" id="dlg-ok">OK</button>
     </div>
@@ -167,6 +169,6 @@
 </dialog>
 <input type="file" id="file-pack" accept=".circuittrackspack,.zip" hidden>
 <input type="file" id="file-syx" accept=".syx" multiple hidden>
-<script type="module" src="../js/patchworker.js?v=20261113i"></script>
+<script type="module" src="../js/patchworker.js?v=20261113j"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 // PatchWorker's link to a Circuit Tracks over Web MIDI (Chrome, Edge, Opera; Firefox with its
 // site permission add-on). Everything here follows the Circuit Tracks Programmer's Reference
 // Guide v3: patches travel as SysEx, single parameters as CC or NRPN on the synth's channel.
-import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261113i';
+import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261113j';
 
 const isTracks = (port) => /circuit tracks/i.test(port.name ?? '');
 
@@ -15,6 +15,12 @@ export class TracksLink extends EventTarget {
     this.onPatch = null;      // (bytes, synth) when the Tracks sends a patch
     this.onMacro = null;      // (knob, value, synth) when a macro knob is turned on the Tracks
     this.onNote = null;       // (on, note, velocity) from any other MIDI keyboard
+    this.onFocus = null;      // (synth) when the Tracks shows Synth 1 or 2 is in use (its pads or macros)
+    this.log = null;          // an array to record what the Tracks sends (?midilog), or null
+    this.onLog = null;
+    this.onProgram = null;
+    this.playing = false;     // the Tracks' transport, from its Start / Stop (Clock Tx on)
+    this.lastNote = [-1e9, -1e9];    // (synth, slot) when Synth 1 or 2 changes patch on the Tracks (needs PGM Tx on)
     this.waiting = null;
   }
 
@@ -56,6 +62,8 @@ export class TracksLink extends EventTarget {
   // --- to the Tracks
   sendPatch(bytes, synth) { return this.send(toSyx(bytes, { command: 0, location: synth })); }
   writeSlot(bytes, slot) { return this.send(toSyx(bytes, { command: 1, location: slot })); }
+  // Program Change on a synth's channel: the Tracks loads its own patch from that slot (needs PGM Rx on).
+  program(synth, slot) { return this.send([0xc0 | synth, slot & 0x7f]); }
   noteOn(synth, note, velocity) { return this.send([0x90 | synth, note & 0x7f, velocity & 0x7f]); }
   noteOff(synth, note) { return this.send([0x80 | synth, note & 0x7f, 0]); }
   allNotesOff(synth) { return this.send([0xb0 | synth, 123, 0]); }
@@ -90,6 +98,11 @@ export class TracksLink extends EventTarget {
   receive(port, data) {
     if (!data || !data.length) return;
     const fromTracks = isTracks(port);
+    if (fromTracks && this.log && !(data[0] === 0xf8 || data[0] === 0xfe)) {
+      this.log.push({ t: performance.now(), d: [...data] });
+      if (this.log.length > 400) this.log.shift();
+      this.onLog?.();
+    }
     if (data[0] === 0xf0) {
       if (!fromTracks) return;
       const patches = parseSyx(data);
@@ -101,8 +114,19 @@ export class TracksLink extends EventTarget {
     }
     const status = data[0] & 0xf0;
     const ch = data[0] & 0x0f;
+    if (fromTracks && (data[0] === 0xfa || data[0] === 0xfb)) { this.playing = true; return; }
+    if (fromTracks && data[0] === 0xfc) { this.playing = false; return; }
+    // Played on the Tracks' own pads or knobs, not by its sequencer: the transport isn't running
+    // and the other synth has been quiet for 2 s.
+    const byHand = (c) => !this.playing && performance.now() - this.lastNote[1 - c] > 2000;
     if (fromTracks) {
-      if (status === 0xb0 && ch <= 1 && data[1] >= 80 && data[1] <= 87) this.onMacro?.(data[1] - 80, data[2], ch);
+      if (status === 0xb0 && ch <= 1 && data[1] >= 80 && data[1] <= 87) { if (byHand(ch)) this.onFocus?.(ch); this.onMacro?.(data[1] - 80, data[2], ch); }
+      else if (status === 0xc0 && ch <= 1) this.onProgram?.(ch, data[1]);
+      else if (status === 0x90 && ch <= 1 && data[2] > 0) {   // a note on Synth 1 or 2
+        const hand = byHand(ch);
+        this.lastNote[ch] = performance.now();
+        if (hand) this.onFocus?.(ch);
+      }
       return;                                   // the Tracks plays its own pads: don't echo them
     }
     if (status === 0x90 && data[2] > 0) this.onNote?.(true, data[1], data[2]);
