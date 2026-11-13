@@ -236,6 +236,20 @@ const { chromium } = require('playwright');
   const logText = await q.textContent('.midilog');
   check('?midilog sums up a Store sent to the Tracks (slot, name, macro positions)', /→ f0 00 20 29 01 64 01 00 00 … STORE to flash slot 1 \(byte 00\): ".+", macros( \d+){8}/.test(logText));
   check('?midilog marks a message that could not be sent', /✗ NOT SENT → .*STORE to flash slot 6/.test(logText));
+  // After a Store nothing goes to the Tracks for 500 ms (a patch request 2 ms later made the Tracks drop it).
+  const gaps = await q.evaluate(async () => {
+    const w = window.patchworker, sent = [];
+    w.link.out = { send(b) { sent.push({ t: performance.now(), b: [...b] }); } };
+    w.link.writeSlot(w.S.bytes, 0);
+    w.link.send([0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x40, 0x00, 0x00, 0xf7]);
+    w.link.program(0, 3);
+    w.link.send([0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x40, 0x01, 0x00, 0xf7]);
+    await new Promise((r) => setTimeout(r, 1600));   // the Store above may itself wait for an earlier one
+    w.link.out = null;
+    return sent.map((e) => [Math.round(e.t - sent[0].t), e.b[0], e.b[6] ?? null]);
+  });
+  check(`after a Store the next messages wait 500 ms, SysEx 20 ms apart (${JSON.stringify(gaps)})`,
+    gaps.length === 4 && gaps[0][1] === 0xf0 && gaps[0][2] === 1 && gaps.slice(1).every((g) => g[0] >= 495) && gaps[3][0] - gaps[1][0] >= 18 && gaps[2][1] === 0xc0);
   await q.close();
   check(`no console errors (${errs.length ? errs.join('; ') : 'none'})`, !errs.length);
   await b.close();

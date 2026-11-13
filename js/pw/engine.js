@@ -12,9 +12,9 @@
 //
 // It is still an approximation: the hardware is the reference.
 import { P, MACRO_DESTS, MOD_SLOTS, modAddr, macroPosAddr, macroRows, cutoffHz, attackSeconds,
-  decaySeconds, lfoHz, eqDb, eqHz, pitchSemis, filterSteps, syncBeats, initPatch } from './params.js?v=20261114a';
-import { WAVETABLES } from './wavetables.js?v=20261114a';
-import { SHAPERS } from './shapers.js?v=20261114a';
+  decaySeconds, lfoHz, eqDb, eqHz, pitchSemis, filterSteps, syncBeats, initPatch } from './params.js?v=20261114b';
+import { WAVETABLES } from './wavetables.js?v=20261114b';
+import { SHAPERS } from './shapers.js?v=20261114b';
 
 const MAX_VOICES = 6;
 // Pitch: the Circuit Tracks plays an incoming MIDI note at standard pitch (MIDI 60 measured at

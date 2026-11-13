@@ -1,7 +1,10 @@
 // PatchWorker's link to a Circuit Tracks over Web MIDI (Chrome, Edge, Opera; Firefox with its
 // site permission add-on). Everything here follows the Circuit Tracks Programmer's Reference
 // Guide v3: patches travel as SysEx, single parameters as CC or NRPN on the synth's channel.
-import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261114a';
+import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261114b';
+
+export const SYX_GAP = 20;           // ms between SysEx messages (Programmer's Reference)
+export const SYX_STORE_GAP = 500;    // ms after a Store before the next SysEx
 
 const isTracks = (port) => /circuit tracks/i.test(port.name ?? '');
 
@@ -69,7 +72,26 @@ export class TracksLink extends EventTarget {
 
   emit() { this.dispatchEvent(new Event('change')); }
 
+  // SysEx goes out spaced: the Programmer's Reference asks for at least 20 ms between messages and
+  // ignores one that arrives while the Tracks is busy. A Store (Replace Patch, writing flash) gets
+  // SYX_STORE_GAP ms to itself: a patch request 2 ms after one made the Tracks drop the Store
+  // (hardware, 2026-11-14). Other messages go straight out, as before.
   send(bytes) {
+    if (!this.out) return this.sendNow(bytes);
+    const now = performance.now();
+    const sysex = bytes[0] === 0xf0;
+    const store = sysex && bytes[6] === 0x01 && bytes.length === 350;
+    // Nothing at all goes out while a Store is being written; SysEx also keeps its 20 ms spacing.
+    let at = Math.max(now, this.storeUntil ?? 0);
+    if (sysex) at = Math.max(at, this.sysexFree ?? 0);
+    if (sysex) this.sysexFree = at + SYX_GAP;
+    if (store) this.storeUntil = this.sysexFree = at + SYX_STORE_GAP;
+    if (at <= now) return this.sendNow(bytes);
+    const copy = Uint8Array.from(bytes);
+    setTimeout(() => this.sendNow(copy), at - now);
+    return true;
+  }
+  sendNow(bytes) {
     let ok = false;
     if (this.out) { try { this.out.send(bytes); ok = true; } catch { ok = false; } }
     if (this.log) this.record([...bytes], ok ? 'out' : 'fail');
