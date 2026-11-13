@@ -3,11 +3,12 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261113e';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261113e';
-import { TracksLink } from './pw/midi.js?v=20261113e';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261113f';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261113f';
+import { TracksLink } from './pw/midi.js?v=20261113f';
 import { openPack, buildPack, bankSyx, slotEdited, slotBlank, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261113e';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261113f';
+import { buildPanel } from './pw/panel.js?v=20261113f';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_final.circuittrackspack';
 const $ = (s) => document.querySelector(s);
@@ -631,6 +632,25 @@ function buildMacros() {
 }
 function paintMacroSel() { [...$('#macro-row').children].forEach((c, k) => c.classList.toggle('sel', k === S.macro)); }
 
+// TRACKS (the Circuit Tracks panel) or EDITOR (the patch editor), remembered between visits.
+// The patch bar, status line and macros are shared; the editor's pages give way to the panel.
+let tracksPanel = null;
+function setFace(face) {
+  face = face === 'tracks' ? 'tracks' : 'editor';
+  document.body.dataset.face = face;
+  $('#tracks').hidden = face !== 'tracks';
+  $('.tabs').hidden = face === 'tracks';
+  if (face === 'tracks') for (const p of ['main', 'fx', 'mod']) $(`#page-${p}`).hidden = true;
+  else showPage(document.querySelector('.tabs [aria-selected=true]')?.dataset.page ?? 'main');
+  document.querySelectorAll('#face [data-face]').forEach((b) => {
+    const on = b.dataset.face === face;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-checked', String(on));
+  });
+  if (face === 'tracks') tracksPanel?.paint();
+  try { localStorage.setItem('circuitgm-patchworker-face', face); } catch { /* private mode */ }
+}
+
 function showPage(page) {
   for (const p of ['main', 'fx', 'mod']) $(`#page-${p}`).hidden = p !== page;
   document.querySelectorAll('.tabs [role=tab]').forEach((t) => t.setAttribute('aria-selected', t.dataset.page === page));
@@ -949,7 +969,7 @@ function buildKeys() {
   paintKeys();
 }
 function paintKeys() { for (const k of $('#keys').children) k.classList.toggle('down', S.held.has(+k.dataset.note)); }
-function setOctave(o) { panic(); S.octave = clamp(o, 0, 6); buildKeys(); }
+function setOctave(o) { panic(); S.octave = clamp(o, 0, 6); buildKeys(); tracksPanel?.paint(); }
 
 function bindKeys() {
   const keys = $('#keys');
@@ -1053,6 +1073,7 @@ function drawScope() {
 // ------------------------------------------------------------------ wiring
 function bindUI() {
   document.querySelectorAll('.tabs [role=tab]').forEach((t) => t.addEventListener('click', () => showPage(t.dataset.page)));
+  document.querySelectorAll('#face [data-face]').forEach((b) => b.addEventListener('click', () => setFace(b.dataset.face)));
 
   $('#filter').append(h('option', { value: '', text: 'All patches' }), h('option', { value: 'edited', text: 'Changed' }),
     h('optgroup', { label: 'Category' }, CATEGORIES.map((c, i) => h('option', { value: `c${i}`, text: c }))));
@@ -1134,6 +1155,7 @@ function bindUI() {
     document.body.dataset.synth = S.synth;
     document.querySelectorAll('#hw [data-synth]').forEach((x) => x.classList.toggle('on', x === b));
     paintStatus();
+    tracksPanel?.paint();
     offerSync();
   }));
   $('#hw-send').addEventListener('click', () => { if (hwSend()) toast(`Sent "${getName(S.bytes)}" to Synth ${S.synth + 1}.`); });
@@ -1175,6 +1197,16 @@ async function start() {
   bindUI();
   bindKeys();
   buildKeys();
+  tracksPanel = buildPanel($('#tracks'), {
+    synth: () => S.synth,
+    chooseSynth: (i) => document.querySelector(`#hw [data-synth="${i}"]`)?.click(),
+    noteOn: (n) => noteOn(n),
+    noteOff: (n) => noteOff(n),
+    octave: () => S.octave,
+  });
+  let face = 'editor';
+  try { face = localStorage.getItem('circuitgm-patchworker-face') || 'editor'; } catch { /* private mode */ }
+  setFace(face);
   paintMacroSel();
   paintLink();
   try {
@@ -1194,5 +1226,5 @@ async function start() {
 }
 
 // Handy when testing from the console, and for the automated tests.
-window.patchworker = { S, link, audio, selectSlot, setByte, toSyx, buildPack, undo, redo };
+window.patchworker = { S, link, audio, selectSlot, setByte, toSyx, buildPack, undo, redo, setFace, panel: () => tracksPanel };
 start();

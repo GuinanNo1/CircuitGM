@@ -11,7 +11,7 @@
 // set 7), and the two synth tracks can play their patches on PatchWorker's browser synth.
 import { Mixer } from './pw/mixer.js?v=20261113f';
 import { projectMix, drumRate, drumDecaySeconds } from './pw/mixlaws.js?v=20261113f';
-import { PatchSynth } from './pw/engine.js?v=20261113e';
+import { PatchSynth } from './pw/engine.js?v=20261113f';
 
 const LOOKAHEAD = 0.15;
 const TICK_MS = 25;

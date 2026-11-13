@@ -15,6 +15,7 @@ A web page that edits the synth patches of a Novation Circuit Tracks. It opens w
 - **Circuit Tracks link:** sends the patch to Synth 1 or 2, sends each edit live (CC / NRPN for single parameters, the whole patch for mod matrix and macro assignments), plays notes on the hardware, follows the hardware's macro knobs, fetches a synth's current patch, and can write a patch to a slot on the Circuit Tracks.
 - **Files:** open and download `.circuittrackspack` packs, single patches and banks as `.syx`. Samples and projects pass through untouched; a project's own copy of an edited patch can be updated when it still matched the pack.
 - **Undo / redo per patch**, hold-to-compare with the original, revert, copy to another slot, and a session that survives closing the tab.
+- **TRACKS / EDITOR switch (in progress):** TRACKS shows a panel laid out like the Circuit Tracks (track buttons, views, 32 pads, transport), modelled on [Web Tracks](https://webtracks.namirsab.dev/). So far the track buttons choose Synth 1 or 2 and Note view plays the patch from the pads; the other views come in later steps.
 
 ## How it is built
 
@@ -27,7 +28,12 @@ A web page that edits the synth patches of a Novation Circuit Tracks. It opens w
 | `js/pw/engine.js` | The browser synth (Web Audio). |
 | `js/pw/midi.js` | Web MIDI link to the Circuit Tracks. |
 | `js/pw/packio.js` | Reading and writing packs and `.syx` files, and the saved session. |
+| `js/pw/panel.js` | The TRACKS face: the Circuit Tracks style panel. |
+| `js/pw/mixlaws.js` | The Circuit Tracks project controls as numbers, from calibration set 7: mixer levels and pans, reverb, delay, master filter, drum pitch / decay / distortion / EQ, sidechain. |
+| `js/pw/mixer.js` | The project mixer in Web Audio, built from `mixlaws.js`; `js/player.js` plays through it. |
 | `tests/ui_patchworker.cjs` | Browser test: renders all 128 TracksGM patches, edits, saves, reloads, and drives a stand-in MIDI port. |
+| `tests/ui_panel.cjs` | Browser test of the TRACKS face. |
+| `tests/mixlaws.mjs`, `tests/ui_mixer.cjs` | The set 7 laws against the measurements, in Node and as offline renders in a browser. |
 
 The patch layout and MIDI numbers are from the Circuit Tracks Programmer's Reference Guide v3; see [`docs/circuit-tracks-file-formats.md`](../docs/circuit-tracks-file-formats.md).
 

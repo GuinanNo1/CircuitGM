@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/patchworker.css?v=20261113e">
+<link rel="stylesheet" href="../css/patchworker.css?v=20261113f">
 </head>
 <body>
 <nav class="topnav" aria-label="CircuitGM">
@@ -55,6 +55,10 @@
 
   <main class="device">
     <header class="patchbar">
+      <span class="seg face" id="face" role="radiogroup" aria-label="Panel or editor">
+        <button type="button" role="radio" data-face="tracks" aria-checked="false" title="The Circuit Tracks panel: tracks, views and pads">TRACKS</button>
+        <button type="button" role="radio" data-face="editor" aria-checked="true" class="on" title="The patch editor">EDITOR</button>
+      </span>
       <button type="button" class="icon" id="undo" title="Undo (Ctrl/Cmd+Z)" aria-label="Undo">↶</button>
       <button type="button" class="icon" id="redo" title="Redo (Ctrl/Cmd+Shift+Z)" aria-label="Redo">↷</button>
       <span class="slot" id="slot-no">001</span>
@@ -91,6 +95,8 @@
       <p class="eyebrow">Macros</p>
       <div class="macro-row" id="macro-row"></div>
     </section>
+
+    <section class="tracks" id="tracks" aria-label="Circuit Tracks panel" hidden></section>
 
     <div class="tabs" role="tablist">
       <button type="button" role="tab" data-page="main" aria-selected="true">Main</button>
@@ -161,6 +167,6 @@
 </dialog>
 <input type="file" id="file-pack" accept=".circuittrackspack,.zip" hidden>
 <input type="file" id="file-syx" accept=".syx" multiple hidden>
-<script type="module" src="../js/patchworker.js?v=20261113e"></script>
+<script type="module" src="../js/patchworker.js?v=20261113f"></script>
 </body>
 </html>
