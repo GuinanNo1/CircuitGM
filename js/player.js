@@ -4,6 +4,14 @@
 //
 // Events: { t: seconds, d: seconds, track: 0-7, note, vel, part? (drum kit part), program?,
 //   env? ({ attack, decay, sustain, release } from the Circuit patch; otherwise a guess by GM family) }
+//
+// Every track goes through the project mixer (js/pw/mixer.js). It is neutral until
+// setProject() is given a Circuit Tracks project: then the project's levels, pans, sends,
+// reverb, delay, drum settings and sidechain apply as measured on the hardware (calibration
+// set 7), and the two synth tracks can play their patches on PatchWorker's browser synth.
+import { Mixer } from './pw/mixer.js?v=20261113f';
+import { projectMix, drumRate, drumDecaySeconds } from './pw/mixlaws.js?v=20261113f';
+import { PatchSynth } from './pw/engine.js?v=20261113e';
 
 const LOOKAHEAD = 0.15;
 const TICK_MS = 25;
@@ -29,15 +37,39 @@ export class Player {
       const comp = this.ctx.createDynamicsCompressor();
       comp.threshold.value = -14;
       this.master.connect(comp).connect(this.ctx.destination);
-      this.trackGains = Array.from({ length: 8 }, () => {
-        const g = this.ctx.createGain();
-        g.connect(this.master);
-        return g;
-      });
+      this.mixer = new Mixer(this.ctx, this.master);
+      this.trackGains = this.mixer.strips.map((s) => s.input);
       this.noise = makeNoise(this.ctx);
+      this.synths = [null, null];
+      if (this.pendingProject) this.setProject(...this.pendingProject);
     }
     return this.ctx;
   }
+
+  // A Circuit Tracks project (parsed by js/vendor/ncs.js) to mix like the hardware, or null for
+  // the plain neutral preview. patches: [Synth 1, Synth 2] 340-byte patches to play the synth
+  // tracks with the browser synth (default: the patches saved in the project); pass
+  // { patches: false } to keep the simple preview voices for them.
+  setProject(proj, { patches } = {}) {
+    if (!this.ctx) { this.pendingProject = [proj, { patches }]; this.mix = proj ? projectMix(proj) : null; return; }
+    this.pendingProject = null;
+    this.mix = proj ? projectMix(proj) : null;
+    this.mixer.apply(this.mix);
+    const bytes = patches === false || !proj ? [null, null] : patches ?? [proj.synth1Patch, proj.synth2Patch];
+    for (let i = 0; i < 2; i++) {
+      if (bytes[i]?.length >= 340) {
+        this.synths[i] ??= new PatchSynth(this.ctx, this.trackGains[i]);
+        this.synths[i].bpm = this.mix?.tempo ?? 120;
+        this.synths[i].setPatch(new Uint8Array(bytes[i]));
+      } else if (this.synths[i]) {
+        this.synths[i].allNotesOff();
+        this.synths[i] = null;
+      }
+    }
+  }
+
+  // The master filter (CC 74 cutoff, CC 71 resonance: below 64 low-pass, 64 off, above high-pass).
+  setFilter(cutoff, resonance = 64) { this.ensure(); this.mixer.setFilter(cutoff, resonance); }
 
   async setDrumSamples(map) {
     this.ensure();
@@ -87,10 +119,7 @@ export class Player {
   setSolo(track) { this.solo = this.solo === track ? -1 : track; this.applyGains(); }
   applyGains() {
     if (!this.ctx) return;
-    this.trackGains.forEach((g, t) => {
-      const audible = this.solo >= 0 ? t === this.solo : !this.mutes[t];
-      g.gain.setTargetAtTime(audible ? 1 : 0, this.ctx.currentTime, 0.01);
-    });
+    for (let t = 0; t < 8; t++) this.mixer.setMute(t, this.solo >= 0 ? t === this.solo : !this.mutes[t]);
   }
 
   get playing() { return this.timer !== null; }
@@ -130,6 +159,8 @@ export class Player {
     }
     this.voices = [];
     this.held?.clear();
+    for (const syn of this.synths ?? []) syn?.allNotesOff();
+    this.mixer?.reset();
   }
 
   schedule() {
@@ -147,6 +178,8 @@ export class Player {
 
   tone(e, at) {
     const ctx = this.ctx;
+    const syn = e.track < 2 && this.mix ? this.synths?.[e.track] : null;
+    if (syn) { syn.noteOn(e.note, e.vel, at, Math.max(0.01, e.d)); return; }
     const fam = family(e.program ?? 0);
     // The Circuit patch's own envelope when we have it: a guess from the GM family can be far
     // off (a "pad" fading in over 0.25 s makes short chords sound late).
@@ -193,6 +226,17 @@ export class Player {
     const g = ctx.createGain();
     g.gain.value = (e.vel / 127) * 0.9;
     g.connect(this.trackGains[e.track]);
+    // A Circuit Tracks drum track: its pitch and decay, and its note fires the sidechain.
+    const cfg = this.mix && e.track >= 4 ? this.mix.drums[e.track - 4] : null;
+    if (cfg) {
+      this.mixer.trigger(e.track - 4, at);
+      e = { ...e, rate: (e.rate || 1) * drumRate(cfg.pitch) };
+      const fade = drumDecaySeconds(cfg.decay);
+      if (fade) {
+        g.gain.setValueAtTime(g.gain.value, at);
+        g.gain.setTargetAtTime(0, at, fade / 3.45);   // -30 dB at `fade`
+      }
+    }
     let src;
     // e.choke: a new hit cuts the track's previous one (each Circuit drum or sample track
     // plays one sound at a time). e.rate: playback rate for a transposed sample.
