@@ -181,6 +181,26 @@ const { chromium } = require('playwright');
   await p.evaluate(() => window.patchworker.setFace('editor'));
   await rx([0xfc]);
 
+  // The Tracks' first answer lost just after linking: PatchWorker asks again.
+  {
+    const r = await b.newPage({ viewport: { width: 1400, height: 950 } });
+    r.on('pageerror', (e) => errs.push(e.message));
+    await r.goto('http://localhost:8765/patchworker/');
+    await r.waitForFunction(() => window.patchworker?.S.pack && document.querySelectorAll('#patchlist li[data-slot]').length === 128);
+    await r.evaluate(() => {
+      const w = window.patchworker, L = w.link;
+      let calls = 0;
+      const playing = w.S.pack.patches[11].slice();
+      L.out = { name: 'Circuit Tracks', send: () => {} };
+      L.in = {};
+      L.requestPatch = async () => { if (calls++ === 0) throw new Error('no answer'); return playing.slice(); };
+      L.emit();
+    });
+    await r.waitForTimeout(800);
+    check('a lost first answer is asked again, and the editor follows (slot 12)', await r.evaluate(() => window.patchworker.S.slot === 11 && /Synth 1 is playing this patch/.test(document.querySelector('#ed-hw').textContent)));
+    await r.close();
+  }
+
   // ?midilog shows what the Tracks sends.
   const q = await b.newPage();
   await q.goto('http://localhost:8765/patchworker/?midilog');

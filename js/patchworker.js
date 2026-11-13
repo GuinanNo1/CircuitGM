@@ -3,12 +3,12 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261113n';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261113n';
-import { TracksLink } from './pw/midi.js?v=20261113n';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261113o';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261113o';
+import { TracksLink } from './pw/midi.js?v=20261113o';
 import { openPack, buildPack, bankSyx, slotEdited, slotBlank, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261113n';
-import { buildPanel } from './pw/panel.js?v=20261113n';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261113o';
+import { buildPanel } from './pw/panel.js?v=20261113o';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_v1.circuittrackspack';
 const $ = (s) => document.querySelector(s);
@@ -874,8 +874,17 @@ async function getFromTracks() {
 // Before the page first replaces what a synth is playing, say so and offer the other way round.
 let offering = false;
 async function offerSync() {
-  const hw = S.hw[S.synth];
+  let hw = S.hw[S.synth];
   if (!hwLive() || offering || (hw.slot === S.slot && !hw.dirty) || hw.declined === S.slot) return;
+  if (hw.slot == null && !hw.bytes && link.in && !hw.asked) {
+    // We don't know what the synth is playing yet: ask it before asking you.
+    offering = true;
+    hw.asked = true;
+    await followTracks(S.synth);
+    offering = false;
+    hw = S.hw[S.synth];
+    if (hw.slot === S.slot) { paintStatus(); return; }
+  }
   if (hw.slot === S.slot) { hwSend(); return; }
   offering = true;
   const n = `Synth ${S.synth + 1}`;
@@ -1109,7 +1118,11 @@ async function followTracks(synth, hint = null, given = null) {
   if (!S.pack) return;
   const id = ++following;
   let bytes = given;
-  if (!bytes && link.in) { try { bytes = await link.requestPatch(synth); } catch { /* no answer: go by the slot number */ } }
+  // Ask the synth for its patch; once more if it doesn't answer (just after linking, the browser
+  // may still be opening the Tracks' MIDI input, and the first answer is lost).
+  for (let tries = 0; !bytes && link.in && tries < 2; tries++) {
+    try { bytes = await link.requestPatch(synth, 1500); } catch { if (id !== following) return; await new Promise((r) => setTimeout(r, 300)); }
+  }
   if (id !== following) return;
   const packBytes = (i) => S.pack.patches[i] ?? initPatch();
   // The Tracks' patch is the pack's slot as it is here, or as the pack had it before it was
@@ -1131,7 +1144,7 @@ async function followTracks(synth, hint = null, given = null) {
     paintStatus();
     return;
   }
-  S.hw[synth] = { slot: null, dirty: false, edited: false, bytes };
+  S.hw[synth] = { slot: null, dirty: false, edited: false, bytes, asked: true };
   if (synth === S.synth && hint != null) {
     selectSlot(hint, { send: false });
     const ok = await ask(`Synth ${synth + 1} changed to patch ${pad3(hint + 1)}`, [
