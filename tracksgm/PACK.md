@@ -12,7 +12,7 @@ This file is the only copy of the pack in the repository: MIDI2Circuit loads it 
 | Patches | 128, slots 1-128 = GM programs 1-128 (Grand Piano … Gunshot) |
 | Samples | 64, 48 kHz 16-bit mono, 64.9 s of the 196.6 s limit |
 | Projects | none (empty slots) |
-| SHA-256 | `052c3ee2df1db3e676e34b243fbabe4cfc3c6e25b46af1180de6ada8ac53b578` |
+| SHA-256 | `6fed2635aa863f65f7d2f480f047e5101a61db26112fe89a80da5a9497aca1d7` |
 
 ## What's in this folder
 
@@ -86,6 +86,16 @@ Every patch was recorded on hardware and its loudness measured (K-weighted, over
 
 ### 5. Wavetable re-voice and final trims
 `revoice_tracksgm_wt.py` fixes the nine wavetable patches (Choir Aahs, Voice Oohs, Synth Voice, Voice Lead, Choir Pad, Halo Pad, FX Soundtrack, FX Goblins, FX Sci-fi). Each now uses Index to choose its waveform, with Interpolate at 127, and macro 1 morphs Index. The positions were chosen from the measured spectra: dark, fundamental-heavy shapes for "ooh", peaks near 670 Hz and 1.1–1.4 kHz for "aah". The same pass raises the vibrato macro depth from +4 to +6 on every patch. Then those patches were loudness-checked again on hardware: Voice Oohs came down 13 dB because its boost was distorting, Voice Lead -3, FX Goblins +3, Synth Voice +1.
+
+### 6. Same-pitch revoice (2026-11-13)
+On the Circuit Tracks the two oscillators run freely: when both play the same pitch, where one sits against the other depends on what was played before, and stays there until a patch with different pitches moves them. Two oscillators at the same pitch therefore have no fixed sound: on hardware the same patch came out up to 18 dB louder or quieter from one load to the next (Acoustic Bass), and a slight detune does not help, because each note then lands at a different point of the drift.
+
+23 patches used two oscillators at the same pitch and were revoiced so they sound the same every time, as close as possible to their average sound (the two oscillators' harmonics summed in power, which is what the free-running phase averages to), with the level matched in PatchWorker's calibrated synth:
+- saw + square pairs become the matching built-in saw:pulse mix wave (Harmonica Saw 2:8, Pick Bass Saw 8:2, Slap Bass 1 and Soprano / Alto Sax Saw 7:3, Contrabass Saw 9:1, Chiff Lead Saw 5:5); Trumpet and Tenor / Baritone Sax a plain saw;
+- triangle or saw with a sine or saw become the Tri-Saw Blend wavetable (Nylon Guitar, Jazz Guitar, Fretless Bass at index 48; Finger Bass, Tuba, French Horn at 127); Acoustic Bass a triangle;
+- sine + triangle patches (Timpani, Piccolo, Flute, Shakuhachi, Ocarina, Melodic Tom) keep a sine on oscillator 1 and move oscillator 2 to a quiet sine on the 3rd harmonic (+19 semitones), which carries the triangle's main overtone without sharing a frequency with oscillator 1.
+
+Each was recorded on hardware three times as it was and twice revoiced, each time after a detuned patch: 22 of the 23 revoiced patches came out at exactly the same level both times (French Horn within 0.6 dB). Ian listened to all of them and kept every one. FX Sci-fi (oscillator 2's pitch is swept by the envelope, so the drift is the effect) and Voice Lead (varies little) were left as they were.
 
 ## Drum samples
 The 64 samples come from **GeneralUser GS 2.0** by S. Christian Collins, a free General MIDI soundfont whose licence allows use in music and repackaging. `make_drums.py` renders each hit through FluidSynth (the synth GeneralUser GS is voiced for): drum channel, velocity 110, reverb and chorus off, left and right summed to mono, 48 kHz 16-bit, silent lead-in removed, tail cut where it falls 60 dB below its peak (cymbals up to 4 s; open hats, toms and percussion 2 s; the rest 1.5 s), peak-normalised to -0.5 dBFS. Where GeneralUser kits share a sample, a different hit was chosen so nothing appears twice, and a few hits were swapped by ear.
