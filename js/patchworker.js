@@ -3,12 +3,12 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114o';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114o';
-import { TracksLink, VIEW_CODES } from './pw/midi.js?v=20261114o';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114p';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114p';
+import { TracksLink, VIEW_CODES } from './pw/midi.js?v=20261114p';
 import { openPack, buildPack, bankSyx, slotEdited, slotBlank, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114o';
-import { buildPanel } from './pw/panel.js?v=20261114o';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114p';
+import { buildPanel } from './pw/panel.js?v=20261114p';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_v1.circuittrackspack';
 const $ = (s) => document.querySelector(s);

@@ -1,7 +1,7 @@
 // PatchWorker's link to a Circuit Tracks over Web MIDI (Chrome, Edge, Opera; Firefox with its
 // site permission add-on). Everything here follows the Circuit Tracks Programmer's Reference
 // Guide v3: patches travel as SysEx, single parameters as CC or NRPN on the synth's channel.
-import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261114o';
+import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261114p';
 
 // Views on the Tracks whose message carries the selected track (not Mixer 0C, FX 0D, Patterns 0B).
 export const TRACK_VIEWS = new Set([0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a]);
@@ -189,7 +189,8 @@ export class TracksLink extends EventTarget {
   async writeSlot(bytes, pack, slot) {
     if (!(pack >= 0 && pack < 32)) throw new Error('No pack chosen.');
     let ok = false;
-    await this.fileSession(async () => { await this.readFile(0x04, pack * 128, 1500).catch(() => null);   // the pack's first patch file, 04 <pack> 00 }, () => {
+    // Browse: read the pack's first patch file, 04 <pack> 00. The Store goes out after the session closes.
+    await this.fileSession(async () => { await this.readFile(0x04, pack * 128, 1500).catch(() => null); }, () => {
       const store = new Uint8Array(352);
       store.set([...SYX_HEAD, PRODUCT_TRACKS, 0x01, pack & 0x7f, 0x00, slot & 0x7f, 0x00]);
       store.set(bytes.subarray(0, 340), 11);
