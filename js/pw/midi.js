@@ -1,7 +1,7 @@
 // PatchWorker's link to a Circuit Tracks over Web MIDI (Chrome, Edge, Opera; Firefox with its
 // site permission add-on). Everything here follows the Circuit Tracks Programmer's Reference
 // Guide v3: patches travel as SysEx, single parameters as CC or NRPN on the synth's channel.
-import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261114n';
+import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261114o';
 
 // Views on the Tracks whose message carries the selected track (not Mixer 0C, FX 0D, Patterns 0B).
 export const TRACK_VIEWS = new Set([0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a]);
@@ -183,12 +183,13 @@ export class TracksLink extends EventTarget {
   // ignored by the Tracks. Components' form, from namirsab/circuit-tracks-tools (MIT): a file session
   // first, then 01 <pack> 00 <slot> 00 + the patch (352 bytes). namirsab sent 00 in the pack byte,
   // which on 2026-11-14 wrote into pack 0 ("00_BetterOffAlone"), proving that byte is the pack.
-  // Inside the session the pack's patch file (04/<pack>) is read, as Components browses it.
+  // Inside the session the pack's first patch file (04 <pack> 00) is read, as Components browses it.
+  // A pack's 128 patches are files 04 <pack> 00 … 0F, 8 per file, 512 bytes each (340 + 172 filler).
   // Nothing else goes to the Tracks until it is done. Resolves true if everything was sent.
   async writeSlot(bytes, pack, slot) {
     if (!(pack >= 0 && pack < 32)) throw new Error('No pack chosen.');
     let ok = false;
-    await this.fileSession(async () => { await this.readFile(0x04, pack, 1500).catch(() => null); }, () => {
+    await this.fileSession(async () => { await this.readFile(0x04, pack * 128, 1500).catch(() => null);   // the pack's first patch file, 04 <pack> 00 }, () => {
       const store = new Uint8Array(352);
       store.set([...SYX_HEAD, PRODUCT_TRACKS, 0x01, pack & 0x7f, 0x00, slot & 0x7f, 0x00]);
       store.set(bytes.subarray(0, 340), 11);

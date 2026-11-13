@@ -3,12 +3,12 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114n';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114n';
-import { TracksLink, VIEW_CODES } from './pw/midi.js?v=20261114n';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114o';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114o';
+import { TracksLink, VIEW_CODES } from './pw/midi.js?v=20261114o';
 import { openPack, buildPack, bankSyx, slotEdited, slotBlank, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114n';
-import { buildPanel } from './pw/panel.js?v=20261114n';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114o';
+import { buildPanel } from './pw/panel.js?v=20261114o';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_v1.circuittrackspack';
 const $ = (s) => document.querySelector(s);
@@ -1086,10 +1086,10 @@ if (new URLSearchParams(location.search).has('midilog')) {
       // Components picks the pack (namirsab sends 03 0B 03 00); without it the files are pack 0's.
       const out = await link.fileSession(async (packs) => {
         note(`packs on the Circuit Tracks: ${packs.map((n, i) => `${i}=${n}`).join(', ')}`);
-        // Test (2026-11-14): pack p's patch files may be entries p*16 … p*16+15 (file ID 04 <hi> <lo>).
-        // Pack 0 = 0-15 matched BetterOffAlone. 03 0B 03 <pack> was answered but changed nothing.
-        const sel = h('select', { class: 'wide' }, [h('option', { value: 'scan', text: 'Scan all 32 blocks (files 0-511): first patch names only' }), ...packs.map((n, i) => h('option', { value: i, text: `${i}: ${n}` }))]);
-        const go = await ask('Read patch files', ['Read-only. Pack p reads files 04/<p × 16> to <p × 16 + 15>. The scan reads every block and lists the first patch names, to match blocks to packs.', h('label', { class: 'field' }, 'Read ', sel)], 'Read', { cancel: 'Cancel' });
+        // Pack p's patches are files 04 <p> 00 … 04 <p> 0F, 8 patches each (scan, 2026-11-14: packs 0-3
+        // matched their names; p = position in the Tracks' pack list, as in Store).
+        const sel = h('select', { class: 'wide' }, [h('option', { value: 'scan', text: 'Scan all 32 packs: first patch names only' }), ...packs.map((n, i) => h('option', { value: i, text: `${i}: ${n}` }))]);
+        const go = await ask('Read patch files', ['Read-only. Pack p\'s patches are files 04 <p> 00 to 04 <p> 0F (8 patches each). The scan lists every pack\'s first patch names.', h('label', { class: 'field' }, 'Read ', sel)], 'Read', { cancel: 'Cancel' });
         if (!go) throw new Error('cancelled');
         if (sel.value === 'scan') {
           const blocks = [];
@@ -1097,26 +1097,27 @@ if (new URLSearchParams(location.search).has('midilog')) {
           for (let b = 0; b < 32; b++) {
             const names = [];
             for (let e = 0; e < 16 && names.length < 4; e++) {
-              const f = await link.readFile(0x04, b * 16 + e).catch(() => null);
+              const f = await link.readFile(0x04, b * 128 + e).catch(() => null);
               if (!f) continue;
               for (let k = 0; k * 512 < f.data.length && names.length < 4; k++) if (f.data[k * 512] !== 0xff) names.push(`${e * 8 + k + 1}:${String.fromCharCode(...f.data.slice(k * 512, k * 512 + 16)).replace(/[^ -~]/g, '.').trimEnd()}`);
             }
             blocks.push(names);
-            note(`block ${b} (files ${b * 16}-${b * 16 + 15}): ${names.length ? names.join(' | ') : 'empty'}`);
+            note(`pack ${b} "${packs[b] ?? '?'}" (files 04 ${b.toString(16).padStart(2, '0')} 00-0f): ${names.length ? names.join(' | ') : 'empty'}`);
           }
           link.quietFiles = false;
           return { packs, blocks };
         }
+        const hx2 = (n) => n.toString(16).padStart(2, '0');
         const res = { packs, pack: +sel.value, files: {} };
-        note(`reading pack ${res.pack} ("${packs[res.pack]}") as files 04/${res.pack * 16}-${res.pack * 16 + 15}`);
+        note(`reading pack ${res.pack} ("${packs[res.pack]}") as files 04 ${res.pack.toString(16).padStart(2, '0')} 00-0f`);
         for (let e = 0; e < 16; e++) {   // 16 files x 8 patches = 128
-          const f = await link.readFile(0x04, res.pack * 16 + e).catch((err) => ({ error: err.message }));
-          if (!f) { note(`file 04/${res.pack * 16 + e}: none`); continue; }
-          if (f.error) { note(`file 04/${res.pack * 16 + e}: ${f.error}`); continue; }
+          const f = await link.readFile(0x04, res.pack * 128 + e).catch((err) => ({ error: err.message }));
+          if (!f) { note(`file 04 ${hx2(res.pack)} ${hx2(e)}: none`); continue; }
+          if (f.error) { note(`file 04 ${hx2(res.pack)} ${hx2(e)}: ${f.error}`); continue; }
           // 8 patches per file, 512 bytes each (340 + 172 filler); empty slots are FF.
           const names = [];
           for (let k = 0; k * 512 < f.data.length; k++) names.push(f.data[k * 512] === 0xff ? '—' : String.fromCharCode(...f.data.slice(k * 512, k * 512 + 16)).replace(/[^ -~]/g, '.').trimEnd());
-          note(`file 04/${res.pack * 16 + e} (patches ${e * 8 + 1}-${e * 8 + 8}): ${f.size} bytes, CRC ${f.crcOk ? 'ok' : 'WRONG'}: ${names.join(' | ')}`);
+          note(`file 04 ${hx2(res.pack)} ${hx2(e)} (patches ${e * 8 + 1}-${e * 8 + 8}): ${f.size} bytes, CRC ${f.crcOk ? 'ok' : 'WRONG'}: ${names.join(' | ')}`);
           res.files[e] = { size: f.size, crcOk: f.crcOk, hex: [...f.data].map((b) => b.toString(16).padStart(2, '0')).join('') };
         }
         return res;

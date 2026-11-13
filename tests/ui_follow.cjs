@@ -287,7 +287,7 @@ const { chromium } = require('playwright');
   const m = stored.msgs, hx = (b) => b.map((x) => x.toString(16).padStart(2, '0')).join(' ');
   const storeAt = m.findIndex((e) => e.b.length === 352);
   check('Store opens a file session first (03 40)', hx(m[0].b) === 'f0 00 20 29 01 64 03 40 f7');
-  check('reads the chosen pack\'s patch file (04/3) once', m.filter((e) => e.b[6] === 3 && e.b[7] === 1).map((e) => `${e.b[16]}/${e.b[18]}/${e.b[19]}`).join() === '4/3/2');
+  check('reads the chosen pack\'s first patch file (04 03 00) once', m.filter((e) => e.b[6] === 3 && e.b[7] === 1).map((e) => `${e.b[16]}/${e.b[17]}/${e.b[18]}/${e.b[19]}`).join() === '4/3/0/2');
   check('closes the session (03 41) before the Store', storeAt > 0 && hx(m[storeAt - 1].b) === 'f0 00 20 29 01 64 03 41 f7');
   check('Store message is 01 <pack> 00 <slot> 00 + patch, 352 bytes', storeAt > 0 && hx(m[storeAt].b.slice(0, 11)) === 'f0 00 20 29 01 64 01 03 00 45 00' && m[storeAt].b[351] === 0xf7 && stored.ok);
   check(`a request and a Program Change made mid-Store wait until 500 ms after it (${m.slice(storeAt).map((e) => e.t).join(', ')})`,
@@ -312,7 +312,7 @@ const { chromium } = require('playwright');
       if (b[7] === 0x0b && b[8] === 2) ['00_First', '15_TracksGM'].forEach((n, i) => reply([...H, 0x0c, 0x02, i, ...[...n].map((c) => c.charCodeAt(0)), 0xf7]));
       if (b[7] === 0x01 && b[16] === 4) {
         const hi = b[17], lo = b[18], a = (k) => [0, 0, 0, 0, 0, 0, 0, k];
-        if (hi !== 0 || lo !== 16) return reply([...H, 0x06, 0x04, hi, lo, 0xf7]);   // only pack 1's first file
+        if (hi !== 1 || lo !== 0) return reply([...H, 0x06, 0x04, hi, lo, 0xf7]);   // only pack 1's first file
         reply([...H, 0x01, ...a(0), 4, hi, lo, 1, 0, 0, 0, ...nib(file.length, 5), 0xf7]);
         reply([...H, 0x02, ...a(1), 4, hi, lo, ...pack7(file), 0xf7]);
         reply([...H, 0x03, ...a(2), 4, hi, lo, ...nib(crc, 8), 0xf7]);
@@ -329,10 +329,10 @@ const { chromium } = require('playwright');
     return { json, sentPack, log: document.querySelector('.midilog').textContent };
   });
   check('Read patch files lists the packs', /★ packs on the Circuit Tracks: 0=00_First, 1=15_TracksGM/.test(read.log));
-  check('reads the chosen pack as files 04/<pack x 16>…', /★ reading pack 1 \("15_TracksGM"\) as files 04\/16-31/.test(read.log) && !read.sentPack.length);
-  check('and file 04/16 with its size, CRC and the 8-patch names', /★ file 04\/16 \(patches 1-8\): 852 bytes, CRC ok: STORE TEST \| SECOND ONE/.test(read.log) && /★ file 04\/17: none/.test(read.log));
+  check('reads the chosen pack as files 04 <pack> 00-0f', /★ reading pack 1 \("15_TracksGM"\) as files 04 01 00-0f/.test(read.log) && !read.sentPack.length);
+  check('and file 04 01 00 with its size, CRC and the 8-patch names', /★ file 04 01 00 \(patches 1-8\): 852 bytes, CRC ok: STORE TEST \| SECOND ONE/.test(read.log) && /★ file 04 01 01: none/.test(read.log));
   check('and downloads them as JSON', read.json && read.json.files[0].size === 852 && read.json.files[0].hex.startsWith('53544f5245') && read.json.packs[1] === '15_TracksGM' && read.json.pack === 1);
-  // Scan: every block's first patch names (the simulated Tracks has a file only at 04/16).
+  // Scan: every pack's first patch names (the simulated Tracks has a file only at 04 01 00).
   const scan = await q.evaluate(async () => {
     const w = window.patchworker, L = w.link, H = [0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x03];
     const file = Uint8Array.from({ length: 340 }, (_, i) => (i < 16 ? 'BLOCK ONE PATCH '.charCodeAt(i) : 0));
@@ -343,10 +343,10 @@ const { chromium } = require('playwright');
     L.in = { name: 'Circuit Tracks' };
     L.out = { send(b) {
       if (b[6] !== 3) return;
-      if (b[7] === 0x0b && b[8] === 2) reply([...H, 0x0c, 0x02, 0, 0x41, 0xf7]);
+      if (b[7] === 0x0b && b[8] === 2) { reply([...H, 0x0c, 0x02, 0, 0x41, 0xf7]); reply([...H, 0x0c, 0x02, 1, 0x42, 0xf7]); }
       if (b[7] === 0x01 && b[16] === 4) {
         const hi = b[17], lo = b[18], a = (k) => [0, 0, 0, 0, 0, 0, 0, k];
-        if (hi !== 0 || lo !== 16) return reply([...H, 0x06, 0x04, hi, lo, 0xf7]);
+        if (hi !== 1 || lo !== 0) return reply([...H, 0x06, 0x04, hi, lo, 0xf7]);
         reply([...H, 0x01, ...a(0), 4, hi, lo, 1, 0, 0, 0, ...nib(file.length, 5), 0xf7]);
         reply([...H, 0x02, ...a(1), 4, hi, lo, ...pack7(file), 0xf7]);
         reply([...H, 0x03, ...a(2), 4, hi, lo, ...nib(crc, 8), 0xf7]);
@@ -361,7 +361,7 @@ const { chromium } = require('playwright');
     URL.createObjectURL = orig; L.out = null; L.in = null;
     return { json: dl.length ? JSON.parse(await dl[0].text()) : null, log: document.querySelector('.midilog').textContent };
   });
-  check('the scan lists each block\'s first patch names', /★ block 1 \(files 16-31\): 1:BLOCK ONE PATCH/.test(scan.log) && /★ block 0 \(files 0-15\): empty/.test(scan.log) && scan.json?.blocks?.length === 32 && scan.json.blocks[1][0] === '1:BLOCK ONE PATCH');
+  check('the scan lists each pack\'s first patch names', /★ pack 1 "B" \(files 04 01 00-0f\): 1:BLOCK ONE PATCH/.test(scan.log) && /★ pack 0 "A" \(files 04 00 00-0f\): empty/.test(scan.log) && scan.json?.blocks?.length === 32 && scan.json.blocks[1][0] === '1:BLOCK ONE PATCH');
   await q.close();
   check(`no console errors (${errs.length ? errs.join('; ') : 'none'})`, !errs.length);
   await b.close();
