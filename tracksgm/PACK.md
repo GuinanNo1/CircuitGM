@@ -1,6 +1,6 @@
 # TracksGM
 
-A General MIDI sound set for the Novation Circuit Tracks, as a Novation Components pack (`TracksGM_final.circuittrackspack`): **128 synth patches in General MIDI order** and **64 drum samples** (8 kits of 8). It works as a general-purpose pack on its own, and it is the sound set the [CircuitGM MIDI to Circuit Converter (MIDI2Circuit)](https://guinanno1.github.io/CircuitGM/midi2circuit/) builds on. This is the master copy until it is revised.
+A General MIDI sound set for the Novation Circuit Tracks, as a Novation Components pack (`TracksGM_v1.circuittrackspack`): **128 synth patches in General MIDI order** and **64 drum samples** (8 kits of 8). It works as a general-purpose pack on its own, and it is the sound set the [CircuitGM MIDI to Circuit Converter (MIDI2Circuit)](https://guinanno1.github.io/CircuitGM/midi2circuit/) builds on. This is the master copy until it is revised.
 
 The final TracksGM pack will be further manually tuned to improve the patches. The final pack is used in the [CircuitGM MIDI to Circuit Converter (MIDI2Circuit)](https://guinanno1.github.io/CircuitGM/midi2circuit/) (though alternate packs can be uploaded into the converter).
 
@@ -8,7 +8,7 @@ This file is the only copy of the pack in the repository: MIDI2Circuit loads it 
 
 | | |
 |---|---|
-| Pack name / colour | TracksGMfinal / green |
+| Pack name / colour | TracksGMv1 / green |
 | Patches | 128, slots 1-128 = GM programs 1-128 (Grand Piano … Gunshot) |
 | Samples | 64, 48 kHz 16-bit mono, 64.9 s of the 196.6 s limit |
 | Projects | none (empty slots) |
@@ -18,7 +18,7 @@ This file is the only copy of the pack in the repository: MIDI2Circuit loads it 
 
 | Path | What it is |
 |---|---|
-| `TracksGM_final.circuittrackspack` | The TracksGM pack. Load it in Novation Components. |
+| `TracksGM_v1.circuittrackspack` | The TracksGM pack. Load it in Novation Components. |
 | `tracksgm_patches.json` | The 128 patches as data: slot, name and the 340 patch bytes (hex), plus the 64 sample names. |
 | `drums/` | The 64 drum WAVs exactly as stored in the pack, named by slot. |
 | `tools/ctpatch.py` | Patch builder: the 340-byte patch map, parameter names, and calibrated helpers that work in real units (`cutoff(hz)`, `env_time(seconds)`, `eq_level(db, band)`, `lfo_rate(hz)`, `vib_depth(cents)` …). |

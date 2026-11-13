@@ -1,6 +1,6 @@
 import { parseMidi, GM_NAMES } from './midifile.js';
 import { arrange, playOrder, laneOf, partOf, patternBars, projectColours, PROJECT_COLOURS, RATES, TRACKS, KITS, KIT_PARTS, MELODIC_ROLES } from './convert.js';
-import { loadBase, loadBaseFromBuffers, buildProjects, buildPack, composePack, SAMPLE_CAP_S } from './build.js';
+import { loadBase, loadBaseFromBuffers, buildProjects, buildPack, composePack, SAMPLE_CAP_S } from './build.js?v=20261113i';
 import { loadPack, PRODUCTS } from './pack.js';
 import { packSong, projectChoices, setLane } from './packsong.js';
 import { takeHandoff } from './handoff.js';
@@ -17,7 +17,7 @@ const TRACK_NAMES = ['Synth 1', 'Synth 2', 'MIDI 1', 'MIDI 2', 'Kick', 'Snare/To
 const PLAY_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1l9 5-9 5z"/></svg>';
 const STOP_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="2" width="8" height="8"/></svg>';
 
-const DEFAULT_PACK = 'TracksGM_final';
+const DEFAULT_PACK = 'TracksGM_v1';
 const NAME_MAX = 16;          // pack and project names, as Components allows
 const state = {
   base: null,

@@ -28,7 +28,7 @@ const ok = (cond, msg) => { console.log(`${cond ? 'ok  ' : 'FAIL'} ${msg}`); if 
     ok(await visible('#shrink') && !(await visible('#kit')) && await visible('#kit-pack'), `${label}: shrink shown, kit list hidden, pack drums shown`);
     ok(/4 samples from Rhythm test/.test(await text('#kit-pack')), `${label}: drums use 4 pack samples (${await text('#kit-pack')})`);
     ok(/2 patches and 4 samples/.test(await text('#shrink-info')), `${label}: shrink info (${(await text('#shrink-info')).slice(0, 60)}…)`);
-    ok((await text('#base-name')) === 'TracksGM_final', `${label}: Rhythm pack leaves the base pack on TracksGM`);
+    ok((await text('#base-name')) === 'TracksGM_v1', `${label}: Rhythm pack leaves the base pack on TracksGM`);
     const parts = await page.$$eval('#tracks tbody tr', (rows) => rows.map((r) => `${r.querySelector('.pname').textContent}=${r.querySelector('.role[aria-pressed="true"]')?.dataset.role ?? '-'}`));
     ok(parts.join() === 'Track 1: Kick 909=DR,Track 2: Snare Crack=DR,Track 3: Closed Hat=DR,Track 4: Bass Pluck=S1', `${label}: parts ${parts.join(', ')}`);
     const lanes = await page.$$eval('#tracks tbody tr select.lane', (s) => s.map((x) => (x.hidden ? '-' : x.value)));
@@ -77,7 +77,7 @@ const ok = (cond, msg) => { console.log(`${cond ? 'ok  ' : 'FAIL'} ${msg}`); if 
     // A MIDI file again: back to TracksGM, pack-only controls hidden
     await page.setInputFiles('#file', mid);
     await page.waitForFunction(() => /File/.test(document.querySelector('#fileinfo').textContent));
-    ok((await text('#base-name')) === 'TracksGM_final', `${label}: MIDI file puts the base pack back to TracksGM`);
+    ok((await text('#base-name')) === 'TracksGM_v1', `${label}: MIDI file puts the base pack back to TracksGM`);
     ok(!(await visible('#projpick')) && !(await visible('#shrink')) && await visible('#kit'), `${label}: picker and shrink hidden for MIDI, kit list back`);
     ok((await page.inputValue('#rate')) === 'track', `${label}: MIDI file: Per track is the default too`);
     ok(errors.length === 0, `${label}: no page errors ${errors.join(' | ')}`);

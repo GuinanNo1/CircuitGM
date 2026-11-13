@@ -3,14 +3,14 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261113h';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261113h';
-import { TracksLink } from './pw/midi.js?v=20261113h';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261113i';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261113i';
+import { TracksLink } from './pw/midi.js?v=20261113i';
 import { openPack, buildPack, bankSyx, slotEdited, slotBlank, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261113h';
-import { buildPanel } from './pw/panel.js?v=20261113h';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261113i';
+import { buildPanel } from './pw/panel.js?v=20261113i';
 
-const DEFAULT_PACK = '../tracksgm/TracksGM_final.circuittrackspack';
+const DEFAULT_PACK = '../tracksgm/TracksGM_v1.circuittrackspack';
 const $ = (s) => document.querySelector(s);
 const NS = 'http://www.w3.org/2000/svg';
 
@@ -801,7 +801,8 @@ async function loadDefault(edits = null) {
   const res = await fetch(DEFAULT_PACK);
   if (!res.ok) throw new Error(`The TracksGM pack could not be loaded (${res.status}).`);
   if (!edits) await session.clear();
-  await loadPackBuffer(await res.arrayBuffer(), 'TracksGM_final.circuittrackspack', { remember: false, edits });
+  else if (edits.name === 'TracksGMfinal') edits = { ...edits, name: 'TracksGMv1' };   // the pack's name before v1
+  await loadPackBuffer(await res.arrayBuffer(), 'TracksGM_v1.circuittrackspack', { remember: false, edits });
 }
 
 async function openPackFile(file) {

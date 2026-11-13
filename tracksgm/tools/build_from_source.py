@@ -1,4 +1,4 @@
-"""Rebuild TracksGM_final from source and check it against the committed pack.
+"""Rebuild TracksGM_v1 from source and check it against the committed pack.
 
     cd tools
     python3 build_from_source.py                      # drum WAVs from ../drums
@@ -11,7 +11,7 @@ Steps (all deterministic):
   3. revoice_tracksgm_wt.py -> wavetable Index re-voice, macro 7 depth +6, and the
                                post-re-voice loudness trims
   4. drums: ../drums (the pack's own WAVs) or make_drums.py from the soundfont
-  5. make_pack.build        -> build/TracksGM_final.circuittrackspack
+  5. make_pack.build        -> build/TracksGM_v1.circuittrackspack
 Then the patches are compared with ../tracksgm_patches.json (the master) and reported.
 """
 import argparse, glob, json, os, shutil, subprocess, sys
@@ -63,7 +63,7 @@ def main():
 
     sys.path.insert(0, HERE)
     from make_pack import build
-    out = os.path.join(BUILD, "TracksGM_final.circuittrackspack")
+    out = os.path.join(BUILD, "TracksGM_v1.circuittrackspack")
     build(syx_dir, j["pack"], j["color"], out, drums)
 
     same = sum(a["data"] == b["data"] and a["name"] == b["name"] for a, b in zip(j["patches"], master["patches"]))

@@ -20,7 +20,7 @@ await p.goto('http://localhost:8765/circuit2midi/'); await p.setInputFiles('#fil
 await p.waitForSelector('#step-scenes:not([hidden])', { timeout: 30000 });
 await Promise.all([p.waitForURL(/localhost:8765\/midi2circuit\/(\?.*)?$/), p.click('#to-tracks')]);
 await p.waitForFunction(() => /will hold/.test(document.querySelector('#shrink-info')?.textContent || ''), null, { timeout: 60000 });
-ok(/Circuit Rhythm/.test(await p.textContent('#fileinfo')) && (await p.textContent('#base-name')) === 'TracksGM_final', 'Rhythm pack arrives, base pack stays TracksGM');
+ok(/Circuit Rhythm/.test(await p.textContent('#fileinfo')) && (await p.textContent('#base-name')) === 'TracksGM_v1', 'Rhythm pack arrives, base pack stays TracksGM');
 console.log('   ', (await p.textContent('#summary')).replace(/\s+/g, ' '));
 // 3. Nothing waiting
 await p.goto('http://localhost:8765/midi2circuit/?from=circuit2midi');

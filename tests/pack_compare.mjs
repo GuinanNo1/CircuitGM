@@ -14,7 +14,7 @@ const [file, rate = 'track', save] = process.argv.slice(2);
 const buf = ab(file);
 const pack = await loadPack(buf, file);
 const tpl = ab('data/Empty.ncs');
-let base = await loadBaseFromBuffers(ab('tracksgm/TracksGM_final.circuittrackspack'), tpl);
+let base = await loadBaseFromBuffers(ab('tracksgm/TracksGM_v1.circuittrackspack'), tpl);
 if (pack.product === 'circuit-tracks') { base = await loadBaseFromBuffers(buf, tpl); base.fromSong = true; }
 let bad = 0;
 

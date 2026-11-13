@@ -1,5 +1,5 @@
 // Arrangement -> .ncs projects -> .circuittrackspack (the base pack's patches and samples,
-// TracksGM_final by default, plus the new projects).
+// TracksGM_v1 by default, plus the new projects).
 import { fitName, numbered } from './names.js';
 import { parseNCS, serializeNCS } from './vendor/ncs.js';
 import { readZip, writeZip } from './vendor/zip.js';
@@ -12,7 +12,7 @@ const DEFAULT_DRUM_CHOICES = 0x1a278; // 4 bytes: default sample slot per drum t
 const CHROMATIC = 15;
 export const NAME_MAX = 16;          // pack and project names: Components allows 16 characters
 
-export async function loadBase(url = '../tracksgm/TracksGM_final.circuittrackspack', templateUrl = '../data/Empty.ncs') {
+export async function loadBase(url = '../tracksgm/TracksGM_v1.circuittrackspack', templateUrl = '../data/Empty.ncs') {
   const [packBuf, tplBuf] = await Promise.all([fetchBuf(url), fetchBuf(templateUrl)]);
   return loadBaseFromBuffers(packBuf, tplBuf);
 }

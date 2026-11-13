@@ -90,7 +90,7 @@
     <h2>The five steps in detail</h2>
 
     <h3>1. Load a MIDI file or Circuit pack</h3>
-    <p><b>Base pack.</b> The box at the top of step 1 shows the pack the converter builds on: <i>TracksGM_final</i>, the TracksGM pack, unless you change it. Click <b>Use another pack…</b>, or drop a <code>.circuittrackspack</code> on the box, to use a different one; <b>Back to TracksGM_final</b> switches back. See <a href="#base-pack">using a different base pack</a>.</p>
+    <p><b>Base pack.</b> The box at the top of step 1 shows the pack the converter builds on: <i>TracksGM_v1</i>, the TracksGM pack, unless you change it. Click <b>Use another pack…</b>, or drop a <code>.circuittrackspack</code> on the box, to use a different one; <b>Back to TracksGM_v1</b> switches back. See <a href="#base-pack">using a different base pack</a>.</p>
     <p><b>MIDI file.</b> Drop a file onto the box or click it to choose one. The line under the box shows the file's tempo, time signature, length and number of parts. Each MIDI track and channel becomes a separate <em>part</em>. Where several parts share a name (common in type 0 files), they are named by instrument and channel instead, for example <i>Saw Lead (ch 4)</i>.</p>
     <p><b>Circuit pack.</b> Drop a <code>.circuittrackspack</code> or <code>.circuitrhythmpack</code> on the same box to convert one of its projects, chosen in the <b>Project</b> list that appears. See <a href="#circuit-pack">converting a Circuit Tracks or Circuit Rhythm pack</a>.</p>
 
@@ -227,13 +227,13 @@
 
   <section class="panel" id="base-pack">
     <h2>Using a different base pack</h2>
-    <p>Every converted pack is built on a <em>base pack</em>: its synth patches and drum samples are copied into your pack unchanged, and the converted song goes into its project slots. The default is <i>TracksGM_final</i>, the <a href="../tracksgm/">TracksGM pack</a>, which is still being tuned by ear; the converter always uses the latest version. You can use any other Circuit Tracks pack instead, such as your own edit of the TracksGM pack or a pack exported from Components.</p>
+    <p>Every converted pack is built on a <em>base pack</em>: its synth patches and drum samples are copied into your pack unchanged, and the converted song goes into its project slots. The default is <i>TracksGM_v1</i>, the <a href="../tracksgm/">TracksGM pack</a>, which is still being tuned by ear; the converter always uses the latest version. You can use any other Circuit Tracks pack instead, such as your own edit of the TracksGM pack or a pack exported from Components.</p>
     <ul>
       <li><b>Patches.</b> The Synth 1 and Synth 2 lists show the pack's own patch names. The default for each synth is still the slot matching the part's General MIDI instrument (or the nearest filled slot below it), so a pack laid out in General MIDI order, like the TracksGM pack, gives the best defaults. With any other pack, choose the patches yourself.</li>
       <li><b>Drum kits.</b> The pack's 64 drum samples are read as eight kits of eight, each in this order: kick, snare, rim/clap, closed hat, open hat, tom, cymbal, percussion (the <a href="#drums">drum mapping</a> picks from these). The kit list shows each group's first sample names; hover over one to see all eight. A pack laid out differently will play the wrong sounds on some drum steps.</li>
       <li><b>Projects.</b> The base pack's own projects are replaced by the converted song (the converter says how many there were). Its patches and samples are kept as they are.</li>
       <li><b>Checks.</b> The file must be a <code>.circuittrackspack</code> with at least one synth patch and eight sample slots; otherwise the converter says why and keeps the pack it had.</li>
-      <li>The base pack is only read in your browser, like the MIDI file. Reloading the page goes back to TracksGM_final.</li>
+      <li>The base pack is only read in your browser, like the MIDI file. Reloading the page goes back to TracksGM_v1.</li>
     </ul>
   </section>
 

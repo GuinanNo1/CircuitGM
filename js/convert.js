@@ -19,7 +19,7 @@ export const MAX_PATTERNS = 8;
 export const MAX_SCENES = 16;
 export const MAX_PROJECTS = 64;
 
-// Kit layout in TracksGM_final: kit k uses sample slots k*8 .. k*8+7 in this order.
+// Kit layout in TracksGM_v1: kit k uses sample slots k*8 .. k*8+7 in this order.
 export const KIT_PARTS = ['kick', 'snare', 'rimclap', 'ch', 'oh', 'tom', 'cymbal', 'perc'];
 export const KITS = ['Std', 'Room', 'Power', 'Elec', '808', 'Jazz', 'Brush', 'Orch'];
 

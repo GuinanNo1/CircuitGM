@@ -27,7 +27,7 @@ SLOTS = ["kick", "snare", "rim/clap", "closed hat", "open hat", "tom", "cymbal",
 
 # kit name, GS program on bank 128, notes per slot, short hit names.
 # A note may be (program, note) to take that hit from another kit.
-# This is the TracksGM_final (2026-11-06) drum set, Ian's hand-picked version.
+# This is the TracksGM drum set (TracksGM_final of 2026-11-06, now TracksGM_v1), Ian's hand-picked version.
 KITS = [
     ("Std",   0,  [36, 38, 39, 42, 46, 47, 49, 54],
      ["Kick", "Snare", "Clap", "CH", "OH", "Tom", "Crash", "Tamb"]),

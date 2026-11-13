@@ -1,7 +1,7 @@
 {
-"pack": "TracksGMfinal",
+"pack": "TracksGMv1",
 "color": "green",
-"source": "TracksGM_final.circuittrackspack (Ian, 2026-11-06): hardware-tweaked GM patches + GeneralUser GS drums, hand-picked. Master until Ian revises it. Revised 2026-11-13: 23 same-pitch two-oscillator patches revoiced (see PACK.md). sha256 6fed2635aa863f65f7d2f480f047e5101a61db26112fe89a80da5a9497aca1d7",
+"source": "TracksGM_final.circuittrackspack (Ian, 2026-11-06; renamed TracksGM_v1 on 2026-11-13): hardware-tweaked GM patches + GeneralUser GS drums, hand-picked. Master until Ian revises it. Revised 2026-11-13: 23 same-pitch two-oscillator patches revoiced (see PACK.md). sha256 6fed2635aa863f65f7d2f480f047e5101a61db26112fe89a80da5a9497aca1d7",
 "patches": [
 {
 "slot": 0,

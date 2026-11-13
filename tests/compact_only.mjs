@@ -11,7 +11,7 @@ import { loadPack, compactPack, findUsage } from '../js/pack.js';
 import { songOf, renderSong, sceneOrder, defaultOrderKind } from '../js/song.js';
 
 const ab = (p) => { const b = readFileSync(p); return b.buffer.slice(b.byteOffset, b.byteOffset + b.length); };
-const base = await loadBaseFromBuffers(ab('tracksgm/TracksGM_final.circuittrackspack'), ab('data/Empty.ncs'));
+const base = await loadBaseFromBuffers(ab('tracksgm/TracksGM_v1.circuittrackspack'), ab('data/Empty.ncs'));
 let errors = 0;
 const ok = (c, m) => { console.log(`${c ? 'ok  ' : 'FAIL'} ${m}`); if (!c) errors++; };
 

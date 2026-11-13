@@ -7,14 +7,14 @@
 A web page that turns a General MIDI file (`.mid`) into a Circuit Tracks pack (`.circuittrackspack`) you can load with Novation Components. It runs entirely in the browser: nothing is uploaded, and there is no server.
 
 The pack it makes contains:
-- a **base pack**'s patches and drum samples. By default this is the **[TracksGM](../tracksgm/) pack** (`TracksGM_final.circuittrackspack`): 128 synth patches in General MIDI order, and 64 drum samples (8 kits) from GeneralUser GS. You can drop in another pack instead (see below);
+- a **base pack**'s patches and drum samples. By default this is the **[TracksGM](../tracksgm/) pack** (`TracksGM_v1.circuittrackspack`): 128 synth patches in General MIDI order, and 64 drum samples (8 kits) from GeneralUser GS. You can drop in another pack instead (see below);
 - one or more **projects** holding the converted song, in project slots 1 onwards.
 
 Sending the pack to the Tracks replaces the pack in that slot, so send it to a spare pack slot.
 
 ## Using it
 
-1. **Load a MIDI file or Circuit pack.** The **Base pack** box at the top shows the pack the song is built on (*TracksGM_final* unless you change it). Then drop a `.mid` file on the page or choose one. Type 0 and type 1 files both work. Each MIDI track and channel becomes a separate part. A Circuit Tracks or Circuit Rhythm pack can be dropped there too: see [Converting a Circuit pack](#converting-a-circuit-tracks-or-circuit-rhythm-pack).
+1. **Load a MIDI file or Circuit pack.** The **Base pack** box at the top shows the pack the song is built on (*TracksGM_v1* unless you change it). Then drop a `.mid` file on the page or choose one. Type 0 and type 1 files both work. Each MIDI track and channel becomes a separate part. A Circuit Tracks or Circuit Rhythm pack can be dropped there too: see [Converting a Circuit pack](#converting-a-circuit-tracks-or-circuit-rhythm-pack).
 2. **Choose the parts.** Give each part a Circuit Tracks track:
    - **S1 / S2** play on Synth 1 and Synth 2.
    - **M1 / M2** play external gear through MIDI 1 and MIDI 2.
@@ -63,7 +63,7 @@ Drop a `.circuittrackspack` or `.circuitrhythmpack` on the song box in step 1 an
 
 ## Using a different base pack
 
-Click **Use another pack…** in step 1, or drop a `.circuittrackspack` on the Base pack box, to build on another pack (an edited TracksGM pack, or any pack exported from Components). **Back to TracksGM_final** switches back.
+Click **Use another pack…** in step 1, or drop a `.circuittrackspack` on the Base pack box, to build on another pack (an edited TracksGM pack, or any pack exported from Components). **Back to TracksGM_v1** switches back.
 
 - **Patches:** the synth lists show the pack's own patch names. Defaults still assume General MIDI order (slot = GM program, or the nearest filled slot below).
 - **Drums:** the 64 samples are read as 8 kits of 8, each in the order kick, snare, rim/clap, closed hat, open hat, tom, cymbal, percussion.
