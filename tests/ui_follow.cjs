@@ -299,7 +299,8 @@ const { chromium } = require('playwright');
   // Read patch files: a simulated Tracks lists 2 packs and has file 04/0 (700 bytes), not 04/1-31.
   const read = await q.evaluate(async () => {
     const w = window.patchworker, L = w.link, H = [0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x03];
-    const file = Uint8Array.from({ length: 700 }, (_, i) => (i < 10 ? 'STORE TEST'.charCodeAt(i) : (i * 37) & 0xff));
+    const file = Uint8Array.from({ length: 852 }, (_, i) => (i < 16 ? 'STORE TEST      '.charCodeAt(i) : i >= 340 && i < 512 ? 0xff : i >= 512 && i < 528 ? 'SECOND ONE      '.charCodeAt(i - 512) : (i * 37) & 0x7f));
+    const sentPack = [];
     const nib = (v, n) => Array.from({ length: n }, (_, k) => (v >> (4 * (n - 1 - k))) & 15);
     const pack7 = (b) => { const o = []; for (let i = 0; i < b.length; i += 7) { const g = [...b.slice(i, i + 7)]; o.push(g.reduce((h, x, j) => h | ((x >> 7) << j), 0), ...g.map((x) => x & 127)); } return o; };
     const reply = (d) => setTimeout(() => L.receive({ name: 'Circuit Tracks' }, Uint8Array.from(d)), 2);
@@ -307,6 +308,7 @@ const { chromium } = require('playwright');
     L.in = { name: 'Circuit Tracks' };
     L.out = { send(b) {
       if (b[6] !== 3) return;
+      if (b[7] === 0x0b && b[8] === 3) sentPack.push(b[9]);
       if (b[7] === 0x0b && b[8] === 2) ['00_First', '15_TracksGM'].forEach((n, i) => reply([...H, 0x0c, 0x02, i, ...[...n].map((c) => c.charCodeAt(0)), 0xf7]));
       if (b[7] === 0x01 && b[16] === 4) {
         const e = b[18], a = (k) => [0, 0, 0, 0, 0, 0, 0, k];
@@ -318,14 +320,18 @@ const { chromium } = require('playwright');
     } };
     const dl = []; const orig = URL.createObjectURL; URL.createObjectURL = (blob) => { dl.push(blob); return 'blob:x'; };
     document.querySelector('.midilog-box button:nth-of-type(3)').click();
+    await new Promise((r) => { const t = setInterval(() => { if (document.querySelector('#dlg').open) { clearInterval(t); r(); } }, 30); });
+    document.querySelector('#dlg select').value = '1';
+    document.querySelector('#dlg-ok').click();
     await new Promise((r) => { const t = setInterval(() => { if (dl.length) { clearInterval(t); r(); } }, 50); setTimeout(r, 8000); });
     URL.createObjectURL = orig; L.out = null; L.in = null;
     const json = dl.length ? JSON.parse(await dl[0].text()) : null;
-    return { json, log: document.querySelector('.midilog').textContent };
+    return { json, sentPack, log: document.querySelector('.midilog').textContent };
   });
   check('Read patch files lists the packs', /★ packs on the Circuit Tracks: 0=00_First, 1=15_TracksGM/.test(read.log));
-  check('and reads file 04/0 with its size, CRC and start', /★ file 04\/0: 700 bytes, CRC ok, starts "STORE TEST/.test(read.log) && /★ file 04\/1: none/.test(read.log));
-  check('and downloads them as JSON', read.json && read.json.files[0].size === 700 && read.json.files[0].hex.startsWith('53544f5245') && read.json.packs[1] === '15_TracksGM');
+  check('sends 03 0B 03 <pack> for the chosen pack', read.sentPack.join() === '1' && /★ sent 03 0B 03 01 \(pack "15_TracksGM"\)/.test(read.log));
+  check('and reads file 04/0 with its size, CRC and the 8-patch names', /★ file 04\/0 \(patches 1-8\): 852 bytes, CRC ok: STORE TEST \| SECOND ONE/.test(read.log) && /★ file 04\/1: none/.test(read.log));
+  check('and downloads them as JSON', read.json && read.json.files[0].size === 852 && read.json.files[0].hex.startsWith('53544f5245') && read.json.packs[1] === '15_TracksGM' && read.json.pack === 1);
   await q.close();
   check(`no console errors (${errs.length ? errs.join('; ') : 'none'})`, !errs.length);
   await b.close();
