@@ -3,12 +3,12 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261113l';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261113l';
-import { TracksLink } from './pw/midi.js?v=20261113l';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261113m';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261113m';
+import { TracksLink } from './pw/midi.js?v=20261113m';
 import { openPack, buildPack, bankSyx, slotEdited, slotBlank, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261113l';
-import { buildPanel } from './pw/panel.js?v=20261113l';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261113m';
+import { buildPanel } from './pw/panel.js?v=20261113m';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_v1.circuittrackspack';
 const $ = (s) => document.querySelector(s);
@@ -1003,7 +1003,9 @@ link.addEventListener('change', () => {
 });
 link.onMacro = (k, value, ch) => { if (ch === S.synth && S.bytes[macroPosAddr(k)] !== value) { S.bytes[macroPosAddr(k)] = value; synth?.refresh(); repaint(macroPosAddr(k)); } };
 link.onNote = (on, note, vel) => (on ? noteOn(note, vel) : noteOff(note));
-link.onPatch = (bytes) => importPatches([{ data: bytes }], 'the Circuit Tracks', 'tracks');
+// The Tracks sends a synth's patch by itself when a patch is picked in its Preset view (seen
+// 2026-11-13, with a Program Change first unless the same patch was picked again): follow it.
+link.onPatch = (bytes, synth) => tracksChanged(synth, { bytes });
 // The Tracks shows which synth is in use when its pads or macro knobs are played on it (Note and
 // CC Tx on): edit that synth here too, as Components does.
 link.onFocus = (synth) => {
@@ -1030,13 +1032,25 @@ if (new URLSearchParams(location.search).has('midilog')) {
   };
 }
 // Synth 1 or 2 changed patch on the Tracks: offer to keep changes it just forgot, then follow it.
-link.onProgram = async (synth, slot) => {
-  if (!S.pack || !$('#hw-live').checked) return;
-  if (pcSent && pcSent.synth === synth && pcSent.slot === slot && performance.now() - pcSent.at < 1000) return;   // our own
-  if (synth === S.synth) await leaveEdited(false);
-  followTracks(synth, slot);
-};
+link.onProgram = (synth, slot) => tracksChanged(synth, { slot });
 
+// Synth 1 or 2 on the Tracks changed patch: a Program Change (the slot) and / or the new patch
+// itself. Both usually arrive within a few ms, so wait briefly and handle them as one change.
+const pending = [null, null];   // per synth: { slot, bytes, timer }
+function tracksChanged(synth, { slot = null, bytes = null }) {
+  if (!S.pack || !link.connected || !$('#hw-live').checked) return;
+  const p = pending[synth] ??= { slot: null, bytes: null, timer: null };
+  if (slot != null) p.slot = slot;
+  if (bytes) p.bytes = bytes;
+  clearTimeout(p.timer);
+  p.timer = setTimeout(async () => {
+    pending[synth] = null;
+    // The Tracks answering a change made here (its Program Change or patch back): nothing to do.
+    if (pcSent && pcSent.synth === synth && performance.now() - pcSent.at < 1000 && (p.slot == null || p.slot === pcSent.slot)) return;
+    if (synth === S.synth) await leaveEdited(false);   // the Tracks has just dropped any unstored changes
+    followTracks(synth, p.slot, p.bytes);
+  }, p.bytes && p.slot != null ? 0 : 150);
+}
 // Write the patch being edited into a slot on the Tracks itself. Returns true if it was sent.
 async function storeOnTracks(slot = S.slot) {
   const sel = slotSelect(slot);
@@ -1075,23 +1089,28 @@ async function chooseSlot(i) {
 // Find out what a synth on the Tracks is playing and edit that patch if the pack has it.
 // hint: the slot the Tracks just changed to (from its Program Change).
 let following = 0;
-async function followTracks(synth, hint = null) {
+async function followTracks(synth, hint = null, given = null) {
   if (!S.pack) return;
   const id = ++following;
-  let bytes = null;
-  if (link.in) { try { bytes = await link.requestPatch(synth); } catch { /* no answer: go by the slot number */ } }
+  let bytes = given;
+  if (!bytes && link.in) { try { bytes = await link.requestPatch(synth); } catch { /* no answer: go by the slot number */ } }
   if (id !== following) return;
   const packBytes = (i) => S.pack.patches[i] ?? initPatch();
+  // The Tracks' patch is the pack's slot as it is here, or as the pack had it before it was
+  // changed here (then the synth has an older version: dirty).
+  const asHere = (i) => sameBytes(packBytes(i), bytes);
+  const asOpened = (i) => !!S.pack.original[i] && sameBytes(S.pack.original[i], bytes);
   let slot = null;
   if (!bytes) slot = hint;   // couldn't check (or nothing to go by): assume the same pack
-  else if (hint != null) slot = sameBytes(packBytes(hint), bytes) ? hint : null;
+  else if (hint != null) slot = asHere(hint) || asOpened(hint) ? hint : null;
   else {
-    for (let i = 0; i < PATCH_SLOTS; i++) {
-      if (sameBytes(packBytes(i), bytes)) { slot = i; break; }
-    }
+    const near = S.hw[synth].slot ?? S.slot;   // the same patch picked again: most likely this one
+    if (asHere(near) || asOpened(near)) slot = near;
+    for (let i = 0; i < PATCH_SLOTS && slot == null; i++) if (asHere(i)) slot = i;
+    for (let i = 0; i < PATCH_SLOTS && slot == null; i++) if (asOpened(i)) slot = i;
   }
   if (slot != null) {
-    S.hw[synth] = { slot, dirty: false, edited: false };
+    S.hw[synth] = { slot, dirty: !!bytes && !asHere(slot), edited: false };
     if (synth === S.synth && slot !== S.slot) selectSlot(slot, { send: false });
     paintStatus();
     return;
@@ -1100,7 +1119,8 @@ async function followTracks(synth, hint = null) {
   if (synth === S.synth && hint != null) {
     selectSlot(hint, { send: false });
     const ok = await ask(`Synth ${synth + 1} changed to patch ${pad3(hint + 1)}`, [
-      `Patch ${pad3(hint + 1)} on the Circuit Tracks, "${getName(bytes)}", is not the same as ${slotLabel(hint)} in the pack open here, so the Circuit Tracks probably holds a different pack.`,
+      `Patch ${pad3(hint + 1)} on the Circuit Tracks, "${getName(bytes)}", is not the same as ${slotLabel(hint)} in the pack open here, so the Circuit Tracks probably holds a different pack or an older version of it.`,
+      `Different: ${patchDiff(packBytes(hint), bytes)}.`,
       h('p', { class: `hint${slotEdited(S.pack, hint) ? ' warn' : ''}`, text: replaceNote(hint) }),
     ], `Load it into slot ${pad3(hint + 1)}`, { cancel: 'Keep the pack\'s version' });
     if (ok && S.slot === hint) {
@@ -1119,6 +1139,20 @@ async function followTracks(synth, hint = null) {
   paintStatus();
 }
 function synthRefresh() { synth?.refresh(); }
+// Which settings differ between two patches, by name (the first few).
+const SECTION = { osc1: 'Osc 1', osc2: 'Osc 2', env1: 'Env 1', env2: 'Env 2', env3: 'Env 3', lfo1: 'LFO 1', lfo2: 'LFO 2', chorus: 'Chorus', eq: 'EQ', distortion: 'Distortion', filter: 'Filter' };
+function patchDiff(a, b) {
+  const names = [];
+  if (getName(a) !== getName(b)) names.push('name');
+  for (let i = 16; i < Math.min(a.length, b.length); i++) {
+    if (a[i] === b[i]) continue;
+    const p = PARAM_AT.get(i);
+    const sec = p ? SECTION[p.id.split('_')[0]] : null;
+    const n = p ? (sec && !p.label.startsWith(sec) ? `${sec} ${p.label.toLowerCase()}` : p.label) : i > 123 ? 'mod matrix or macros' : `byte ${i}`;
+    if (!names.includes(n)) names.push(n);
+  }
+  return names.length > 8 ? `${names.slice(0, 8).join(', ')} and ${names.length - 8} more` : names.join(', ') || 'nothing that is shown';
+}
 
 // ------------------------------------------------------------------ keyboard and loop
 const KEY_ROW = 'awsedftgyhujkolp;';

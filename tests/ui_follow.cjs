@@ -34,7 +34,7 @@ const { chromium } = require('playwright');
 
   // The Tracks changes Synth 1 to patch 15 (same pack): the editor follows, no question.
   await p.evaluate(() => { window.tracks[0] = window.patchworker.S.pack.patches[14].slice(); window.patchworker.link.onProgram(0, 14); });
-  await p.waitForTimeout(200);
+  await p.waitForTimeout(400);
   s = await st();
   check(`Program Change from the Tracks moves the editor to slot 15 (${s.slot + 1})`, s.slot === 14 && !s.dlg);
 
@@ -68,13 +68,40 @@ const { chromium } = require('playwright');
   await p.waitForSelector('#dlg[open]');
   check('a patch change on the Tracks after live edits asks about them, no Cancel', await p.isHidden('#dlg-alt2') && (await p.textContent('#dlg-cancel')) === "Don't save");
   await p.click('#dlg-cancel');
-  await p.waitForTimeout(200);
+  await p.waitForTimeout(400);
   check(`then follows the Tracks to slot 40 (${(await st()).slot + 1})`, (await st()).slot === 39);
+
+  // Picking patches in the Tracks' Preset view: a Program Change and the patch itself arrive
+  // together; picking the same patch again sends only the patch. No dialogs, no Get import.
+  const syx = (synth, bytes) => [0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x00, synth, 0x00, ...bytes, 0xf7];
+  const port0 = { name: 'Circuit Tracks MIDI' };
+  const rx0 = (bytes) => p.evaluate(([b, pt]) => window.patchworker.link.receive(pt, new Uint8Array(b)), [bytes, port0]);
+  let pk = await p.evaluate(() => [...window.patchworker.S.pack.patches[44]]);
+  await rx0([0xc0, 44]);
+  await rx0(syx(0, pk));
+  await p.waitForTimeout(300);
+  s = await st();
+  check(`a preset picked on the Tracks (PC + patch) is followed quietly (slot ${s.slot + 1})`, s.slot === 44 && !s.dlg && /Synth 1 is playing this patch/.test(s.hw));
+  pk = await p.evaluate(() => [...window.patchworker.S.pack.patches[46]]);
+  await rx0(syx(0, pk));
+  await p.waitForTimeout(400);
+  s = await st();
+  check(`a patch sent on its own is followed too (slot ${s.slot + 1})`, s.slot === 46 && !s.dlg);
+  // Live edits, then the same preset picked again on the Tracks: it reloads the stored patch.
+  await p.evaluate(() => { const w = window.patchworker; w.setByte(20, (w.S.bytes[20] + 1) & 127); });
+  await rx0(syx(0, await p.evaluate(() => [...window.patchworker.S.pack.original[46]])));
+  await p.waitForSelector('#dlg[open]');
+  check('picking the same preset again after live edits asks about them', /Keep your changes/.test(await p.textContent('#dlg-title')));
+  await p.click('#dlg-cancel');
+  await p.waitForTimeout(300);
+  s = await st();
+  check(`then the synth is shown as having the older version (${s.hw})`, s.slot === 46 && /older version/.test(s.hw));
 
   // A different pack on the Tracks: patch 50 there isn't pack slot 50.
   await p.evaluate(() => { const w = window.patchworker; window.tracks[0] = w.S.pack.patches[0].slice(); w.link.onProgram(0, 49); });
-  await p.waitForSelector('#dlg[open]');
+  await p.waitForSelector('#dlg[open]', { timeout: 5000 });
   check('a patch that differs from the pack asks whether to load it', /changed to patch 050/.test(await p.textContent('#dlg-title')));
+  check(`and lists what differs (${(await p.textContent('#dlg-body')).match(/Different: [^.]*/)?.[0]})`, /Different: name/.test(await p.textContent('#dlg-body')));
   await p.click('#dlg-ok');
   await p.waitForTimeout(200);
   check('Load puts the Tracks\' patch into slot 50', await p.evaluate(() => { const w = window.patchworker; return w.S.slot === 49 && w.S.pack.patches[49].every((v, i) => v === window.tracks[0][i]); }));
