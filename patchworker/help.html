@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/patchworker.css?v=20261113m">
+<link rel="stylesheet" href="../css/patchworker.css?v=20261113n">
 </head>
 <body class="doc">
 <nav class="topnav" aria-label="CircuitGM">
@@ -72,7 +72,7 @@
     <tr><th>Store…</th><td>Writes the current patch into one of the 128 patch slots on the Circuit Tracks itself, replacing what is there. PatchWorker asks first.</td></tr>
     <tr><th>Hear on</th><td>Browser, Tracks or Both. Linking switches to Tracks, so notes from the page play the hardware.</td></tr>
   </table>
-  <p>Turning a macro knob on the Circuit Tracks moves the same macro on the page. A second MIDI keyboard plugged into the computer plays the patch as well. On the Circuit Tracks, MIDI note and control receive must be on in Setup view.</p>
+  <p>Turning a macro knob on the Circuit Tracks moves the same macro on the page and counts as a change to the patch (Undo takes it back, and PatchWorker offers to store it before the Circuit Tracks changes patch). A second MIDI keyboard plugged into the computer plays the patch as well. On the Circuit Tracks, MIDI note and control receive must be on in Setup view.</p>
   <p>To put a whole edited pack on the Circuit Tracks, download it here and send it with Novation Components.</p>
   <p>To see what the Circuit Tracks sends, open PatchWorker with <code>?midilog</code> at the end of the address: a box lists every message from it, with a Copy button.</p>
 

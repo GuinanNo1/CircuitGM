@@ -97,6 +97,25 @@ const { chromium } = require('playwright');
   s = await st();
   check(`then the synth is shown as having the older version (${s.hw})`, s.slot === 46 && /older version/.test(s.hw));
 
+  // Macros turned on the Tracks are edits: marked here, and asked about when the Tracks changes patch.
+  await p.evaluate(() => window.patchworker.selectSlot(55, { send: false }));
+  pk = await p.evaluate(() => [...window.patchworker.S.pack.patches[55]]);
+  await rx0([0xc0, 55]);
+  await rx0(syx(0, pk));
+  await p.waitForTimeout(300);
+  await p.evaluate(() => { window.patchworker.link.lastNote = [-1e9, -1e9]; });
+  for (const v of [10, 40, 90]) await rx0([0xb0, 80, v]);
+  await p.waitForTimeout(200);
+  check('a macro turned on the Tracks marks the patch as changed here', await p.evaluate(() => { const w = window.patchworker; return document.querySelector('#patchlist li[data-slot="55"]').classList.contains('edited'); }));
+  check('one Undo takes back the whole knob turn', await p.evaluate(() => { const w = window.patchworker; w.undo(); const back = w.S.bytes.every((v, i) => v === w.S.pack.original[55][i]); w.redo(); return back; }));
+  await rx0([0xc0, 56]);
+  await rx0(syx(0, await p.evaluate(() => [...window.patchworker.S.pack.patches[56]])));
+  await p.waitForSelector('#dlg[open]', { timeout: 5000 });
+  check('then a patch change on the Tracks asks to keep those changes', /Keep your changes/.test(await p.textContent('#dlg-title')));
+  await p.click('#dlg-cancel');
+  await p.waitForTimeout(300);
+  check(`and follows to slot 57 (${(await st()).slot + 1})`, (await st()).slot === 56);
+
   // A different pack on the Tracks: patch 50 there isn't pack slot 50.
   await p.evaluate(() => { const w = window.patchworker; window.tracks[0] = w.S.pack.patches[0].slice(); w.link.onProgram(0, 49); });
   await p.waitForSelector('#dlg[open]', { timeout: 5000 });

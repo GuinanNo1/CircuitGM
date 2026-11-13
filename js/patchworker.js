@@ -3,12 +3,12 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261113m';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261113m';
-import { TracksLink } from './pw/midi.js?v=20261113m';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261113n';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261113n';
+import { TracksLink } from './pw/midi.js?v=20261113n';
 import { openPack, buildPack, bankSyx, slotEdited, slotBlank, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261113m';
-import { buildPanel } from './pw/panel.js?v=20261113m';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261113n';
+import { buildPanel } from './pw/panel.js?v=20261113n';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_v1.circuittrackspack';
 const $ = (s) => document.querySelector(s);
@@ -1001,7 +1001,23 @@ link.addEventListener('change', () => {
   wasLinked = link.connected;
   paintStatus();
 });
-link.onMacro = (k, value, ch) => { if (ch === S.synth && S.bytes[macroPosAddr(k)] !== value) { S.bytes[macroPosAddr(k)] = value; synth?.refresh(); repaint(macroPosAddr(k)); } };
+// A macro knob turned on the Tracks changes the patch there: the same edit here (undoable, marked
+// as changed, and counted as a change the Tracks will forget if it changes patch unstored). Only
+// when the synth is playing the patch being edited, and not sent back to the Tracks.
+link.onMacro = (k, value, ch) => {
+  const a = macroPosAddr(k);
+  if (ch !== S.synth || S.hw[ch].slot !== S.slot || S.bytes[a] === value) return;
+  checkpoint(`tracks-macro-${k}`);
+  S.bytes[a] = value;
+  S.hw[ch].edited = true;
+  synth?.refresh();
+  repaint(a);
+  paintSlot(S.slot);
+  paintBar();
+  paintStatus();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveSession, 500);
+};
 link.onNote = (on, note, vel) => (on ? noteOn(note, vel) : noteOff(note));
 // The Tracks sends a synth's patch by itself when a patch is picked in its Preset view (seen
 // 2026-11-13, with a Program Change first unless the same patch was picked again): follow it.
