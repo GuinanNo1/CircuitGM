@@ -232,32 +232,34 @@ const { chromium } = require('playwright');
   await q.waitForFunction(() => window.patchworker?.S.pack);
   await q.evaluate(() => window.patchworker.link.receive({ name: 'Circuit Tracks' }, new Uint8Array([0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x7f, 0xf7])));
   check('?midilog lists messages from the Tracks', /← f0 00 20 29 01 64 7f f7/.test(await q.textContent('.midilog')));
-  // Store follows Components: file session (open, handshake, 16 directory reads of the slot's page,
-  // close), then 01 00 00 <slot> 00 + patch (352 bytes); nothing else goes out until 500 ms after.
+  // Store follows Components: file session (open, handshake, read of the pack's patch file 04/<pack>,
+  // close), then 01 <pack> 00 <slot> 00 + patch (352 bytes); nothing else goes out until 500 ms after.
   const stored = await q.evaluate(async () => {
     const w = window.patchworker, out = [];
+    w.link.in = { name: 'Circuit Tracks' };
     w.link.out = { send(b) { out.push({ t: performance.now(), b: [...b] }); } };
-    const done = w.link.writeSlot(w.S.bytes, 69);
+    const done = w.link.writeSlot(w.S.bytes, 3, 69);
     await new Promise((r) => setTimeout(r, 200));
     w.link.send([0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x40, 0x00, 0x00, 0xf7]);   // a patch request mid-Store
     w.link.program(0, 3);
     const ok = await done;
     await new Promise((r) => setTimeout(r, 900));
-    w.link.out = null;
+    w.link.out = null; w.link.in = null;
     const t0 = out[0].t;
     return { ok, msgs: out.map((e) => ({ t: Math.round(e.t - t0), b: e.b })) };
   });
   const m = stored.msgs, hx = (b) => b.map((x) => x.toString(16).padStart(2, '0')).join(' ');
   const storeAt = m.findIndex((e) => e.b.length === 352);
   check('Store opens a file session first (03 40)', hx(m[0].b) === 'f0 00 20 29 01 64 03 40 f7');
-  check('then reads the 16 patches of the slot\'s page (slot 70 -> entries 64-79)', m.filter((e) => e.b[6] === 3 && e.b[7] === 1).map((e) => e.b[18]).join() === Array.from({ length: 16 }, (_, i) => 64 + i).join() && m.filter((e) => e.b[7] === 1 && e.b[6] === 3).every((e) => e.b[16] === 4 && e.b[17] === 0 && e.b[19] === 2));
+  check('reads the chosen pack\'s patch file (04/3) once', m.filter((e) => e.b[6] === 3 && e.b[7] === 1).map((e) => `${e.b[16]}/${e.b[18]}/${e.b[19]}`).join() === '4/3/2');
   check('closes the session (03 41) before the Store', storeAt > 0 && hx(m[storeAt - 1].b) === 'f0 00 20 29 01 64 03 41 f7');
-  check('Store message is 01 00 00 <slot> 00 + patch, 352 bytes', storeAt > 0 && hx(m[storeAt].b.slice(0, 11)) === 'f0 00 20 29 01 64 01 00 00 45 00' && m[storeAt].b[351] === 0xf7 && stored.ok);
+  check('Store message is 01 <pack> 00 <slot> 00 + patch, 352 bytes', storeAt > 0 && hx(m[storeAt].b.slice(0, 11)) === 'f0 00 20 29 01 64 01 03 00 45 00' && m[storeAt].b[351] === 0xf7 && stored.ok);
   check(`a request and a Program Change made mid-Store wait until 500 ms after it (${m.slice(storeAt).map((e) => e.t).join(', ')})`,
     m.length === storeAt + 3 && m[storeAt + 1].t - m[storeAt].t >= 495 && m[storeAt + 2].t - m[storeAt].t >= 495);
   const logText = await q.textContent('.midilog');
-  check('?midilog sums up the Store (slot, name, macro positions)', /→ f0 00 20 29 01 64 01 00 00 45 00 … STORE to flash slot 70 \(352 bytes\): ".+", macros( \d+){8}/.test(logText));
+  check('?midilog sums up the Store (pack, slot, name, macro positions)', /→ f0 00 20 29 01 64 01 03 00 45 00 … STORE to pack index 3, slot 70 \(352 bytes\): ".+", macros( \d+){8}/.test(logText));
   check('?midilog shows the file-session messages', /→ f0 00 20 29 01 64 03 40 f7/.test(logText));
+  check('Store needs a pack', await q.evaluate(() => window.patchworker.link.writeSlot(window.patchworker.S.bytes, undefined, 0).then(() => false, () => true)));
   // Read patch files: a simulated Tracks lists 2 packs and has file 04/0 (700 bytes), not 04/1-31.
   const read = await q.evaluate(async () => {
     const w = window.patchworker, L = w.link, H = [0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x03];

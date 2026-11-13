@@ -1,7 +1,7 @@
 // PatchWorker's link to a Circuit Tracks over Web MIDI (Chrome, Edge, Opera; Firefox with its
 // site permission add-on). Everything here follows the Circuit Tracks Programmer's Reference
 // Guide v3: patches travel as SysEx, single parameters as CC or NRPN on the synth's channel.
-import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261114e';
+import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261114f';
 
 export const SYX_GAP = 20;           // ms between SysEx messages (Programmer's Reference)
 export const SYX_STORE_GAP = 500;    // ms after a Store before the next SysEx
@@ -113,13 +113,15 @@ export class TracksLink extends EventTarget {
 
   // Run fn() inside a file session (open, directory handshake … close). Other messages are held
   // until it ends. The handshake's 03 0B 02 makes the Tracks list its packs: returned as names.
-  async fileSession(fn) {
+  // after(): run once the session is closed, before held messages go out (used by writeSlot).
+  async fileSession(fn, after = null) {
     if (!this.out || !this.in) throw new Error('The Circuit Tracks is not connected in both directions.');
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     const free = Math.max(this.storeUntil ?? 0, this.sysexFree ?? 0) - performance.now();
     if (free > 0) await wait(free);
     this.held = [];
     const packs = [];
+    let ran = false;
     this.fileWaiter = (d) => {
       if (d[7] === 0x0c) packs[d[9]] = String.fromCharCode(...d.slice(10, -1));   // 03 0C 02 <n> <name>
     };
@@ -128,11 +130,14 @@ export class TracksLink extends EventTarget {
         this.sendNow(msg);
         await wait(ms);
       }
-      return await fn(packs);
+      const result = await fn(packs);
+      ran = true;
+      return result;
     } finally {
       this.fileWaiter = null;
       this.sendNow(this.fileMsg(0x41));
       await wait(300);
+      if (ran && after) after();
       const held = this.held;
       this.held = null;
       for (const msg of held) this.send(msg);
@@ -165,44 +170,25 @@ export class TracksLink extends EventTarget {
     });
   }
 
-  // Store a patch in a flash slot (0-127) as Novation Components does. The Programmer's Reference's
-  // "Replace Patch" (01 <slot> 00) alone is ignored by the Tracks (hardware, 2026-11-14). Components
-  // first opens a file session and reads the slot's page of the patch directory, closes it, then
-  // sends 01 00 00 <slot> 00 + the patch (352 bytes). Sequence as captured from Components' Web MIDI
-  // output by namirsab/circuit-tracks-tools (MIT), ncs_transfer.send_patch_to_slot.
+  // Store a patch in slot 0-127 of pack 0-31 on the Tracks' SD card (packs in the order the Tracks
+  // lists them in a file session). The Programmer's Reference's Replace Patch (01 <slot> 00) is
+  // ignored by the Tracks. Components' form, from namirsab/circuit-tracks-tools (MIT): a file session
+  // first, then 01 <pack> 00 <slot> 00 + the patch (352 bytes). namirsab sent 00 in the pack byte,
+  // which on 2026-11-14 wrote into pack 0 ("00_BetterOffAlone"), proving that byte is the pack.
+  // Inside the session the pack's patch file (04/<pack>) is read, as Components browses it.
   // Nothing else goes to the Tracks until it is done. Resolves true if everything was sent.
-  async writeSlot(bytes, slot) {
-    if (!this.out) return false;
-    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-    const file = (sub, payload = []) => [...SYX_HEAD, PRODUCT_TRACKS, 0x03, sub, ...payload, 0xf7];
-    const steps = [
-      [file(0x40), 300],                      // open session
-      [file(0x0b, [0x01]), 100],              // directory handshake
-      [file(0x09, [0x01, 0x00]), 100],
-      [file(0x0b, [0x02]), 100],
-    ];
-    const page = slot & 0x70;                 // Components reads the 16-patch page holding the slot
-    for (let i = 0; i < 16; i++) steps.push([file(0x01, [0, 0, 0, 0, 0, 0, 0, 0, 0x04, 0x00, page + i, 0x02]), 20]);
-    steps[steps.length - 1][1] = 300;
-    steps.push([file(0x41), 100]);            // close session
-    let ok = true;
-    // Wait for anything already queued, then hold every other message until the Store is sent.
-    const free = Math.max(this.storeUntil ?? 0, this.sysexFree ?? 0) - performance.now();
-    if (free > 0) await wait(free);
-    this.held = [];
-    for (const [msg, ms] of steps) {
-      ok = this.sendNow(msg) && ok;
-      await wait(ms);
-    }
-    const store = new Uint8Array(352);
-    store.set([...SYX_HEAD, PRODUCT_TRACKS, 0x01, 0x00, 0x00, slot & 0x7f, 0x00]);
-    store.set(bytes.subarray(0, 340), 11);
-    store[351] = 0xf7;
-    const held = this.held;
-    this.held = null;
-    this.storeUntil = this.sysexFree = 0;
-    ok = this.send(store) && ok;              // send() then holds everything else back SYX_STORE_GAP ms
-    for (const msg of held) this.send(msg);
+  async writeSlot(bytes, pack, slot) {
+    if (!(pack >= 0 && pack < 32)) throw new Error('No pack chosen.');
+    let ok = false;
+    await this.fileSession(async () => { await this.readFile(0x04, pack, 1500).catch(() => null); }, () => {
+      const store = new Uint8Array(352);
+      store.set([...SYX_HEAD, PRODUCT_TRACKS, 0x01, pack & 0x7f, 0x00, slot & 0x7f, 0x00]);
+      store.set(bytes.subarray(0, 340), 11);
+      store[351] = 0xf7;
+      this.storeUntil = this.sysexFree = 0;
+      ok = this.sendNow(store);
+      this.storeUntil = this.sysexFree = performance.now() + SYX_STORE_GAP;   // held messages wait
+    });
     return ok;
   }
   // Program Change on a synth's channel: the Tracks loads its own patch from that slot (needs PGM Rx on).

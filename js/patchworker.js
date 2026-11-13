@@ -3,12 +3,12 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114e';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114e';
-import { TracksLink } from './pw/midi.js?v=20261114e';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114f';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114f';
+import { TracksLink } from './pw/midi.js?v=20261114f';
 import { openPack, buildPack, bankSyx, slotEdited, slotBlank, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114e';
-import { buildPanel } from './pw/panel.js?v=20261114e';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114f';
+import { buildPanel } from './pw/panel.js?v=20261114f';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_v1.circuittrackspack';
 const $ = (s) => document.querySelector(s);
@@ -1086,7 +1086,7 @@ if (new URLSearchParams(location.search).has('midilog')) {
       const slot = d.length === 352 ? d[9] : d[7];
       const name = String.fromCharCode(...d.slice(at, at + 16)).trimEnd();
       const macros = Array.from({ length: 8 }, (_, k) => d[at + 204 + 17 * k]);
-      const what = d[6] === 0 ? `current patch, synth ${d[7] + 1}` : `STORE to flash slot ${slot + 1} (${d.length} bytes)`;
+      const what = d[6] === 0 ? `current patch, synth ${d[7] + 1}` : `STORE to ${d.length === 352 ? `pack index ${d[7]}, ` : ''}slot ${slot + 1} (${d.length} bytes)`;
       text = `${hex(d.slice(0, at))} … ${what}: "${name}", macros ${macros.join(' ')}`;
     } else if (d.length > 24) text = `${hex(d.slice(0, 24))} … (${d.length} bytes)`;
     return `${((e.t - t0) / 1000).toFixed(3).padStart(8)} ${arrow} ${text}`;
@@ -1118,17 +1118,27 @@ function tracksChanged(synth, { slot = null, bytes = null }) {
 }
 // Write the patch being edited into a slot on the Tracks itself. Returns true if it was sent.
 async function storeOnTracks(slot = S.slot) {
-  // Off until the pack number in Components' Store message is confirmed: on 2026-11-14 a Store sent
-  // with pack byte 00 landed in the first pack on the SD card, not the loaded pack.
-  await ask('Store on the Circuit Tracks', ['Storing straight onto the Circuit Tracks is switched off while it is being tested. Save a .syx or download the pack, and put it on the Circuit Tracks with Novation Components.'], 'OK', { cancel: 'Close' });
-  return false;
+  if (!link.connected || !link.in) { toast('Link the Circuit Tracks (both directions) to store on it.'); return false; }
+  let packs;
+  try { packs = await link.fileSession(async (p) => p.slice()); } catch (e) { toast(`The Circuit Tracks did not answer: ${e.message}`); return false; }
+  if (!packs.length) { toast('The Circuit Tracks did not list its packs: nothing was stored.'); return false; }
+  const last = (() => { try { return localStorage.getItem('circuitgm-store-pack'); } catch { return null; } })();
+  const packSel = h('select', { class: 'wide' }, [h('option', { value: '', text: 'Choose the pack…' }),
+    ...packs.map((n, i) => h('option', { value: i, selected: n === last, text: n ?? `(pack ${i + 1}, unnamed)` }))]);
   const sel = slotSelect(slot);
-  if (!(await ask('Store on the Circuit Tracks', [`Writes "${getName(S.bytes)}" into a patch slot on the Circuit Tracks itself, replacing the patch that is there now. This cannot be undone from here.`,
-    h('label', { class: 'field' }, 'Circuit Tracks patch slot ', sel), h('p', { class: 'hint', text: 'The names listed are from the pack open here, which may not be the pack on your Circuit Tracks.' })], 'Store'))) return false;
+  if (!(await ask('Store on the Circuit Tracks', [`Writes "${getName(S.bytes)}" into a patch slot of a pack on the Circuit Tracks, replacing the patch that is there now. This cannot be undone from here.`,
+    h('label', { class: 'field' }, 'Pack on the Circuit Tracks ', packSel),
+    h('label', { class: 'field' }, 'Patch slot ', sel),
+    h('p', { class: 'hint', text: 'Choose the pack that is loaded on your Circuit Tracks to change the patches you play. The slot names listed are from the pack open here.' })], 'Store'))) return false;
+  if (packSel.value === '') { toast('No pack chosen: nothing was stored.'); return false; }
+  const pack = +packSel.value;
+  try { localStorage.setItem('circuitgm-store-pack', packs[pack]); } catch { /* private mode */ }
   toast('Storing on the Circuit Tracks…');
-  if (!(await link.writeSlot(S.bytes, +sel.value))) { toast('The Circuit Tracks could not be reached: nothing was stored.'); return false; }
+  let ok = false;
+  try { ok = await link.writeSlot(S.bytes, pack, +sel.value); } catch (e) { toast(e.message); return false; }
+  if (!ok) { toast('The Circuit Tracks could not be reached: nothing was stored.'); return false; }
   for (const hw of S.hw) if (hw.slot === S.slot) hw.edited = false;
-  toast(`Stored in Circuit Tracks patch slot ${pad3(+sel.value + 1)}.`);
+  toast(`Stored in patch slot ${pad3(+sel.value + 1)} of "${packs[pack]}" on the Circuit Tracks.`);
   return true;
 }
 
