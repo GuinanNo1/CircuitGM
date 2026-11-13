@@ -1,12 +1,12 @@
 // PatchWorker's link to a Circuit Tracks over Web MIDI (Chrome, Edge, Opera; Firefox with its
 // site permission add-on). Everything here follows the Circuit Tracks Programmer's Reference
 // Guide v3: patches travel as SysEx, single parameters as CC or NRPN on the synth's channel.
-import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261114g';
+import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261114h';
 
 // Views on the Tracks whose message carries the selected track (not Mixer 0C, FX 0D, Patterns 0B).
 export const TRACK_VIEWS = new Set([0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a]);
 // The TRACKS panel view for each view code the Tracks sends.
-export const VIEW_CODES = { 0x02: 'preset', 0x03: 'note', 0x08: 'note', 0x04: 'velocity', 0x05: 'gate', 0x0a: 'micro', 0x06: 'pattern', 0x07: 'probability', 0x0b: 'patterns', 0x0c: 'mixer', 0x0d: 'fx', 0x09: 'sidechain' };
+export const VIEW_CODES = { 0x02: 'preset', 0x03: 'note', 0x08: 'note', 0x04: 'velocity', 0x05: 'gate', 0x0a: 'micro', 0x06: 'pattern', 0x07: 'probability', 0x0b: 'patterns', 0x0c: 'mixer', 0x0d: 'fx', 0x09: 'sidechain', 0x0e: 'scales', 0x0f: 'tempo', 0x10: 'projects', 0x11: 'projects' };   // 11 Packs: no panel view of its own
 export const SYX_GAP = 20;           // ms between SysEx messages (Programmer's Reference)
 export const SYX_STORE_GAP = 500;    // ms after a Store before the next SysEx
 
@@ -237,9 +237,11 @@ export class TracksLink extends EventTarget {
       if (!fromTracks) return;
       // View changed on the Tracks (seen 2026-11-13/14, not in the Programmer's Reference):
       // F0 00 20 29 01 64 04 <view> <track> 00 F7. Track 0-1 Synth 1-2, 2-3 MIDI 1-2, 4-7 Drum 1-4
-      // (always 00 for Mixer, FX, Patterns). Views: 02 Preset, 03 Note, 08 Expanded Note,
+      // (always 00 for Mixer, FX, Patterns, Scales, Tempo, Projects, Packs). Views: 02 Preset, 03 Note, 08 Expanded Note,
       // 04 Velocity, 05 Gate, 0A Micro Step, 06 Pattern Settings, 07 Probability, 0B Patterns,
-      // 0C Mixer, 0D FX, 09 Sidechain. A track button sends its track's view (Note: 03).
+      // 0C Mixer, 0D FX, 09 Sidechain, 0E Scales, 0F Tempo, 10 Projects, 11 Packs. A track button
+      // sends its track's view (Note: 03). Shift sends 08 01 / 08 00 (pressed / released); scenes
+      // (saving, selecting, chaining) send nothing.
       if (data.length === 11 && data[1] === 0x00 && data[2] === 0x20 && data[3] === 0x29 && data[4] === 0x01 && data[5] === PRODUCT_TRACKS && data[6] === 0x04) {
         const view = data[7], track = data[8];
         this.onView?.(view, track);

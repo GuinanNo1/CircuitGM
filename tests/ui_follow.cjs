@@ -187,7 +187,7 @@ const { chromium } = require('playwright');
   await rx([0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x04, 0x07, 0x05, 0x00, 0xf7]);
   await p.waitForTimeout(200);
   check(`Probability on Drum 2 shows Probability and Drum 2 (${await viewNow()})`, (await viewNow()).join() === 'probability,5');
-  for (const [code, id] of [[0x02, 'preset'], [0x08, 'note'], [0x0a, 'micro'], [0x09, 'sidechain'], [0x0b, 'patterns'], [0x0c, 'mixer'], [0x04, 'velocity'], [0x05, 'gate'], [0x06, 'pattern'], [0x03, 'note']]) {
+  for (const [code, id] of [[0x02, 'preset'], [0x08, 'note'], [0x0a, 'micro'], [0x09, 'sidechain'], [0x0b, 'patterns'], [0x0c, 'mixer'], [0x04, 'velocity'], [0x05, 'gate'], [0x06, 'pattern'], [0x0e, 'scales'], [0x0f, 'tempo'], [0x10, 'projects'], [0x11, 'projects'], [0x03, 'note']]) {
     await rx([0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x04, code, 0x01, 0x00, 0xf7]);
     await p.waitForTimeout(60);
     const v = await viewNow();
