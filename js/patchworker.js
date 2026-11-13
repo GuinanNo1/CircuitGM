@@ -3,12 +3,12 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114k';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114k';
-import { TracksLink, VIEW_CODES } from './pw/midi.js?v=20261114k';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114l';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114l';
+import { TracksLink, VIEW_CODES } from './pw/midi.js?v=20261114l';
 import { openPack, buildPack, bankSyx, slotEdited, slotBlank, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114k';
-import { buildPanel } from './pw/panel.js?v=20261114k';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114l';
+import { buildPanel } from './pw/panel.js?v=20261114l';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_v1.circuittrackspack';
 const $ = (s) => document.querySelector(s);
@@ -1086,23 +1086,21 @@ if (new URLSearchParams(location.search).has('midilog')) {
       // Components picks the pack (namirsab sends 03 0B 03 00); without it the files are pack 0's.
       const out = await link.fileSession(async (packs) => {
         note(`packs on the Circuit Tracks: ${packs.map((n, i) => `${i}=${n}`).join(', ')}`);
-        const sel = h('select', { class: 'wide' }, [h('option', { value: '', text: 'None (no pack message sent)' }), ...packs.map((n, i) => h('option', { value: i, text: `${i}: ${n}` }))]);
-        const go = await ask('Read patch files', ['Read-only. Choose a pack to send 03 0B 03 <pack> before reading, to test whether that selects the pack.', h('label', { class: 'field' }, 'Pack ', sel)], 'Read', { cancel: 'Cancel' });
+        // Test (2026-11-14): pack p's patch files may be entries p*16 … p*16+15 (file ID 04 <hi> <lo>).
+        // Pack 0 = 0-15 matched BetterOffAlone. 03 0B 03 <pack> was answered but changed nothing.
+        const sel = h('select', { class: 'wide' }, packs.map((n, i) => h('option', { value: i, text: `${i}: ${n}` })));
+        const go = await ask('Read patch files', ['Read-only. Reads files 04/<pack × 16> to <pack × 16 + 15>: to test whether that is where the chosen pack\'s patches are.', h('label', { class: 'field' }, 'Pack ', sel)], 'Read', { cancel: 'Cancel' });
         if (!go) throw new Error('cancelled');
-        const res = { packs, pack: sel.value === '' ? null : +sel.value, files: {} };
-        if (res.pack != null) {
-          link.sendNow(link.fileMsg(0x0b, [0x03, res.pack]));
-          note(`sent 03 0B 03 ${res.pack.toString(16).padStart(2, '0')} (pack "${packs[res.pack]}")`);
-          await new Promise((r) => setTimeout(r, 600));
-        }
+        const res = { packs, pack: +sel.value, files: {} };
+        note(`reading pack ${res.pack} ("${packs[res.pack]}") as files 04/${res.pack * 16}-${res.pack * 16 + 15}`);
         for (let e = 0; e < 16; e++) {   // 16 files x 8 patches = 128
-          const f = await link.readFile(0x04, e).catch((err) => ({ error: err.message }));
-          if (!f) { note(`file 04/${e}: none`); continue; }
-          if (f.error) { note(`file 04/${e}: ${f.error}`); continue; }
+          const f = await link.readFile(0x04, res.pack * 16 + e).catch((err) => ({ error: err.message }));
+          if (!f) { note(`file 04/${res.pack * 16 + e}: none`); continue; }
+          if (f.error) { note(`file 04/${res.pack * 16 + e}: ${f.error}`); continue; }
           // 8 patches per file, 512 bytes each (340 + 172 filler); empty slots are FF.
           const names = [];
           for (let k = 0; k * 512 < f.data.length; k++) names.push(f.data[k * 512] === 0xff ? '—' : String.fromCharCode(...f.data.slice(k * 512, k * 512 + 16)).replace(/[^ -~]/g, '.').trimEnd());
-          note(`file 04/${e} (patches ${e * 8 + 1}-${e * 8 + 8}): ${f.size} bytes, CRC ${f.crcOk ? 'ok' : 'WRONG'}: ${names.join(' | ')}`);
+          note(`file 04/${res.pack * 16 + e} (patches ${e * 8 + 1}-${e * 8 + 8}): ${f.size} bytes, CRC ${f.crcOk ? 'ok' : 'WRONG'}: ${names.join(' | ')}`);
           res.files[e] = { size: f.size, crcOk: f.crcOk, hex: [...f.data].map((b) => b.toString(16).padStart(2, '0')).join('') };
         }
         return res;

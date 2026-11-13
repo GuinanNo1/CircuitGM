@@ -1,7 +1,7 @@
 // PatchWorker's link to a Circuit Tracks over Web MIDI (Chrome, Edge, Opera; Firefox with its
 // site permission add-on). Everything here follows the Circuit Tracks Programmer's Reference
 // Guide v3: patches travel as SysEx, single parameters as CC or NRPN on the synth's channel.
-import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261114k';
+import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261114l';
 
 // Views on the Tracks whose message carries the selected track (not Mixer 0C, FX 0D, Patterns 0B).
 export const TRACK_VIEWS = new Set([0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a]);
@@ -151,7 +151,9 @@ export class TracksLink extends EventTarget {
 
   // Read file <type>/<entry> (inside fileSession). Resolves { size, data, crcOk } or null if the
   // Tracks says there is no such file (03 06 <type> 00 <entry>).
+  // entry is 14-bit (file ID = <type> <entry >> 7> <entry & 7F>, as namirsab builds it).
   readFile(type, entry, timeout = 4000) {
+    const hi = (entry >> 7) & 0x7f, lo = entry & 0x7f;
     return new Promise((resolve, reject) => {
       const chunks = [];
       let size = null;
@@ -159,8 +161,8 @@ export class TracksLink extends EventTarget {
       const done = (v) => { clearTimeout(timer); this.fileWaiter = null; resolve(v); };
       this.fileWaiter = (d) => {
         const sub = d[7];
-        if (sub === 0x06 && d[8] === type && d[10] === entry) return done(null);
-        if (d[16] !== type || d[18] !== entry) return;                 // fid after sub + 8 address bytes
+        if (sub === 0x06 && d[8] === type && d[9] === hi && d[10] === lo) return done(null);
+        if (d[16] !== type || d[17] !== hi || d[18] !== lo) return;    // fid after sub + 8 address bytes
         if (sub === 0x01) size = nibbles(d.slice(23, 28));             // 4 flag bytes, 5 size nibbles
         else if (sub === 0x02) chunks.push(unpack(d.slice(19, -1)));
         else if (sub === 0x03) {
@@ -171,7 +173,7 @@ export class TracksLink extends EventTarget {
           done({ size, data, crcOk: crc32(data) === nibbles(d.slice(19, 27)) });
         }
       };
-      this.sendNow(this.fileMsg(0x01, [0, 0, 0, 0, 0, 0, 0, 0, type, 0x00, entry, 0x02]));
+      this.sendNow(this.fileMsg(0x01, [0, 0, 0, 0, 0, 0, 0, 0, type, hi, lo, 0x02]));
     });
   }
 

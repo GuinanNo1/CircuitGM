@@ -311,11 +311,11 @@ const { chromium } = require('playwright');
       if (b[7] === 0x0b && b[8] === 3) sentPack.push(b[9]);
       if (b[7] === 0x0b && b[8] === 2) ['00_First', '15_TracksGM'].forEach((n, i) => reply([...H, 0x0c, 0x02, i, ...[...n].map((c) => c.charCodeAt(0)), 0xf7]));
       if (b[7] === 0x01 && b[16] === 4) {
-        const e = b[18], a = (k) => [0, 0, 0, 0, 0, 0, 0, k];
-        if (e !== 0) return reply([...H, 0x06, 0x04, 0x00, e, 0xf7]);
-        reply([...H, 0x01, ...a(0), 4, 0, 0, 1, 0, 0, 0, ...nib(file.length, 5), 0xf7]);
-        reply([...H, 0x02, ...a(1), 4, 0, 0, ...pack7(file), 0xf7]);
-        reply([...H, 0x03, ...a(2), 4, 0, 0, ...nib(crc, 8), 0xf7]);
+        const hi = b[17], lo = b[18], a = (k) => [0, 0, 0, 0, 0, 0, 0, k];
+        if (hi !== 0 || lo !== 16) return reply([...H, 0x06, 0x04, hi, lo, 0xf7]);   // only pack 1's first file
+        reply([...H, 0x01, ...a(0), 4, hi, lo, 1, 0, 0, 0, ...nib(file.length, 5), 0xf7]);
+        reply([...H, 0x02, ...a(1), 4, hi, lo, ...pack7(file), 0xf7]);
+        reply([...H, 0x03, ...a(2), 4, hi, lo, ...nib(crc, 8), 0xf7]);
       }
     } };
     const dl = []; const orig = URL.createObjectURL; URL.createObjectURL = (blob) => { dl.push(blob); return 'blob:x'; };
@@ -329,8 +329,8 @@ const { chromium } = require('playwright');
     return { json, sentPack, log: document.querySelector('.midilog').textContent };
   });
   check('Read patch files lists the packs', /★ packs on the Circuit Tracks: 0=00_First, 1=15_TracksGM/.test(read.log));
-  check('sends 03 0B 03 <pack> for the chosen pack', read.sentPack.join() === '1' && /★ sent 03 0B 03 01 \(pack "15_TracksGM"\)/.test(read.log));
-  check('and reads file 04/0 with its size, CRC and the 8-patch names', /★ file 04\/0 \(patches 1-8\): 852 bytes, CRC ok: STORE TEST \| SECOND ONE/.test(read.log) && /★ file 04\/1: none/.test(read.log));
+  check('reads the chosen pack as files 04/<pack x 16>…', /★ reading pack 1 \("15_TracksGM"\) as files 04\/16-31/.test(read.log) && !read.sentPack.length);
+  check('and file 04/16 with its size, CRC and the 8-patch names', /★ file 04\/16 \(patches 1-8\): 852 bytes, CRC ok: STORE TEST \| SECOND ONE/.test(read.log) && /★ file 04\/17: none/.test(read.log));
   check('and downloads them as JSON', read.json && read.json.files[0].size === 852 && read.json.files[0].hex.startsWith('53544f5245') && read.json.packs[1] === '15_TracksGM' && read.json.pack === 1);
   await q.close();
   check(`no console errors (${errs.length ? errs.join('; ') : 'none'})`, !errs.length);
