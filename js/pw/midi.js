@@ -1,7 +1,7 @@
 // PatchWorker's link to a Circuit Tracks over Web MIDI (Chrome, Edge, Opera; Firefox with its
 // site permission add-on). Everything here follows the Circuit Tracks Programmer's Reference
 // Guide v3: patches travel as SysEx, single parameters as CC or NRPN on the synth's channel.
-import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261114m';
+import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261114n';
 
 // Views on the Tracks whose message carries the selected track (not Mixer 0C, FX 0D, Patterns 0B).
 export const TRACK_VIEWS = new Set([0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a]);
@@ -105,6 +105,7 @@ export class TracksLink extends EventTarget {
   }
   // ?midilog: keep the last 400 messages either way (clock and active sensing left out).
   record(d, dir) {
+    if (this.quietFiles && d[0] === 0xf0 && d[6] === 0x03) return;   // a scan's file traffic: too much to list
     this.log.push({ t: performance.now(), d, dir });
     if (this.log.length > 400) this.log.shift();
     this.onLog?.();

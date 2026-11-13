@@ -3,12 +3,12 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114m';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114m';
-import { TracksLink, VIEW_CODES } from './pw/midi.js?v=20261114m';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114n';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114n';
+import { TracksLink, VIEW_CODES } from './pw/midi.js?v=20261114n';
 import { openPack, buildPack, bankSyx, slotEdited, slotBlank, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114m';
-import { buildPanel } from './pw/panel.js?v=20261114m';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114n';
+import { buildPanel } from './pw/panel.js?v=20261114n';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_v1.circuittrackspack';
 const $ = (s) => document.querySelector(s);
@@ -1093,6 +1093,7 @@ if (new URLSearchParams(location.search).has('midilog')) {
         if (!go) throw new Error('cancelled');
         if (sel.value === 'scan') {
           const blocks = [];
+          link.quietFiles = true;   // keep the block lines in the 400-message log
           for (let b = 0; b < 32; b++) {
             const names = [];
             for (let e = 0; e < 16 && names.length < 4; e++) {
@@ -1103,6 +1104,7 @@ if (new URLSearchParams(location.search).has('midilog')) {
             blocks.push(names);
             note(`block ${b} (files ${b * 16}-${b * 16 + 15}): ${names.length ? names.join(' | ') : 'empty'}`);
           }
+          link.quietFiles = false;
           return { packs, blocks };
         }
         const res = { packs, pack: +sel.value, files: {} };
