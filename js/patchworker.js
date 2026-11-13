@@ -3,12 +3,12 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114b';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114b';
-import { TracksLink } from './pw/midi.js?v=20261114b';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114c';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114c';
+import { TracksLink } from './pw/midi.js?v=20261114c';
 import { openPack, buildPack, bankSyx, slotEdited, slotBlank, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114b';
-import { buildPanel } from './pw/panel.js?v=20261114b';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114c';
+import { buildPanel } from './pw/panel.js?v=20261114c';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_v1.circuittrackspack';
 const $ = (s) => document.querySelector(s);
@@ -1051,7 +1051,7 @@ if (new URLSearchParams(location.search).has('midilog')) {
   const pre = h('pre', { class: 'midilog', 'aria-label': 'MIDI to and from the Circuit Tracks' });
   const copy = h('button', { type: 'button', class: 'btn small', text: 'Copy log', onclick: () => navigator.clipboard?.writeText(pre.textContent) });
   const clear = h('button', { type: 'button', class: 'btn small', text: 'Clear', onclick: () => { link.log.length = 0; pre.textContent = ''; } });
-  document.body.append(h('section', { class: 'midilog-box' }, h('p', { class: 'eyebrow', text: 'MIDI to (→) and from (←) the Circuit Tracks' }), copy, clear, pre));
+  document.body.append(h('section', { class: 'midilog-box' }, h('p', { class: 'eyebrow', text: `MIDI to (→) and from (←) the Circuit Tracks · build ${new URL(import.meta.url).searchParams.get('v') ?? '?'}` }), copy, clear, pre));
   const t0 = performance.now();
   const hex = (a) => a.map((b) => b.toString(16).padStart(2, '0')).join(' ');
   const line = (e) => {
