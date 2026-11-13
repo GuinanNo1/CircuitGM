@@ -1,7 +1,7 @@
 // PatchWorker's link to a Circuit Tracks over Web MIDI (Chrome, Edge, Opera; Firefox with its
 // site permission add-on). Everything here follows the Circuit Tracks Programmer's Reference
 // Guide v3: patches travel as SysEx, single parameters as CC or NRPN on the synth's channel.
-import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261114d';
+import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261114e';
 
 export const SYX_GAP = 20;           // ms between SysEx messages (Programmer's Reference)
 export const SYX_STORE_GAP = 500;    // ms after a Store before the next SysEx
@@ -107,6 +107,64 @@ export class TracksLink extends EventTarget {
 
   // --- to the Tracks
   sendPatch(bytes, synth) { return this.send(toSyx(bytes, { command: 0, location: synth })); }
+  // --- Components' file protocol (F0 00 20 29 01 64 03 <sub> …), from namirsab/circuit-tracks-tools
+  // (MIT) and our own hardware logs (2026-11-14). Read-only use so far.
+  fileMsg(sub, payload = []) { return [...SYX_HEAD, PRODUCT_TRACKS, 0x03, sub, ...payload, 0xf7]; }
+
+  // Run fn() inside a file session (open, directory handshake … close). Other messages are held
+  // until it ends. The handshake's 03 0B 02 makes the Tracks list its packs: returned as names.
+  async fileSession(fn) {
+    if (!this.out || !this.in) throw new Error('The Circuit Tracks is not connected in both directions.');
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const free = Math.max(this.storeUntil ?? 0, this.sysexFree ?? 0) - performance.now();
+    if (free > 0) await wait(free);
+    this.held = [];
+    const packs = [];
+    this.fileWaiter = (d) => {
+      if (d[7] === 0x0c) packs[d[9]] = String.fromCharCode(...d.slice(10, -1));   // 03 0C 02 <n> <name>
+    };
+    try {
+      for (const [msg, ms] of [[this.fileMsg(0x40), 300], [this.fileMsg(0x0b, [0x01]), 100], [this.fileMsg(0x09, [0x01, 0x00]), 100], [this.fileMsg(0x0b, [0x02]), 300]]) {
+        this.sendNow(msg);
+        await wait(ms);
+      }
+      return await fn(packs);
+    } finally {
+      this.fileWaiter = null;
+      this.sendNow(this.fileMsg(0x41));
+      await wait(300);
+      const held = this.held;
+      this.held = null;
+      for (const msg of held) this.send(msg);
+    }
+  }
+
+  // Read file <type>/<entry> (inside fileSession). Resolves { size, data, crcOk } or null if the
+  // Tracks says there is no such file (03 06 <type> 00 <entry>).
+  readFile(type, entry, timeout = 4000) {
+    return new Promise((resolve, reject) => {
+      const chunks = [];
+      let size = null;
+      const timer = setTimeout(() => { this.fileWaiter = null; reject(new Error(`No answer for file ${type}/${entry}.`)); }, timeout);
+      const done = (v) => { clearTimeout(timer); this.fileWaiter = null; resolve(v); };
+      this.fileWaiter = (d) => {
+        const sub = d[7];
+        if (sub === 0x06 && d[8] === type && d[10] === entry) return done(null);
+        if (d[16] !== type || d[18] !== entry) return;                 // fid after sub + 8 address bytes
+        if (sub === 0x01) size = nibbles(d.slice(23, 28));             // 4 flag bytes, 5 size nibbles
+        else if (sub === 0x02) chunks.push(unpack(d.slice(19, -1)));
+        else if (sub === 0x03) {
+          const all = new Uint8Array(chunks.reduce((n, c) => n + c.length, 0));
+          let at = 0;
+          for (const c of chunks) { all.set(c, at); at += c.length; }
+          const data = all.subarray(0, size ?? all.length);
+          done({ size, data, crcOk: crc32(data) === nibbles(d.slice(19, 27)) });
+        }
+      };
+      this.sendNow(this.fileMsg(0x01, [0, 0, 0, 0, 0, 0, 0, 0, type, 0x00, entry, 0x02]));
+    });
+  }
+
   // Store a patch in a flash slot (0-127) as Novation Components does. The Programmer's Reference's
   // "Replace Patch" (01 <slot> 00) alone is ignored by the Tracks (hardware, 2026-11-14). Components
   // first opens a file session and reads the slot's page of the patch directory, closes it, then
@@ -192,6 +250,8 @@ export class TracksLink extends EventTarget {
         this.onTrack?.(data[8]);
         return;
       }
+      // File-protocol replies (03 ...) go to readFile() while it waits for them.
+      if (data[6] === 0x03 && data[5] === PRODUCT_TRACKS) { this.fileWaiter?.(data); return; }
       const patches = parseSyx(data);
       if (!patches.length) return;
       const { data: bytes, location } = patches[0];
@@ -219,4 +279,22 @@ export class TracksLink extends EventTarget {
     if (status === 0x90 && data[2] > 0) this.onNote?.(true, data[1], data[2]);
     else if (status === 0x80 || status === 0x90) this.onNote?.(false, data[1], 0);
   }
+}
+
+// MSB interleave (7-bit SysEx <-> bytes): a header byte holding the top bits of the next 7 bytes.
+export function unpack(enc) {
+  const out = [];
+  for (let i = 0; i < enc.length; i += 8) {
+    const hi = enc[i];
+    for (let j = 0; j < 7 && i + 1 + j < enc.length; j++) out.push(enc[i + 1 + j] | (((hi >> j) & 1) << 7));
+  }
+  return Uint8Array.from(out);
+}
+const nibbles = (a) => [...a].reduce((v, n) => (v * 16) + (n & 15), 0);
+let crcTable = null;
+export function crc32(bytes) {
+  if (!crcTable) crcTable = Array.from({ length: 256 }, (_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });
+  let c = 0xffffffff;
+  for (const b of bytes) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
 }

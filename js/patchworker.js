@@ -3,12 +3,12 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114d';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114d';
-import { TracksLink } from './pw/midi.js?v=20261114d';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114e';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114e';
+import { TracksLink } from './pw/midi.js?v=20261114e';
 import { openPack, buildPack, bankSyx, slotEdited, slotBlank, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114d';
-import { buildPanel } from './pw/panel.js?v=20261114d';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114e';
+import { buildPanel } from './pw/panel.js?v=20261114e';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_v1.circuittrackspack';
 const $ = (s) => document.querySelector(s);
@@ -1051,10 +1051,33 @@ if (new URLSearchParams(location.search).has('midilog')) {
   const pre = h('pre', { class: 'midilog', 'aria-label': 'MIDI to and from the Circuit Tracks' });
   const copy = h('button', { type: 'button', class: 'btn small', text: 'Copy log', onclick: () => navigator.clipboard?.writeText(pre.textContent) });
   const clear = h('button', { type: 'button', class: 'btn small', text: 'Clear', onclick: () => { link.log.length = 0; pre.textContent = ''; } });
-  document.body.append(h('section', { class: 'midilog-box' }, h('p', { class: 'eyebrow', text: `MIDI to (→) and from (←) the Circuit Tracks · build ${new URL(import.meta.url).searchParams.get('v') ?? '?'}` }), copy, clear, pre));
+  // Read-only: list the packs and read patch files (type 04) 0-31, then offer them as a JSON download.
+  const files = h('button', { type: 'button', class: 'btn small', text: 'Read patch files', onclick: async () => {
+    files.disabled = true;
+    const note = (text) => { link.log.push({ t: performance.now(), d: [], dir: 'note', text }); link.onLog(); };
+    try {
+      const out = await link.fileSession(async (packs) => {
+        note(`packs on the Circuit Tracks: ${packs.map((n, i) => `${i}=${n}`).join(', ')}`);
+        const res = { packs, files: {} };
+        for (let e = 0; e < 32; e++) {
+          const f = await link.readFile(0x04, e).catch((err) => ({ error: err.message }));
+          if (!f) { note(`file 04/${e}: none`); continue; }
+          if (f.error) { note(`file 04/${e}: ${f.error}`); continue; }
+          const name = String.fromCharCode(...f.data.slice(0, 16)).replace(/[^ -~]/g, '.');
+          note(`file 04/${e}: ${f.size} bytes, CRC ${f.crcOk ? 'ok' : 'WRONG'}, starts "${name}"`);
+          res.files[e] = { size: f.size, crcOk: f.crcOk, hex: [...f.data].map((b) => b.toString(16).padStart(2, '0')).join('') };
+        }
+        return res;
+      });
+      download(new Blob([JSON.stringify(out, null, 1)], { type: 'application/json' }), 'circuit-tracks-patch-files.json');
+    } catch (err) { note(`reading failed: ${err.message}`); }
+    files.disabled = false;
+  } });
+  document.body.append(h('section', { class: 'midilog-box' }, h('p', { class: 'eyebrow', text: `MIDI to (→) and from (←) the Circuit Tracks · build ${new URL(import.meta.url).searchParams.get('v') ?? '?'}` }), copy, clear, files, pre));
   const t0 = performance.now();
   const hex = (a) => a.map((b) => b.toString(16).padStart(2, '0')).join(' ');
   const line = (e) => {
+    if (e.dir === 'note') return `${((e.t - t0) / 1000).toFixed(3).padStart(8)} ★ ${e.text}`;
     const arrow = e.dir === 'in' ? '←' : e.dir === 'out' ? '→' : '✗ NOT SENT →';
     const d = e.d;
     let text = hex(d);
@@ -1095,6 +1118,10 @@ function tracksChanged(synth, { slot = null, bytes = null }) {
 }
 // Write the patch being edited into a slot on the Tracks itself. Returns true if it was sent.
 async function storeOnTracks(slot = S.slot) {
+  // Off until the pack number in Components' Store message is confirmed: on 2026-11-14 a Store sent
+  // with pack byte 00 landed in the first pack on the SD card, not the loaded pack.
+  await ask('Store on the Circuit Tracks', ['Storing straight onto the Circuit Tracks is switched off while it is being tested. Save a .syx or download the pack, and put it on the Circuit Tracks with Novation Components.'], 'OK', { cancel: 'Close' });
+  return false;
   const sel = slotSelect(slot);
   if (!(await ask('Store on the Circuit Tracks', [`Writes "${getName(S.bytes)}" into a patch slot on the Circuit Tracks itself, replacing the patch that is there now. This cannot be undone from here.`,
     h('label', { class: 'field' }, 'Circuit Tracks patch slot ', sel), h('p', { class: 'hint', text: 'The names listed are from the pack open here, which may not be the pack on your Circuit Tracks.' })], 'Store'))) return false;
