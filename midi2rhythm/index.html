@@ -9,8 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/app.css?v=20261114m2r">
-<link rel="stylesheet" href="../css/m2r.css?v=20261114m2r">
+<link rel="stylesheet" href="../css/app.css?v=20261114m2r2">
+<link rel="stylesheet" href="../css/m2r.css?v=20261114m2r2">
 <script>(function(){var r=document.documentElement;try{if(localStorage.getItem('circuitgm-advanced-m2r')!=='1')r.classList.add('simple')}catch(e){r.classList.add('simple')}})();</script>
 </head>
 <body>
@@ -67,7 +67,8 @@
 
   <section class="panel" id="step-parts" hidden>
     <h2><span class="num">2</span> Choose the parts</h2>
-    <p class="hint">Each part is labelled by how many notes it plays at once. <b>Mono</b> and <b>mostly mono</b> parts (only overlapping note tails) go across as they are. <b>Chords</b> are turned into one line. Untick a part to leave it out and free its track for another.</p>
+    <p class="hint">Each part is labelled by how many notes it plays at once. <b>Mono</b> and <b>mostly mono</b> parts (only overlapping note tails) go across as they are. <b>Chords</b> are split into separate voices on free tracks, or turned into one line when there's no room. Untick a part to leave it out and free its track for another.</p>
+    <p class="hint adv">"Chords become" sets how each chord part is handled. <b>Auto</b> splits it into its separate voices, one track each with the same sound, when there are free tracks, and otherwise turns it into one line with Smart line.</p>
     <div class="tablewrap">
       <table class="tracks m2r-parts" id="parts">
         <thead><tr><th class="c-on">Use</th><th>Part</th><th class="c-num">Notes</th><th>Type</th><th>Chords become</th><th>Sound</th><th class="adv">Range</th><th>Track</th></tr></thead>
@@ -75,6 +76,12 @@
       </table>
     </div>
     <h3 class="m2r-sub">The eight tracks</h3>
+    <div class="options adv m2r-trackopts">
+      <div class="field"><label for="drum-tracks">Tracks for drums, at most</label>
+        <select id="drum-tracks"><option>1</option><option>2</option><option selected>3</option><option>4</option></select></div>
+      <div class="field check"><label><input type="checkbox" id="autosplit" checked> Split chord parts set to Auto into voices on free tracks</label></div>
+      <div class="field check"><label><input type="checkbox" id="share" checked> Parts that never play at the same time can share a track</label></div>
+    </div>
     <div class="budget" id="budget"></div>
     <ul class="warnings" id="dropped"></ul>
   </section>
@@ -85,11 +92,8 @@
       <div class="field"><label for="kit">Drum kit (slots 113–128)</label><select id="kit"></select></div>
       <div class="field adv"><label for="range">Keep lines near the sample's note</label>
         <select id="range"><option value="7">Within ±7 semitones</option><option value="12" selected>Within ±12 semitones</option><option value="18">Within ±18 semitones</option><option value="0">Off (play at written pitch)</option></select></div>
-      <div class="field adv"><label for="drum-tracks">Tracks for drums, at most</label>
-        <select id="drum-tracks"><option>2</option><option selected>3</option><option>4</option></select></div>
       <div class="field adv"><label for="arp-rate">Arpeggio speed</label>
         <select id="arp-rate"><option value="0.125">1/32</option><option value="0.25" selected>1/16</option><option value="0.5">1/8</option></select></div>
-      <div class="field check adv"><label><input type="checkbox" id="share" checked> Parts that never play at the same time can share a track</label></div>
     </div>
     <p class="hint small">Each RhythmInstGM sample is one recording at one pitch (its note is in its name, e.g. "001 Grand Piano C4"). Played far from that note it speeds up or slows down and stops sounding like the instrument, so each part is moved by whole octaves towards it, and any stray notes are folded an octave towards it. RhythmInstGM's GM programs 113–128 make way for the drum kit: Tinkle Bell, Agogo, Steel Drums, Woodblock, Taiko, Melodic Tom and Synth Drum play on a similar instrument; the sound effects are left out.</p>
   </section>
@@ -139,6 +143,6 @@
   <p>Samples: <a href="https://github.com/mrbumpy409/GeneralUser-GS">GeneralUser GS</a> by S. Christian Collins (<a href="../rhythmgm/LICENSE-GeneralUser-GS.txt">licence</a>). Not affiliated with Novation or Focusrite; "Circuit Rhythm" and "Components" are their trademarks.</p>
 </footer>
 
-<script type="module" src="../js/m2r/app.js?v=20261114m2r"></script>
+<script type="module" src="../js/m2r/app.js?v=20261114m2r2"></script>
 </body>
 </html>

@@ -49,7 +49,7 @@
   <section class="panel">
     <h2>Eight one-note tracks</h2>
     <p>Each Circuit Rhythm step holds one note per track, but every step also has its own sample and pitch. So the Rhythm works like eight voices that play one note at a time, each able to switch instrument on any step. MIDI2Rhythm uses that in two ways: drum sounds that never hit on the same step share a track (often a whole kit fits on two or three), and parts that never play at the same time can share a track (turn this off in Advanced).</p>
-    <p>Tracks are given out in this order: drums (at most 3 tracks, 2–4 in Advanced), the bass, the melody, then the other parts, busiest first. The bass is the lowest line, preferring GM bass instruments. The melody is the line that is most mono, highest and busiest, preferring leads, solo instruments and voices (and parts named "lead", "melody", "vocal" and so on).</p>
+    <p>Tracks are given out in this order: drums (at most 3 tracks; 1–4 in Advanced, step 2 under "The eight tracks"), the bass, the melody, then the other parts, busiest first. The bass is the lowest line, preferring GM bass instruments. The melody is the line that is most mono, highest and busiest, preferring leads, solo instruments and voices (and parts named "lead", "melody", "vocal" and so on).</p>
   </section>
 
   <section class="panel">
@@ -65,13 +65,14 @@
   <section class="panel">
     <h2>Chords become…</h2>
     <dl>
-      <dt>Smart line (default)</dt><dd>Picks one note at each moment by looking for the path through the whole part with the lowest total cost. It avoids big leaps (small steps sound like a real line), keeps a held note going instead of jumping off it, prefers louder, longer and higher notes, avoids doubling the song's bass note, and prefers notes near the sample's own pitch.</dd>
+      <dt>Auto (default)</dt><dd>When there are free tracks once the drums, bass, melody and other parts have theirs, the part is split into its separate voices, one track each with the same sound: all of them if they fit (enough voices for 98% of its notes, up to 6), otherwise as many as the free tracks allow. Busiest chord parts are split first, and never at the cost of pushing another part off. With no room, Auto uses Smart line. Simple files such as piano pieces keep their full harmony this way. Switch it off in Advanced (step 2, under "The eight tracks").</dd>
+      <dt>Smart line</dt><dd>Picks one note at each moment by looking for the path through the whole part with the lowest total cost. It avoids big leaps (small steps sound like a real line), keeps a held note going instead of jumping off it, prefers louder, longer and higher notes, avoids doubling the song's bass note, and prefers notes near the sample's own pitch.</dd>
       <dt>Top note</dt><dd>The highest note sounding: usually the tune in a piano part.</dd>
       <dt>Bottom note</dt><dd>The lowest note: good for left-hand and bass parts.</dd>
       <dt>Chord root</dt><dd>Works out each chord and plays its root, even when the chord is inverted.</dd>
       <dt>Guide tones (3rd / 7th)</dt><dd>Plays each chord's 3rd (or 7th). These notes make a chord major, minor or dominant and usually move by a step from chord to chord, so they make a smooth line that still says what the harmony is.</dd>
       <dt>Arpeggio (Advanced)</dt><dd>Cycles through the chord's notes at the arpeggio speed set in step 3.</dd>
-      <dt>Split into 2 or 3 voices</dt><dd>Top, (middle) and bottom notes each get a track with the same sound. Uses more tracks.</dd>
+      <dt>Split into 2 or 3 voices, or all its voices</dt><dd>Each voice gets its own track with the same sound. Voices stay put: a held note keeps sounding on its track, and each new note goes to the free voice whose last note is nearest, without crossing the voices that are holding, as voice-leading would. When more notes start than there are voices, the top and bottom notes are kept and the quietest inner notes left out.</dd>
     </dl>
   </section>
 

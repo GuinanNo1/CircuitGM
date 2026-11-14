@@ -6,7 +6,7 @@
 // any pitch on any step. This module:
 //   1. labels each MIDI part: mono, mostly mono (only legato overlaps), chords, or drums;
 //   2. turns chord parts into one line (Smart line by default, or top, bottom, root, guide
-//      tones, arpeggio, or split into 2-3 voices);
+//      tones, arpeggio), or splits it into voices, one track each, when tracks are free;
 //   3. octave-shifts each pitched line towards its sample's root note, and folds stray notes
 //      an octave towards it (a single-note sample sounds wrong far from its root);
 //   4. packs drum sounds that never hit on the same step onto shared tracks;
@@ -19,6 +19,7 @@ export const INST_SLOTS = 112;                 // RhythmInstGM slots 1-112 keep 
 export const KIT_FIRST = 112;                  // slots 113-128 hold the chosen drum kit
 
 export const METHODS = {
+  auto: 'Auto: split if tracks are free, else Smart line',
   smart: 'Smart line',
   top: 'Top note',
   bottom: 'Bottom note',
@@ -27,7 +28,9 @@ export const METHODS = {
   arp: 'Arpeggio',
   split2: 'Split into 2 voices',
   split3: 'Split into 3 voices',
+  splitall: 'Split into all its voices',
 };
+export const MAX_SPLIT = 6;                    // voices one part can take
 export const ADV_ONLY_METHODS = new Set(['arp']);
 
 // GM programs 113-128 are replaced by the drum kit. The pitched percussion among them is
@@ -67,7 +70,11 @@ export function analysePart(src, ppq) {
   if (raw.maxPoly <= 1) kind = 'mono';
   else if (st.polyFrac <= 0.05) kind = 'mostly';
   else kind = 'chords';
-  return { kind, maxPoly: raw.maxPoly, avgPoly: st.avgPoly, polyFrac: st.polyFrac, trimmed };
+  // Voices needed to play 98% of the notes with every note sounding (a rare big chord
+  // shouldn't cost a whole track).
+  const counts = trimmed.map((n) => trimmed.filter((x) => x.tick <= n.tick && x.tick + x.dur > n.tick).length).sort((x, y) => x - y);
+  const voices = Math.max(1, counts[Math.floor(counts.length * 0.98)] ?? 1);
+  return { kind, maxPoly: raw.maxPoly, avgPoly: st.avgPoly, polyFrac: st.polyFrac, voices, trimmed };
 }
 
 // Notes cut where they overlap the next note by a little: at most half a 1/16 step, or a
@@ -210,8 +217,9 @@ export function reduce(notes, ctx) {
     case 'root': return [rootLine(ev)];
     case 'guide': return [guideLine(ev, ctx)];
     case 'arp': return [arpLine(notes, ctx)];
-    case 'split2': return splitLines(ev, 2);
-    case 'split3': return splitLines(ev, 3);
+    case 'split2': return splitVoices(notes, 2, ctx.ppq);
+    case 'split3': return splitVoices(notes, 3, ctx.ppq);
+    case 'splitall': return splitVoices(notes, ctx.voices ?? 2, ctx.ppq);
     default: return [smartLine(ev, ctx)];
   }
 }
@@ -327,18 +335,63 @@ function arpLine(notes, ctx) {
   return out;
 }
 
-function splitLines(ev, voices) {
-  const lines = [];
-  for (let v = 0; v < voices; v++) {
-    const choices = ev.map((e) => {
-      const k = e.sounding.length;
-      if (v >= k) return null;
-      // Top voice gets the highest note, bottom voice the lowest, middle voices in between.
-      const idx = voices === 1 ? 0 : v === voices - 1 ? k - 1 : Math.min(k - 1, v);
-      return e.sounding[idx];
-    });
-    lines.push(lineFromChoices(ev, choices));
+// Split a chord part into `voices` mono lines, one per track, top voice first. Voices stay
+// put: a held note keeps sounding on its voice, and each new note goes to a free voice whose
+// last note is nearest, without crossing the voices that are holding (voice-leading). When
+// more notes start than voices are free, the top and bottom notes are kept and the quietest
+// inner ones dropped (counted in `dropped`).
+export function splitVoices(notes, voices, ppq) {
+  const tol = ppq / 16;
+  const sorted = notes.map((n) => ({ ...n })).sort((a, b) => a.tick - b.tick || b.note - a.note);
+  const lanes = Array.from({ length: voices }, () => ({ cur: null, last: null, out: [] }));
+  let dropped = 0;
+  for (let i = 0; i < sorted.length;) {
+    const t0 = sorted[i].tick;
+    const group = [];
+    while (i < sorted.length && sorted[i].tick - t0 <= tol) group.push(sorted[i++]);
+    // voices whose note has ended are free
+    for (const l of lanes) if (l.cur && l.cur.tick + l.cur.dur <= t0 + tol) l.cur = null;
+    const free = lanes.map((l, k) => k).filter((k) => !lanes[k].cur);
+    let incoming = group.sort((a, b) => b.note - a.note);
+    if (incoming.length > free.length) {
+      // keep the outer notes, then the loudest inner ones
+      const keep = new Set([incoming[0], incoming[incoming.length - 1]]);
+      for (const n of incoming.slice(1, -1).sort((a, b) => b.vel - a.vel)) if (keep.size < free.length) keep.add(n);
+      const kept = incoming.filter((n) => keep.has(n)).slice(0, free.length);
+      dropped += incoming.length - kept.length;
+      incoming = kept;
+    }
+    if (!incoming.length) continue;
+    // Best order-keeping assignment of incoming notes (high to low) to free voices (top to
+    // bottom): cost = distance to the voice's last note, plus crossing a holding voice.
+    const held = lanes.map((l, k) => (l.cur ? { k, p: l.cur.note } : null)).filter(Boolean);
+    const cost = (n, k) => {
+      const l = lanes[k];
+      let c = l.last == null ? 3 : Math.abs(n.note - l.last) * 0.5;
+      for (const h of held) if ((h.k < k && n.note > h.p) || (h.k > k && n.note < h.p)) c += 6;
+      return c;
+    };
+    const N = incoming.length, M = free.length;
+    const dp = Array.from({ length: N + 1 }, () => new Array(M + 1).fill(Infinity));
+    for (let j = 0; j <= M; j++) dp[0][j] = 0;
+    for (let a = 1; a <= N; a++) for (let j = a; j <= M; j++) {
+      dp[a][j] = Math.min(dp[a][j - 1], dp[a - 1][j - 1] + cost(incoming[a - 1], free[j - 1]));
+    }
+    for (let a = N, j = M; a > 0; j--) {
+      if (dp[a][j] === dp[a][j - 1] && j > a) continue;
+      const l = lanes[free[j - 1]];
+      const n = incoming[a - 1];
+      const prev = l.out[l.out.length - 1];
+      if (prev && prev.tick + prev.dur > n.tick) prev.dur = Math.max(1, n.tick - prev.tick);
+      const o = { tick: n.tick, dur: n.dur, note: n.note, vel: n.vel };
+      l.out.push(o);
+      l.cur = o;
+      l.last = n.note;
+      a--;
+    }
   }
+  const lines = lanes.map((l) => l.out);
+  lines.dropped = dropped;
   return lines;
 }
 
@@ -467,8 +520,28 @@ export function packDrums(hits, kit, ppq, maxTracks = 3) {
 //   maxDrumTracks: 2 | 3 | 4, arpRate: quarters, share: true (lines that never overlap share)
 // }
 // Returns { parts: [...per source report], tracks: [8 or fewer], dropped: [...], kitSlots }
+//   autoSplit: true — chord parts left on "Auto" are split into all their voices, busiest
+//   first, while that fits in the free tracks without pushing another part out.
 export function planTracks(midi, samples, kit, opts = {}) {
-  const o = { range: 12, maxDrumTracks: 3, arpRate: 0.25, share: true, parts: new Map(), ...opts };
+  const o = { range: 12, maxDrumTracks: 3, arpRate: 0.25, share: true, autoSplit: true, parts: new Map(), ...opts };
+  let res = planCore(midi, samples, kit, o, new Map());
+  if (!o.autoSplit) return res;
+  const cands = res.parts.filter((r) => r.on && r.kind === 'chords' && r.method === 'smart' && r.auto && r.voices >= 2)
+    .sort((a, b) => b.notes - a.notes);
+  const split = new Map();          // part id -> voices
+  for (const c of cands) {
+    const free = TRACK_COUNT - res.tracks.length;
+    if (free <= 0) break;
+    // all its voices if they fit, otherwise as many as the free tracks allow (at least 2)
+    for (let v = Math.min(c.voices, free + 1); v >= 2; v--) {
+      const trial = planCore(midi, samples, kit, o, new Map([...split, [c.id, v]]));
+      if (trial.tracks.length <= TRACK_COUNT && trial.dropped.length <= res.dropped.length) { split.set(c.id, v); res = trial; break; }
+    }
+  }
+  return res;
+}
+
+function planCore(midi, samples, kit, o, splitSet) {
   const ppq = midi.ppq;
   const roots = samples.map((s) => rootFromName(s));
   const reports = [];
@@ -490,7 +563,7 @@ export function planTracks(midi, samples, kit, opts = {}) {
     const sample = cfg.sample ?? sampleForProgram(s.program ?? 0);
     const rep = {
       id: s.id, name: s.name, instrument: s.instrument, program: s.program ?? 0, notes: s.notes.length,
-      kind: a.kind, maxPoly: a.maxPoly, avgPoly: a.avgPoly, isDrum: false,
+      kind: a.kind, maxPoly: a.maxPoly, avgPoly: a.avgPoly, voices: Math.min(MAX_SPLIT, a.voices), isDrum: false, auto: false, chordDropped: 0,
       on: included(s) && sample != null, sample, method: null, shift: 0, folded: 0, outside: 0, lines: 0,
       noSample: sample == null,
     };
@@ -501,9 +574,13 @@ export function planTracks(midi, samples, kit, opts = {}) {
     const shift = pitched && o.range ? octaveShift(a.trimmed, root, o.range) : 0;
     let raw;
     if (a.kind === 'chords') {
-      rep.method = cfg.method ?? 'smart';
+      const chosen = cfg.method ?? 'auto';
+      rep.auto = chosen === 'auto';
+      rep.method = rep.auto ? (splitSet.has(s.id) ? 'splitall' : 'smart') : chosen;
+      if (rep.auto && splitSet.has(s.id)) rep.splitVoices = splitSet.get(s.id);
       const others = melodic.filter((x) => x !== s && included(x));
-      raw = reduce(a.trimmed, { ppq, method: rep.method, root, shift, range: o.range, bassAt: bassLookup(others), arpRate: o.arpRate });
+      raw = reduce(a.trimmed, { ppq, method: rep.method, root, shift, range: o.range, bassAt: bassLookup(others), arpRate: o.arpRate, voices: rep.splitVoices ?? rep.voices });
+      rep.chordDropped = raw.dropped ?? 0;
     } else {
       raw = [monoOf(a.trimmed)];
     }
@@ -520,8 +597,8 @@ export function planTracks(midi, samples, kit, opts = {}) {
       rep.shift = shift;
       if (!notes.length) return;
       lines.push({
-        kind: 'melodic', partId: s.id, voice: raw.length > 1 ? v + 1 : 0,
-        label: raw.length > 1 ? `${s.name} (voice ${v + 1})` : s.name,
+        kind: 'melodic', partId: s.id, voice: raw.length > 1 ? v + 1 : 0, voices: raw.length,
+        label: raw.length > 1 ? `${s.name} (voice ${v + 1} of ${raw.length})` : s.name,
         program: s.program ?? 0,
         notes: notes.map((n) => ({ tick: n.tick, dur: n.dur, vel: n.vel, note: n.note, byte: clamp(72 + n.note - root, 0, 127), sample })),
         median: median(notes.map((n) => n.note)),
@@ -542,7 +619,8 @@ export function planTracks(midi, samples, kit, opts = {}) {
   for (const r of reports) if (r.isDrum && r.on) r.lines = drumTracks.length;
 
   // 5. roles and priority
-  const bassCand = lines.filter((l) => l.voice <= 1);
+  // A split part offers its bottom voice as bass and its top voice as melody.
+  const bassCand = lines.filter((l) => l.voice === 0 || l.voice === l.voices);
   const isBassProg = (p) => p >= 32 && p <= 39;
   const bass = bassCand.length
     ? bassCand.slice().sort((a, b) => (isBassProg(b.program) - isBassProg(a.program)) || a.median - b.median)[0]
@@ -552,7 +630,7 @@ export function planTracks(midi, samples, kit, opts = {}) {
   const family = (p) => (p >= 80 && p <= 87 ? 1.5 : p >= 56 && p <= 79 ? 1 : (p >= 48 && p <= 55) || (p >= 88 && p <= 95) ? -1.5 : p >= 96 ? -2 : 0);
   const named = (l) => (/lead|melod|vocal|voice|solo|sing/i.test(l.label) ? 2 : /pad|string|chord|comp|atmos|fx/i.test(l.label) ? -1 : 0);
   const melodyScore = (l) => (l.mono ? 2 : 0) + l.median / 24 + Math.log10(1 + l.notes.length) + family(l.program) + named(l);
-  const melody = lines.filter((l) => l !== bass).sort((a, b) => melodyScore(b) - melodyScore(a))[0] ?? null;
+  const melody = lines.filter((l) => l !== bass && l.voice <= 1).sort((a, b) => melodyScore(b) - melodyScore(a))[0] ?? null;
   if (bass) bass.role = 'Bass';
   if (melody) melody.role = 'Melody';
   const rest = lines.filter((l) => l !== bass && l !== melody).sort((a, b) => b.notes.length - a.notes.length);
@@ -589,6 +667,21 @@ export function planTracks(midi, samples, kit, opts = {}) {
     if (tracks.length >= TRACK_COUNT) { dropped.push(l); continue; }
     tracks.push({ kind: l.kind, lines: [l], occ });
   }
+  // Voices of a split part sit on adjacent tracks, top voice first, where the first of them
+  // landed (track order doesn't change how anything plays).
+  const splitOf = (t) => t.lines.find((l) => l.voices > 1);
+  const ordered = [];
+  const placed = new Set();
+  for (const t of tracks) {
+    if (placed.has(t)) continue;
+    const sl = splitOf(t);
+    const group = sl
+      ? tracks.filter((x) => !placed.has(x) && x.lines.some((l) => l.partId === sl.partId && l.voices > 1))
+        .sort((a, b) => Math.min(...a.lines.filter((l) => l.partId === sl.partId).map((l) => l.voice)) - Math.min(...b.lines.filter((l) => l.partId === sl.partId).map((l) => l.voice)))
+      : [t];
+    for (const x of group) { placed.add(x); ordered.push(x); }
+  }
+  tracks.splice(0, tracks.length, ...ordered);
   const out = tracks.map((t) => {
     const notes = t.lines.flatMap((l) => l.notes).sort((a, b) => a.tick - b.tick);
     const count = new Map();

@@ -5,9 +5,9 @@ import { parseMidi } from '../midifile.js';
 import { setupMode } from '../mode.js';
 import { projectColours } from '../convert.js';
 import { Player } from '../player.js';
-import { planTracks, METHODS, ADV_ONLY_METHODS, INST_SLOTS, KIT_FIRST, isUnpitched } from './engine.js?v=20261114m2r';
-import { arrangeRhythm, playOrder, MAX_PROJECTS } from './arrange.js?v=20261114m2r';
-import { buildRhythmProjects, buildRhythmPack, openPack, fetchBuf, usedSamples, shortName } from './build.js?v=20261114m2r';
+import { planTracks, METHODS, ADV_ONLY_METHODS, INST_SLOTS, KIT_FIRST, isUnpitched } from './engine.js?v=20261114m2r2';
+import { arrangeRhythm, playOrder, MAX_PROJECTS } from './arrange.js?v=20261114m2r2';
+import { buildRhythmProjects, buildRhythmPack, openPack, fetchBuf, usedSamples, shortName } from './build.js?v=20261114m2r2';
 
 const $ = (s) => document.querySelector(s);
 const DRUM_KITS = ['Std', 'Room', 'Power', 'Elec', '808', 'Jazz', 'Brush', 'Orch'];
@@ -27,7 +27,7 @@ init();
 
 async function init() {
   wireLoad();
-  for (const id of ['#kit', '#range', '#drum-tracks', '#arp-rate', '#share']) $(id).addEventListener('change', recompute);
+  for (const id of ['#kit', '#range', '#drum-tracks', '#arp-rate', '#share', '#autosplit']) $(id).addEventListener('change', recompute);
   for (const id of ['#rate', '#section-bars', '#tempo-div', '#match', '#align', '#trimstart']) $(id).addEventListener('change', rearrange);
   $('#play').addEventListener('click', togglePlay);
   $('#build').addEventListener('click', build);
@@ -144,6 +144,7 @@ function recompute() {
     maxDrumTracks: Number($('#drum-tracks').value),
     arpRate: Number($('#arp-rate').value),
     share: $('#share').checked,
+    autoSplit: $('#autosplit').checked,
   });
   renderParts();
   renderBudget();
@@ -166,8 +167,12 @@ function renderParts() {
     const type = r.kind === 'chords' ? `<span class="ptype chords">Chords</span><span class="small-note">up to ${r.maxPoly} at once</span>` : `<span class="ptype ${r.kind}">${TYPE_LABEL[r.kind]}</span>`;
     let method = '<span class="psub">–</span>';
     if (r.kind === 'chords') {
-      const opts = Object.entries(METHODS).map(([k, v]) => `<option value="${k}"${(cfg.method ?? 'smart') === k ? ' selected' : ''}${ADV_ONLY_METHODS.has(k) ? ' class="adv-opt"' : ''}>${v}</option>`).join('');
-      method = `<span class="simple-only">${esc(METHODS[cfg.method ?? 'smart'])}</span><select class="adv" data-method="${r.id}" aria-label="How ${esc(r.name)}'s chords become one line">${opts}</select>`;
+      const opts = Object.entries(METHODS).map(([k, v]) => `<option value="${k}"${(cfg.method ?? 'auto') === k ? ' selected' : ''}${ADV_ONLY_METHODS.has(k) ? ' class="adv-opt"' : ''}>${k === 'splitall' ? `${v} (${r.voices})` : v}</option>`).join('');
+      // What it became: one line, or n voices on their own tracks.
+      const n = r.on ? r.lines : 0;
+      const result = !r.on ? '' : n > 1 ? `Split into ${n} voices (${n} tracks)` : METHODS[r.method] ?? '';
+      const lost = r.chordDropped ? `, ${r.chordDropped} notes over` : '';
+      method = `<span class="simple-only">${esc(result)}</span><select class="adv" data-method="${r.id}" aria-label="How ${esc(r.name)}'s chords are handled">${opts}</select>${r.on && (cfg.method ?? 'auto') === 'auto' ? `<span class="small-note adv">${esc(result)}${lost}</span>` : r.chordDropped ? `<span class="small-note">${r.chordDropped} notes over the voices</span>` : ''}`;
     }
     let sound;
     if (r.isDrum) sound = `<span class="psub">${esc($('#kit').selectedOptions[0]?.textContent ?? '')}</span>`;

@@ -37,3 +37,4 @@
 .m2r-grid .c { min-width: 26px; border-radius: 3px; background: var(--cell-empty); color: #fff; font: 600 0.68rem var(--mono); display: flex; align-items: center; justify-content: center; }
 .m2r-grid .c.proj { box-shadow: -2px 0 0 var(--ink); }
 .m2r-grid .c.now { outline: 2px solid var(--ink); outline-offset: -1px; }
+.m2r-trackopts { margin: 0 0 12px; align-items: center; }
