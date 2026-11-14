@@ -5,9 +5,9 @@ import { parseMidi } from '../midifile.js';
 import { setupMode } from '../mode.js';
 import { projectColours } from '../convert.js';
 import { Player } from '../player.js';
-import { planTracks, METHODS, ADV_ONLY_METHODS, INST_SLOTS, KIT_FIRST, isUnpitched } from './engine.js?v=20261114m2r2';
-import { arrangeRhythm, playOrder, MAX_PROJECTS } from './arrange.js?v=20261114m2r2';
-import { buildRhythmProjects, buildRhythmPack, openPack, fetchBuf, usedSamples, shortName } from './build.js?v=20261114m2r2';
+import { planTracks, METHODS, ADV_ONLY_METHODS, INST_SLOTS, KIT_FIRST, isUnpitched } from './engine.js?v=20261114m2r3';
+import { arrangeRhythm, playOrder, MAX_PROJECTS } from './arrange.js?v=20261114m2r3';
+import { buildRhythmProjects, buildRhythmPack, openPack, fetchBuf, usedSamples, shortName } from './build.js?v=20261114m2r3';
 
 const $ = (s) => document.querySelector(s);
 const DRUM_KITS = ['Std', 'Room', 'Power', 'Elec', '808', 'Jazz', 'Brush', 'Orch'];
@@ -203,14 +203,33 @@ function renderParts() {
     } else track = '<span class="tracktag none">No track left</span>';
     tr.innerHTML = `<td class="c-on"><input type="checkbox" data-on="${r.id}" ${cfg.on !== false ? 'checked' : ''} aria-label="Use ${esc(r.name)}"></td>
       <td><div class="pname">${esc(r.name)}</div><div class="psub">${esc(r.instrument)}</div></td>
-      <td class="c-num">${r.notes}</td><td>${type}</td><td>${method}</td><td>${sound}</td><td class="adv">${range}</td><td>${track}</td>`;
+      <td class="c-num">${r.notes}</td><td class="c-roll"><canvas class="roll" width="400" height="56" data-roll="${r.id}" aria-label="When ${esc(r.name)} plays"></canvas></td><td>${type}</td><td>${method}</td><td>${sound}</td><td class="adv">${range}</td><td>${track}</td>`;
     tb.append(tr);
   }
+  const len = Math.max(1, state.midi.lengthTicks);
+  tb.querySelectorAll('canvas[data-roll]').forEach((cv) => drawRoll(cv, state.midi.sources.find((x) => x.id === cv.dataset.roll), len));
   tb.querySelectorAll('[data-on]').forEach((el) => el.addEventListener('change', () => { state.parts.get(el.dataset.on).on = el.checked; recompute(); }));
   tb.querySelectorAll('[data-method]').forEach((el) => el.addEventListener('change', () => { state.parts.get(el.dataset.method).method = el.value; recompute(); }));
   tb.querySelectorAll('[data-sample]').forEach((el) => el.addEventListener('change', () => { state.parts.get(el.dataset.sample).sample = el.value === '' ? undefined : Number(el.value); recompute(); }));
   // Arpeggio only in Advanced mode.
   if (!mode.isAdvanced()) tb.querySelectorAll('option.adv-opt').forEach((o) => { if (!o.selected) o.disabled = true; });
+}
+
+// A small piano roll of the whole part across the song: how busy it is and where it plays
+// (as in MIDI2Circuit).
+function drawRoll(canvas, s, len) {
+  if (!s) return;
+  const c = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  c.clearRect(0, 0, w, h);
+  const [lo, hi] = s.isDrum ? [27, 87] : s.range;
+  const span = Math.max(12, hi - lo + 1);
+  c.fillStyle = getComputedStyle(document.documentElement).getPropertyValue(s.isDrum ? '--dr' : '--accent').trim() || '#888';
+  for (const n of s.notes) {
+    const x = (n.tick / len) * w;
+    const y = h - 4 - ((n.note - lo) / span) * (h - 8);
+    c.fillRect(x, y - 2, Math.max(1.5, (n.dur / len) * w), 3);
+  }
 }
 
 function renderBudget() {
