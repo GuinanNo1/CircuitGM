@@ -1,8 +1,7 @@
-// Circuit2MIDI page: load a Circuit Tracks / Circuit Rhythm pack, compact it, pick a project,
-// check its scenes, map its tracks to MIDI, preview it and save a .mid file.
+// Circuit2MIDI page: load a Circuit Tracks / Circuit Rhythm pack, pick a project (or hand the
+// pack to PackTrim or MIDI2Circuit), check its scenes, map its tracks to MIDI, preview it and save a .mid file.
 import { setupMode } from './mode.js';
-import { fitName } from './names.js';
-import { loadPack, compactPack, findUsage } from './pack.js';
+import { loadPack } from './pack.js';
 import {
   songOf, renderSong, sceneOrder, defaultOrderKind, usedScenes, sceneTicks, defaultMapping,
   ensureDrumNotes, midiTracks, samplesByTrack, trackHasNotes, ticksToSeconds, PPQ, GM_DRUMS,
@@ -71,7 +70,8 @@ async function openFile(file) {
   state.entry = null;
   setStatus('load-status', '');
   showPackInfo(pack);
-  await showCompact(pack);
+  showTrimLink();
+  showToTracks(pack);
   showProjects(pack);
   for (const id of ['step-scenes', 'step-map', 'step-save']) $(id).hidden = true;
   const withContent = pack.projects.filter((p) => !p.empty);
@@ -91,75 +91,39 @@ function showPackInfo(pack) {
   box.hidden = false;
 }
 
-// ---------- 2. Compact ----------
+// ---------- Trim (PackTrim) ----------
 
-async function showCompact(pack, keepChoice = true) {
-  // What to keep: every project, or just one (its own sounds only).
-  const sel = $('compact-only');
-  if (keepChoice) {
-    const prev = sel.value;
-    sel.replaceChildren(el('option', { value: 'all', text: 'Every project' }),
-      ...pack.projects.filter((p) => !p.empty).map((p) => el('option', { value: String(p.slot), text: `Only project ${p.slot + 1}: ${p.name || `Project ${p.slot + 1}`}` })));
-    sel.value = [...sel.options].some((o) => o.value === prev) ? prev : 'all';
-  }
-  const only = sel.value === 'all' ? null : Number(sel.value);
-  const u = only == null ? pack.usage : findUsage(pack, only);
-  const tracks = pack.product === 'circuit-tracks';
-  const sum = $('compact-summary');
-  sum.replaceChildren();
-  const stat = (v, k) => sum.append(el('div', { class: 'stat' }, el('div', { class: 'v', text: v }), el('div', { class: 'k', text: k })));
-  const usedSamples = pack.samples.filter((s) => s.present && u.samples.has(s.slot)).length;
-  stat(String(usedSamples), 'samples in use');
-  stat(String(u.unusedSamples.length), 'unused samples');
-  if (tracks) {
-    stat(String(pack.patches.filter((p) => p.present && u.patches.has(p.slot)).length), 'patches in use');
-    stat(String(u.unusedPatches.length), 'unused patches');
-  }
-  const freed = await u.unusedBytes();
-  stat(mb(freed), 'unpacked size removed');
-
-  const body = $('unused-body');
-  body.replaceChildren();
-  const list = (title, items) => {
-    if (!items.length) return;
-    body.append(el('h4', { text: title }), el('ul', {}, ...items.map((x) => el('li', { text: `${x.slot + 1}. ${x.name || '(no name)'}` }))));
-  };
-  const goneProjects = only == null ? [] : pack.projects.filter((p) => !p.empty && p.slot !== only);
-  list('Projects (slots emptied)', goneProjects);
-  list('Samples', u.unusedSamples);
-  list('Patches', u.unusedPatches);
-  $('unused-list').hidden = !(u.unusedSamples.length || u.unusedPatches.length || goneProjects.length);
-
-  $('compact-name').value = fitName(pack.name);     // Components allows 16 characters
-  const btn = $('compact');
-  const others = only != null && pack.projects.some((p) => !p.empty && p.slot !== only);
-  const nothing = !u.unusedSamples.length && !u.unusedPatches.length && !others;
-  btn.disabled = !u.projectsWithContent || nothing;
-  $('compact-options').hidden = !u.projectsWithContent || (nothing && sel.options.length < 3);
-  setStatus('compact-status', !u.projectsWithContent
-    ? 'This pack has no projects with content, so every sample and patch counts as unused. Trimming is off for packs like this.'
-    : nothing ? 'Nothing to remove: every sample and patch is used by a project.' : '');
-  $('step-compact').hidden = false;
+// Trimming lives in PackTrim; this hands the loaded pack over to it.
+function showTrimLink() {
+  setStatus('to-packtrim-status', '');
+  $('trim-row').hidden = false;
+  $('trim-hint').hidden = false;
 }
 
-$('compact').addEventListener('click', async () => {
-  const pack = state.pack;
-  const btn = $('compact');
-  btn.disabled = true;
-  setStatus('compact-status', 'Trimming…');
+$('to-packtrim').addEventListener('click', async () => {
+  if (!state.pack) return;
+  player.stop();
+  setStatus('to-packtrim-status', 'Opening PackTrim…');
   try {
-    const name = $('compact-name').value.trim() || pack.name;
-    const only = $('compact-only').value === 'all' ? null : Number($('compact-only').value);
-    const blob = await compactPack(pack, { name: fitName(name), only });
-    download(blob, `${fileSafe(name)}${pack.info.ext}`);
-    setStatus('compact-status', `Saved ${fileSafe(name)}${pack.info.ext} (${mb(blob.size)}, was ${mb(pack.size)}).`);
+    await putHandoff({ buffer: state.pack.buffer, fileName: state.pack.fileName }, 'packtrim');
+    location.href = '../packtrim/?from=circuit2midi';
   } catch (err) {
-    setStatus('compact-status', err.message, true);
+    setStatus('to-packtrim-status', `Could not hand the pack over (${err.message}). Open PackTrim and drop the pack there instead.`, true);
   }
-  btn.disabled = false;
 });
 
-$('compact-only').addEventListener('change', () => state.pack && showCompact(state.pack, false));
+// ---------- To MIDI2Circuit ----------
+
+// From a Circuit Rhythm pack this converts the project to the Circuit Tracks, in both modes.
+// From a Circuit Tracks pack it rebuilds the project as a new Tracks pack: an Advanced option.
+function showToTracks(pack) {
+  const rhythm = pack.product === 'circuit-rhythm';
+  $('to-tracks-box').classList.toggle('adv', !rhythm);
+  $('to-tracks').textContent = rhythm ? 'Convert to Circuit Tracks (MIDI2Circuit)' : 'Rebuild in MIDI2Circuit';
+  $('to-tracks-hint').innerHTML = rhythm
+    ? 'Opens the chosen project in <a href="../midi2circuit/">MIDI2Circuit</a> to build a Circuit Tracks pack from it, with the pack\'s own samples. The pack is handed over inside your browser; nothing is uploaded.'
+    : 'Opens the chosen project in <a href="../midi2circuit/">MIDI2Circuit</a> to rebuild it as a new Circuit Tracks pack, for example to re-arrange it or put it on the TracksGM sounds. MIDI2Circuit rebuilds the project from its notes, with the pack\'s own samples and patches, so it is not an exact copy: check the result against the original. The pack is handed over inside your browser; nothing is uploaded.';
+}
 
 // Hand the pack and chosen project to MIDI2Circuit.
 $('to-tracks').addEventListener('click', async () => {

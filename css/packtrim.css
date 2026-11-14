@@ -13,6 +13,10 @@
 .ptable .pname { font-weight: 600; }
 .ptable .pn { font: 600 0.85rem var(--mono); width: 28px; height: 28px; border-radius: 6px; display: inline-grid; place-items: center; background: var(--pc, var(--ink)); color: #fff; }
 .ptable tr.bad td { background: var(--warn-bg); }
+.ptable tr.gone td { color: var(--muted); }
+.ptable tr.gone .pn { opacity: 0.45; }
+.ptable tr.gone b { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--muted) 60%, transparent); }
+.ptable .sub { font-size: 0.85rem; color: var(--muted); }
 .ptable .err { color: var(--warn); font-size: 0.85rem; }
 
 /* Legend */

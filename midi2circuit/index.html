@@ -100,6 +100,11 @@
       <div class="field check"><label><input type="checkbox" id="shrink-on" checked> Trim the pack: keep only the patches and samples the song uses</label></div>
       <p class="hint small" id="shrink-info"></p>
       <ul class="warnings" id="shrink-warn"></ul>
+      <div class="buildrow">
+        <button class="btn" id="to-packtrim" type="button">Trim the loaded pack in PackTrim</button>
+        <span class="status" id="to-packtrim-status" role="status"></span>
+      </div>
+      <p class="hint small">The box above trims the pack MIDI2Circuit builds. To trim the pack you loaded instead, keeping all its projects (or just one), <a href="../packtrim/">PackTrim</a> opens with it loaded. Nothing is uploaded.</p>
     </div>
     <div class="options adv" id="arrange-options">
       <div class="field"><label for="section-bars">Section length</label>
@@ -160,6 +165,6 @@
   <p>Patches: TracksGM by Ian Guinan. Drum samples: <a href="https://github.com/mrbumpy409/GeneralUser-GS">GeneralUser GS</a> by S. Christian Collins (<a href="../tracksgm/LICENSE-GeneralUser-GS.txt">licence</a>). Project format code from <a href="https://github.com/namirsab/circuit-tracks-tools">circuit-tracks-tools</a> by Namir Sayed-Ahmad Baraza (MIT). Not affiliated with Novation or Focusrite; "Circuit Tracks" and "Components" are their trademarks.</p>
 </footer>
 
-<script type="module" src="../js/app.js?v=20261114s"></script>
+<script type="module" src="../js/app.js?v=20261114t"></script>
 </body>
 </html>

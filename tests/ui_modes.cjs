@@ -49,14 +49,16 @@ const shown = (p, sel) => p.$eval(sel, (e) => !!(e.offsetWidth || e.offsetHeight
   await p.waitForSelector('.proj');
   await p.click('.proj');
   await p.waitForFunction(() => !document.querySelector('#step-save').hidden, null, { timeout: 60000 });
-  ok(!(await shown(p, '#step-map')) && !(await shown(p, '#scene-options')) && !(await shown(p, '#step-compact')), 'C2M trimming, mapping and scene settings hidden');
+  ok(!(await shown(p, '#step-map')) && !(await shown(p, '#scene-options')), 'C2M mapping and scene settings hidden');
+  ok(!(await p.$('#step-compact')) && await shown(p, '#to-packtrim'), 'C2M has no trim step, and the PackTrim button shows in simple mode');
+  ok(!(await shown(p, '#to-tracks')), 'C2M Rebuild in MIDI2Circuit hidden in simple mode (Tracks pack)');
   const nums = await p.$$eval('main > .panel > h2 > .num', (ns) => ns.filter((n) => n.offsetParent).map((n) => n.textContent).join(','));
   ok(nums === '1,2,3,4', `C2M visible steps renumbered (${nums})`);
   await p.click('.modeswitch');
-  ok(/Trim the pack/.test(await p.textContent('#step-compact h2')) && /trimmed/.test(await p.textContent('#compact')), 'C2M uses Trim wording');
-  ok(await shown(p, '#step-map') && await shown(p, '#step-compact'), 'C2M Advanced shows trimming and the mapping');
+  ok(await shown(p, '#to-tracks') && (await p.textContent('#to-tracks')) === 'Rebuild in MIDI2Circuit', 'C2M Advanced shows Rebuild in MIDI2Circuit for a Tracks pack');
+  ok(await shown(p, '#step-map'), 'C2M Advanced shows the mapping');
   const nums2 = await p.$$eval('main > .panel > h2 > .num', (ns) => ns.filter((n) => n.offsetParent).map((n) => n.textContent).join(','));
-  ok(nums2 === '1,2,3,4,5,6', `C2M Advanced numbering (${nums2})`);
+  ok(nums2 === '1,2,3,4,5', `C2M Advanced numbering (${nums2})`);
   await p.click('.modeswitch');
 
   // phone width: switch and note fit

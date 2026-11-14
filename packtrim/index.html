@@ -9,8 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/app.css?v=20261110g">
-<link rel="stylesheet" href="../css/packtrim.css?v=20261110g">
+<link rel="stylesheet" href="../css/app.css?v=20261114t">
+<link rel="stylesheet" href="../css/packtrim.css?v=20261114t">
 <script>(function(){var r=document.documentElement;try{if(localStorage.getItem('circuitgm-advanced-packtrim')!=='1')r.classList.add('simple')}catch(e){r.classList.add('simple')}})();</script>
 </head>
 <body>
@@ -31,7 +31,7 @@
 <header class="masthead">
   <div class="wrap">
     <h1>PackTrim <span>Trim Circuit Tracks and Circuit Rhythm packs</span> <em class="badge">alpha 0.1</em></h1>
-    <p class="lede">Load a pack saved from Novation Components. PackTrim looks through every project in it and saves a smaller copy that keeps all of those projects, plus every sample and patch they use, and leaves out the rest.</p>
+    <p class="lede">Load a pack saved from Novation Components. PackTrim looks through every project in it and saves a smaller copy that keeps all of those projects, plus every sample and patch they use, and leaves out the rest. In Advanced mode you can keep just one project and its sounds instead.</p>
     <p class="alpha">Alpha 0.1, for testing. Keep your original pack, and please report anything odd on <a href="https://github.com/GuinanNo1/CircuitGM/issues">GitHub</a>.</p>
   </div>
 </header>
@@ -45,8 +45,9 @@
         <input type="checkbox" id="advanced" role="switch" aria-label="Advanced mode">
         <span class="ms-adv">Advanced</span>
       </label>
-      <p class="modenote simple-only">You're in <b>simple mode</b>: PackTrim shows how many samples and patches are kept and the trimmed size. Switch on <b>Advanced</b> to also see every sample and patch slot, and which projects use each one.</p>
-      <p class="modenote adv">You're in <b>Advanced mode</b>: every sample and patch slot is shown. Switch back to Simple at any time; the trimming is the same either way.</p>
+      <p class="modenote simple-only">You're in <b>simple mode</b>: PackTrim shows how many samples and patches are kept and the trimmed size. Switch on <b>Advanced</b> to also see every sample and patch slot and which projects use each one, or to keep just one project.</p>
+      <p class="modenote adv">You're in <b>Advanced mode</b>: every sample and patch slot is shown, and you can keep just one project. Switch back to Simple at any time; your choice is kept and still applied.</p>
+      <p class="modenote changed" id="mode-changed" hidden></p>
     </div>
     <label class="drop" id="drop">
       <input type="file" id="file" accept=".circuittrackspack,.circuitrhythmpack,.zip">
@@ -59,6 +60,9 @@
 
   <section class="panel" id="step-projects" hidden>
     <h2><span class="num">2</span> Projects</h2>
+    <div class="options adv" id="keep-options">
+      <div class="field"><label for="keep">Keep</label><select id="keep"></select></div>
+    </div>
     <p class="hint" id="projects-hint"></p>
     <div class="ptable-wrap"><table class="ptable" id="projects"></table></div>
   </section>
@@ -90,7 +94,7 @@
       <button class="btn" id="save" type="button">Download trimmed pack</button>
       <span class="status" id="save-status" role="status"></span>
     </div>
-    <p class="hint">Every slot keeps its number, so the projects are copied byte for byte and still find their sounds. A left-out slot is saved the way Components saves an empty one: a blank name and no file. Open the trimmed pack in Components and send it to your Circuit as usual.</p>
+    <p class="hint">Every slot keeps its number, so the projects are copied byte for byte and still find their sounds. A left-out slot is saved the way Components saves an empty one: a blank name and no file. With <b>Keep: only project N</b>, the other project slots are emptied the same way and the project stays in its own slot. Open the trimmed pack in Components and send it to your Circuit as usual.</p>
   </section>
 </main>
 
@@ -98,6 +102,6 @@
   <p>Project-format code and research: <a href="https://github.com/namirsab/circuit-tracks-tools">circuit-tracks-tools</a> by Namir Sayed-Ahmad Baraza, and <a href="https://github.com/Ondrysak/ncstool">ncstool</a>.</p>
   <p>Not affiliated with Novation or Focusrite; "Circuit Tracks", "Circuit Rhythm" and "Components" are their trademarks. <a href="https://github.com/GuinanNo1/CircuitGM">Source on GitHub</a> · <a href="https://github.com/GuinanNo1/CircuitGM/issues">Report a problem</a></p>
 </footer>
-<script type="module" src="../js/packtrim.js?v=20261110g"></script>
+<script type="module" src="../js/packtrim.js?v=20261114t"></script>
 </body>
 </html>

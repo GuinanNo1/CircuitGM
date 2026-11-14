@@ -16,10 +16,6 @@
 .subhead { font: 600 1.05rem var(--head); margin: 8px 0 0; }
 
 /* Unused list */
-.unused summary { cursor: pointer; font-weight: 600; }
-.unused ul { margin: 8px 0 0; padding-left: 1.2em; columns: 3 200px; font-size: 0.9rem; color: var(--muted); }
-.unused li { break-inside: avoid; }
-.unused h4 { margin: 10px 0 0; font: 600 0.78rem var(--body); text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
 
 /* Project picker */
 .projects { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }

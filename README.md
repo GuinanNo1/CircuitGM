@@ -66,7 +66,7 @@ node tests/validate.mjs out/project_*.ncs            # range checks
 node tests/roundtrip.mjs                             # MIDI -> MIDI2Circuit -> Circuit2MIDI -> MIDI, every note compared
 node tests/pack2pack.mjs [out-dir]                   # Circuit Tracks / Rhythm pack -> MIDI2Circuit -> pack, every hit compared
 node tests/pack_compare.mjs <pack> [track|auto|16|8|4] # any pack: convert each project, play it back, account for every hit
-node tests/compact_only.mjs [save-two-project-pack]  # Circuit2MIDI: Keep only project N
+node tests/compact_only.mjs [save-two-project-pack]  # PackTrim: Keep only project N
 ```
 
 The browser tests use Playwright with the page served on port 8765: `tests/ui_test.cjs` and `tests/ui_mutes.cjs` for MIDI2Circuit, `node tests/ui_p2p.cjs <screenshot dir> <rhythm pack> <tracks pack> <midi file>` for MIDI2Circuit with a Circuit pack (`tests/pack2pack.mjs <out-dir>` writes suitable packs), `node tests/ui_c2m.cjs <screenshot dir> <pack> [<pack> ...]` for Circuit2MIDI (single-project packs), and `node tests/ui_handoff.cjs <two-project tracks pack> <rhythm pack>` for Convert to Circuit Tracks.

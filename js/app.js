@@ -3,7 +3,7 @@ import { arrange, playOrder, laneOf, partOf, patternBars, projectColours, PROJEC
 import { loadBase, loadBaseFromBuffers, buildProjects, buildPack, composePack, SAMPLE_CAP_S } from './build.js?v=20261114s';
 import { loadPack, PRODUCTS } from './pack.js';
 import { packSong, projectChoices, setLane } from './packsong.js';
-import { takeHandoff } from './handoff.js';
+import { takeHandoff, putHandoff } from './handoff.js';
 import { setupMode } from './mode.js';
 import { fitName, numbered } from './names.js';
 import { Player } from './player.js';
@@ -73,6 +73,7 @@ async function init() {
   $('#shrink-on').addEventListener('change', updateShrinkInfo);
   $('#patch-s1').addEventListener('change', updateShrinkInfo);
   $('#patch-s2').addEventListener('change', updateShrinkInfo);
+  $('#to-packtrim').addEventListener('click', toPackTrim);
   player.onEnd = () => { setPlanButton(false); setSourceButton(null); };
   // Opened from Circuit2MIDI's "Convert to Circuit Tracks": take the pack it handed over.
   if (new URLSearchParams(location.search).get('from') === 'circuit2midi') {
@@ -279,6 +280,8 @@ async function loadSongPack(file, slot = null) {
     pack = await loadPack(buf, file.name);
     if (!projectChoices(pack).length) throw new Error(`${file.name} has no saved projects with notes to convert.`);
     await leavePackSong();
+    pack.buffer = buf;
+    pack.fileName = file.name;
     state.songPack = pack;
     state.songPackName = file.name.replace(/\.(circuittrackspack|circuitrhythmpack|zip)$/i, '');
     if (pack.product === 'circuit-tracks' && state.defaultBase) {
@@ -389,6 +392,24 @@ function renderSongPackParts() {
 function drumSlots() {
   if (!fromPack()) return [];
   return [...new Set(sourcesFor('DR').flatMap((s) => s.notes.map((n) => n.slot)))].filter((x) => x != null).sort((a, b) => a - b);
+}
+
+// Hand the loaded Circuit pack to PackTrim (the trim box here only trims the pack being built).
+async function toPackTrim() {
+  const pack = state.songPack;
+  if (!pack?.buffer) return;
+  player.stop();
+  setPlanButton(false);
+  const st = $('#to-packtrim-status');
+  st.classList.remove('error');
+  st.textContent = 'Opening PackTrim…';
+  try {
+    await putHandoff({ buffer: pack.buffer, fileName: pack.fileName }, 'packtrim');
+    location.href = '../packtrim/?from=midi2circuit';
+  } catch (err) {
+    st.textContent = `Could not hand the pack over (${err.message}). Open PackTrim and drop the pack there instead.`;
+    st.classList.add('error');
+  }
 }
 
 let shrinkRun = 0;

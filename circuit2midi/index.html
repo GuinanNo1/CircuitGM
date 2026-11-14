@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CircuitGM Circuit to MIDI Converter (Circuit2MIDI)</title>
-<meta name="description" content="Turn a project in a Novation Circuit Tracks or Circuit Rhythm pack into a Standard MIDI file, and trim the pack by removing unused samples and patches.">
+<meta name="description" content="Turn a project in a Novation Circuit Tracks or Circuit Rhythm pack into a Standard MIDI file.">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/app.css?v=20261110g">
-<link rel="stylesheet" href="../css/c2m.css?v=20261110g">
+<link rel="stylesheet" href="../css/app.css?v=20261114t">
+<link rel="stylesheet" href="../css/c2m.css?v=20261114t">
 <script>(function(){var r=document.documentElement;try{if(localStorage.getItem('circuitgm-advanced-c2m')!=='1')r.classList.add('simple')}catch(e){r.classList.add('simple')}})();</script>
 </head>
 <body>
@@ -31,7 +31,7 @@
   <div class="wrap">
     <h1>Circuit2MIDI <span>Circuit Tracks and Rhythm to MIDI converter</span> <em class="badge">alpha 0.1</em></h1>
     <p class="helplinks"><a href="help.html#quickstart">Quickstart</a> · <a href="help.html">User guide</a></p>
-    <p class="lede">Open a Novation Components pack for the Circuit Tracks or Circuit Rhythm, trim it by removing the samples and patches no project uses, and turn one of its projects into a Standard MIDI file: every scene, pattern chain and step, on the channels and sounds you choose.</p>
+    <p class="lede">Open a Novation Components pack for the Circuit Tracks or Circuit Rhythm and turn one of its projects into a Standard MIDI file: every scene, pattern chain and step, on the channels and sounds you choose. To make a pack smaller, use <a href="../packtrim/">PackTrim</a>.</p>
     <p class="alpha">Alpha 0.1, for testing. The Circuit Rhythm project format was worked out from one hardware-saved project, so check the result against your Circuit, keep your original pack, and please report anything odd on <a href="https://github.com/GuinanNo1/CircuitGM/issues">GitHub</a>.</p>
   </div>
 </header>
@@ -45,7 +45,7 @@
         <input type="checkbox" id="advanced" role="switch" aria-label="Advanced mode">
         <span class="ms-adv">Advanced</span>
       </label>
-      <p class="modenote simple-only">You're in <b>simple mode</b>: the main choices, with settings that suit most projects. Switch on <b>Advanced</b> to trim the pack, and for detailed control over scene order, swing, chance steps, the MIDI channels and instruments, and drum notes. Tuning those settings can give a closer match to your Circuit, but may take some experimenting.</p>
+      <p class="modenote simple-only">You're in <b>simple mode</b>: the main choices, with settings that suit most projects. Switch on <b>Advanced</b> for detailed control over scene order, swing, chance steps, the MIDI channels and instruments, and drum notes. Tuning those settings can give a closer match to your Circuit, but may take some experimenting.</p>
       <p class="modenote adv">You're in <b>Advanced mode</b>: every setting is shown. Switch back to Simple at any time; your settings are kept and still applied.</p>
       <p class="modenote changed" id="mode-changed" hidden></p>
     </div>
@@ -56,36 +56,28 @@
     </label>
     <p class="status" id="load-status" role="status"></p>
     <div class="fileinfo" id="packinfo" hidden></div>
-  </section>
-
-  <section class="panel adv" id="step-compact" hidden>
-    <h2><span class="num">2</span> Trim the pack <span class="opt">optional</span></h2>
-    <div class="summary" id="compact-summary"></div>
-    <details class="unused" id="unused-list" hidden><summary>What would be removed</summary><div id="unused-body"></div></details>
-    <div class="options" id="compact-options">
-      <div class="field"><label for="compact-only">Keep</label><select id="compact-only"></select></div>
-      <div class="field grow adv"><label for="compact-name">Pack name</label><input id="compact-name" maxlength="16" autocomplete="off" title="Up to 16 characters, as Components allows"></div>
+    <div class="buildrow" id="trim-row" hidden>
+      <button class="btn" id="to-packtrim" type="button">Trim this pack in PackTrim</button>
+      <span class="status" id="to-packtrim-status" role="status"></span>
     </div>
-    <div class="buildrow">
-      <button class="btn" id="compact" type="button">Download trimmed pack</button>
-      <span class="status" id="compact-status" role="status"></span>
-    </div>
-    <p class="hint" id="compact-hint">Samples and patches no project uses are left out. Every slot keeps its number, so the projects are copied unchanged and still find their sounds. A sample a project picks per step counts as used, and so does each track's default sample. <b>Keep: only project N</b> also empties the other project slots and keeps just that project's sounds; the project stays in its own slot.</p>
+    <p class="hint" id="trim-hint" hidden>Want a smaller pack, without the samples and patches no project uses? <a href="../packtrim/">PackTrim</a> opens with this pack loaded. Nothing is uploaded.</p>
   </section>
 
   <section class="panel" id="step-project" hidden>
-    <h2><span class="num">3</span> Choose a project</h2>
+    <h2><span class="num">2</span> Choose a project</h2>
     <p class="hint" id="project-hint">One project is converted at a time. Empty project slots aren't listed.</p>
     <div class="projects" id="projects" role="radiogroup" aria-label="Project"></div>
-    <div class="buildrow">
-      <button class="btn" id="to-tracks" type="button" disabled>Convert to Circuit Tracks (MIDI2Circuit)</button>
-      <span class="status" id="to-tracks-status" role="status"></span>
+    <div id="to-tracks-box">
+      <div class="buildrow">
+        <button class="btn" id="to-tracks" type="button" disabled>Convert to Circuit Tracks (MIDI2Circuit)</button>
+        <span class="status" id="to-tracks-status" role="status"></span>
+      </div>
+      <p class="hint" id="to-tracks-hint">Opens the chosen project in <a href="../midi2circuit/">MIDI2Circuit</a> to build a Circuit Tracks pack from it, with the pack's own samples. The pack is handed over inside your browser; nothing is uploaded.</p>
     </div>
-    <p class="hint">Opens the chosen project in <a href="../midi2circuit/">MIDI2Circuit</a> to build a Circuit Tracks pack from it, with the pack's own samples (and, from a Circuit Tracks pack, its patches). The pack is handed over inside your browser; nothing is uploaded.</p>
   </section>
 
   <section class="panel" id="step-scenes" hidden>
-    <h2><span class="num">4</span> Check the scenes</h2>
+    <h2><span class="num">3</span> Check the scenes</h2>
     <div class="options adv" id="scene-options">
       <div class="field"><label for="order">Scene order</label><select id="order"></select></div>
       <div class="field grow" id="custom-field" hidden><label for="custom">Scenes to play</label><input id="custom" autocomplete="off" placeholder="1-4, 2, 5x2" spellcheck="false"></div>
@@ -107,7 +99,7 @@
   </section>
 
   <section class="panel adv" id="step-map" hidden>
-    <h2><span class="num">5</span> Set the MIDI tracks</h2>
+    <h2><span class="num">4</span> Set the MIDI tracks</h2>
     <p class="hint">Melodic tracks play the notes as stored, on their own channel. Drum tracks play one note per sample on the channel you pick (10 is General MIDI drums), set in the table below them.</p>
     <div class="tablewrap">
       <table class="tracks maptable" id="maptable">
@@ -127,7 +119,7 @@
   </section>
 
   <section class="panel" id="step-save" hidden>
-    <h2><span class="num">6</span> Save the MIDI file</h2>
+    <h2><span class="num">5</span> Save the MIDI file</h2>
     <div class="options">
       <div class="field grow"><label for="midname">File name</label><input id="midname" maxlength="80" autocomplete="off"></div>
     </div>
@@ -143,6 +135,6 @@
   <p>Part of <a href="https://github.com/GuinanNo1/CircuitGM">TracksGM</a> by Ian Guinan. Project format code from <a href="https://github.com/namirsab/circuit-tracks-tools">circuit-tracks-tools</a> by Namir Sayed-Ahmad Baraza (MIT). Not affiliated with Novation or Focusrite; "Circuit Tracks", "Circuit Rhythm" and "Components" are their trademarks.</p>
 </footer>
 
-<script type="module" src="../js/c2m.js?v=20261110g"></script>
+<script type="module" src="../js/c2m.js?v=20261114t"></script>
 </body>
 </html>

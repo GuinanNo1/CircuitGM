@@ -1,4 +1,4 @@
-// Circuit2MIDI in a real browser: load packs, compact, pick a project, change settings,
+// Circuit2MIDI in a real browser: load packs, pick a project, change settings,
 // preview, save the MIDI file. Needs `python3 -m http.server 8765` running in the repo.
 // node tests/ui_c2m.cjs <screenshot dir> <pack> [<pack> ...]
 const { chromium } = require('playwright');
@@ -27,21 +27,14 @@ const fs = require('fs');
         maps: document.querySelectorAll('#maptable tbody tr').length,
         drums: document.querySelectorAll('#drumtable tbody tr').length,
         summary: document.querySelector('#song-summary').innerText.replace(/\n/g, ' '),
-        compact: document.querySelector('#compact-summary').innerText.replace(/\n/g, ' '),
-        compactOff: document.querySelector('#compact').disabled,
+        trimLink: !document.querySelector('#trim-row').hidden,
         warnings: [...document.querySelectorAll('#warnings li')].map((l) => l.textContent),
         overflow: document.documentElement.scrollWidth - window.innerWidth,
       }));
       console.log(`${tag}/${name}:`, JSON.stringify(info));
       if (info.overflow > 0) errors.push(`${tag}/${name}: page is ${info.overflow}px wider than the screen`);
       if (name === 'desktop') {
-        // compact
-        if (!info.compactOff) {
-          const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#compact')]);
-          const p = `${shots}/${dl.suggestedFilename()}`;
-          await dl.saveAs(p);
-          console.log('  compacted pack', dl.suggestedFilename(), fs.statSync(p).size, await page.textContent('#compact-status'));
-        }
+        if (!info.trimLink) errors.push(`${tag}: no "Trim this pack in PackTrim" button`);
         // preview runs and the clock moves
         await page.click('#play');
         await page.waitForTimeout(2500);
