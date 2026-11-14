@@ -10,6 +10,7 @@ General MIDI for the Novation Circuit Tracks and Circuit Rhythm: sound packs, an
 | **PatchWorker** | Synth patch editor for the Circuit Tracks: edit any patch in a pack, hear it in the browser or live on a linked Circuit Tracks, save `.syx` patches and whole packs | For testing | [Open](https://guinanno1.github.io/CircuitGM/patchworker/) · [Help](https://guinanno1.github.io/CircuitGM/patchworker/help.html) · [Code](patchworker/) |
 | **PackTrim** | Trims a Circuit Tracks or Circuit Rhythm pack to the samples and patches its projects use | Alpha 0.1 | [Open](https://guinanno1.github.io/CircuitGM/packtrim/) · [Code](packtrim/) |
 | **MIDI2Circuit** | MIDI files, or Circuit Tracks and Circuit Rhythm projects, to Circuit Tracks packs | Alpha 0.1 | [Open](https://guinanno1.github.io/CircuitGM/midi2circuit/) · [Help](https://guinanno1.github.io/CircuitGM/midi2circuit/help.html) · [Code](midi2circuit/) |
+| **MIDI2Rhythm** | MIDI files to Circuit Rhythm packs (RhythmInstGM + a RhythmDrumGM kit) | For testing | [Open](https://guinanno1.github.io/CircuitGM/midi2rhythm/) · [Help](https://guinanno1.github.io/CircuitGM/midi2rhythm/help.html) · [Code](midi2rhythm/) |
 | **Circuit2MIDI** | A project from a Circuit Tracks or Circuit Rhythm pack to a Standard MIDI file | Alpha 0.1 | [Open](https://guinanno1.github.io/CircuitGM/circuit2midi/) · [Help](https://guinanno1.github.io/CircuitGM/circuit2midi/help.html) · [Code](circuit2midi/) |
 
 Everything runs in the browser: nothing is uploaded, and there is no server. Each folder has its own README with the details. The alpha tools are for testing: please report problems in [Issues](https://github.com/GuinanNo1/CircuitGM/issues).
@@ -40,6 +41,7 @@ Then open <http://localhost:8765/>.
 | `patchworker/`, `css/patchworker.css`, `js/patchworker.js`, `js/pw/` | PatchWorker: page, help, styles, and its patch table, browser synth, MIDI link and pack code (see [`patchworker/README.md`](patchworker/README.md)). |
 | `packtrim/`, `js/packtrim.js`, `css/packtrim.css` | PackTrim's page, logic and styles. |
 | `midi2circuit/index.html`, `midi2circuit/help.html` | MIDI2Circuit's page and help. |
+| `midi2rhythm/index.html`, `midi2rhythm/help.html`, `js/m2r/` | MIDI2Rhythm: `engine.js` (part types, chord reduction, range fitting, drum packing, track allocation), `arrange.js` (patterns, scenes, projects), `build.js` (Rhythm projects and pack), `app.js` (page). `data/RhythmEmpty.ncs` is a project saved empty on a Circuit Rhythm, used as the template. |
 | `circuit2midi/index.html`, `circuit2midi/help.html`, `css/c2m.css` | Circuit2MIDI's page and help. |
 | `js/app.js` | The page logic: loading, part picker, sounds, arrangement view, build. |
 | `js/midifile.js` | MIDI file reader. |
@@ -65,11 +67,12 @@ node tests/build_test.mjs "path/to/song.mid" out     # build a pack, read every 
 node tests/validate.mjs out/project_*.ncs            # range checks
 node tests/roundtrip.mjs                             # MIDI -> MIDI2Circuit -> Circuit2MIDI -> MIDI, every note compared
 node tests/pack2pack.mjs [out-dir]                   # Circuit Tracks / Rhythm pack -> MIDI2Circuit -> pack, every hit compared
+node tests/m2r_build.mjs <file.mid>... [--out dir]  # MIDI2Rhythm: MIDI -> Rhythm pack, every step read back
 node tests/pack_compare.mjs <pack> [track|auto|16|8|4] # any pack: convert each project, play it back, account for every hit
 node tests/compact_only.mjs [save-two-project-pack]  # PackTrim: Keep only project N
 ```
 
-The browser tests use Playwright with the page served on port 8765: `tests/ui_test.cjs` and `tests/ui_mutes.cjs` for MIDI2Circuit, `node tests/ui_p2p.cjs <screenshot dir> <rhythm pack> <tracks pack> <midi file>` for MIDI2Circuit with a Circuit pack (`tests/pack2pack.mjs <out-dir>` writes suitable packs), `node tests/ui_c2m.cjs <screenshot dir> <pack> [<pack> ...]` for Circuit2MIDI (single-project packs), and `node tests/ui_handoff.cjs <two-project tracks pack> <rhythm pack>` for Convert to Circuit Tracks.
+The browser tests use Playwright with the page served on port 8765: `tests/ui_test.cjs` and `tests/ui_mutes.cjs` for MIDI2Circuit, `node tests/ui_p2p.cjs <screenshot dir> <rhythm pack> <tracks pack> <midi file>` for MIDI2Circuit with a Circuit pack (`tests/pack2pack.mjs <out-dir>` writes suitable packs), `node tests/ui_c2m.cjs <screenshot dir> <pack> [<pack> ...]` for Circuit2MIDI (single-project packs), `node tests/ui_m2r.cjs <screenshot dir> <file.mid>` for MIDI2Rhythm, and `node tests/ui_handoff.cjs <two-project tracks pack> <rhythm pack>` for Convert to Circuit Tracks.
 
 ## Credits and licences
 

@@ -1,0 +1,39 @@
+/* MIDI2Rhythm additions to app.css: part types, the eight-track budget, the arrangement grid. */
+:root { --t0: #e08a1e; --t1: #d9622b; --t2: #c94f7c; --t3: #8a5cf6; --t4: #2b8fd6; --t5: #1aa3a3; --t6: #22a35a; --t7: #7d8b2a; }
+.m2r-sub { font: 600 1rem var(--head); margin: 18px 0 8px; }
+.m2r-parts .c-on { width: 44px; text-align: center; }
+.m2r-parts td.c-on { text-align: center; }
+.m2r-parts select { max-width: 210px; font: inherit; font-size: 0.88rem; }
+.m2r-parts tr.off td:not(.c-on) { opacity: 0.45; }
+.ptype { display: inline-block; font: 600 0.74rem var(--body); letter-spacing: 0.04em; text-transform: uppercase; padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
+.ptype.mono { background: #e1f4e8; color: #17703b; }
+.ptype.mostly { background: #e5eefc; color: #1f5bb5; }
+.ptype.chords { background: #f4e8fd; color: #6b2fb3; }
+.ptype.drums { background: #fdf0de; color: #94560a; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .ptype.mono { background: #183626; color: #7fe0a6; }
+  :root:not([data-theme="light"]) .ptype.mostly { background: #18283f; color: #8fb8ff; }
+  :root:not([data-theme="light"]) .ptype.chords { background: #2b1d3d; color: #c9a4ff; }
+  :root:not([data-theme="light"]) .ptype.drums { background: #33260f; color: #f4bd6a; }
+}
+.small-note { color: var(--muted); font-size: 0.82rem; display: block; }
+.tracktag { display: inline-flex; align-items: center; gap: 5px; font: 600 0.85rem var(--head); white-space: nowrap; }
+.tracktag .sw, .budget .sw { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.tracktag.none { color: var(--warn); font-weight: 500; font-family: var(--body); white-space: normal; }
+.budget { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.budget .slot { border: 1px solid var(--line); border-left: 5px solid var(--line); border-radius: 8px; padding: 7px 10px; min-height: 58px; background: var(--soft); }
+.budget .slot.empty { opacity: 0.55; border-style: dashed; }
+.budget .slot .tn { font: 600 0.74rem var(--body); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); display: flex; justify-content: space-between; gap: 6px; }
+.budget .slot .tl { font-weight: 600; font-size: 0.9rem; overflow-wrap: anywhere; line-height: 1.25; }
+.budget .slot .tr { color: var(--muted); font-size: 0.8rem; }
+.hint.small { font-size: 0.85rem; margin-top: 12px; }
+.m2r-grid { display: grid; grid-auto-rows: 26px; gap: 2px; padding: 8px; min-width: max-content; font-size: 0.75rem; }
+.m2r-grid .lab { position: sticky; left: 0; background: var(--panel); display: flex; align-items: center; gap: 6px; padding-right: 8px; white-space: nowrap; max-width: 190px; overflow: hidden; z-index: 1; }
+.m2r-grid .lab .nm { overflow: hidden; text-overflow: ellipsis; }
+.m2r-grid .lab .solo { font: 600 0.66rem var(--mono); border: 1px solid var(--line); background: var(--panel); color: var(--muted); border-radius: 4px; padding: 0 4px; cursor: pointer; }
+.m2r-grid .lab .solo.on { background: var(--ink); color: var(--panel); }
+.m2r-grid .hd { color: var(--muted); font: 500 0.68rem var(--mono); display: flex; align-items: flex-end; justify-content: center; }
+.m2r-grid .hd.proj { border-left: 2px solid var(--ink); }
+.m2r-grid .c { min-width: 26px; border-radius: 3px; background: var(--cell-empty); color: #fff; font: 600 0.68rem var(--mono); display: flex; align-items: center; justify-content: center; }
+.m2r-grid .c.proj { box-shadow: -2px 0 0 var(--ink); }
+.m2r-grid .c.now { outline: 2px solid var(--ink); outline-offset: -1px; }

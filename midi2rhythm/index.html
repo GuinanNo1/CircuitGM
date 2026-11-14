@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CircuitGM MIDI to Circuit Rhythm Converter (MIDI2Rhythm)</title>
+<meta name="description" content="Turn a General MIDI file into a Novation Circuit Rhythm pack built on RhythmInstGM and a RhythmDrumGM kit.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../css/app.css?v=20261114m2r">
+<link rel="stylesheet" href="../css/m2r.css?v=20261114m2r">
+<script>(function(){var r=document.documentElement;try{if(localStorage.getItem('circuitgm-advanced-m2r')!=='1')r.classList.add('simple')}catch(e){r.classList.add('simple')}})();</script>
+</head>
+<body>
+<nav class="sitenav" aria-label="CircuitGM">
+  <div class="wrap">
+    <a class="brand" href="../" title="CircuitGM home: all packs and tools">Circuit<b>GM</b></a>
+    <ul>
+      <li><a href="../tracksgm/">TracksGM</a></li>
+      <li><a href="../rhythmgm/">RhythmGM</a></li>
+      <li><a href="../patchworker/">PatchWorker</a></li>
+      <li><a href="../packtrim/">PackTrim</a></li>
+      <li><a href="../midi2circuit/">MIDI2Circuit</a></li>
+      <li><a href="./" aria-current="page">MIDI2Rhythm</a></li>
+      <li><a href="../circuit2midi/">Circuit2MIDI</a></li>
+    </ul>
+  </div>
+</nav>
+<header class="masthead">
+  <div class="wrap">
+    <h1>MIDI2Rhythm <span>MIDI to Circuit Rhythm converter</span> <em class="badge">For testing</em></h1>
+    <p class="helplinks"><a href="help.html">How it works</a></p>
+    <p class="lede">Turn a General MIDI file into a Novation Circuit Rhythm pack. Every Rhythm track plays one note at a time, so MIDI2Rhythm picks the parts that matter most (drums, bass, melody, then the busiest), turns chords into a single line, keeps each line near its sample's own pitch, and builds a <code>.circuitrhythmpack</code> on <a href="../rhythmgm/">RhythmInstGM</a> with a RhythmDrumGM kit in slots 113–128.</p>
+    <p class="alpha">For testing: not yet tried on a Circuit Rhythm. The project format is reverse-engineered, so keep a backup of your packs, and please report anything odd on <a href="https://github.com/GuinanNo1/CircuitGM/issues">GitHub</a>.</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="panel" id="step-load">
+    <h2><span class="num">1</span> Load a MIDI file</h2>
+    <div class="modebar">
+      <label class="modeswitch big" title="Simple shows the main choices; Advanced shows every setting">
+        <span class="ms-simple">Simple</span>
+        <input type="checkbox" id="advanced" role="switch" aria-label="Advanced mode">
+        <span class="ms-adv">Advanced</span>
+      </label>
+      <p class="modenote simple-only">You're in <b>simple mode</b>: MIDI2Rhythm chooses the parts, turns chords into one line with Smart line, and lays out the song. Switch on <b>Advanced</b> to pick how each part is reduced, its sound, the range fitting and the arrangement settings.</p>
+      <p class="modenote adv">You're in <b>Advanced mode</b>: every setting is shown. Switch back to Simple at any time; your settings are kept and still applied.</p>
+      <p class="modenote changed" id="mode-changed" hidden></p>
+    </div>
+    <div class="basepack">
+      <div class="bp-info">
+        <span class="k">Base packs</span>
+        <b>RhythmInstGM + RhythmDrumGM</b>
+        <span class="status" id="base-status">Loading the RhythmGM packs…</span>
+      </div>
+    </div>
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept=".mid,.midi,.rmi,.kar,audio/midi">
+      <span class="drop-main">Drop a MIDI file here, or <u>choose one</u></span>
+      <span class="drop-sub">A Standard MIDI file (type 0 or 1). Nothing is uploaded; everything runs in your browser.</span>
+    </label>
+    <div class="fileinfo" id="fileinfo" hidden></div>
+  </section>
+
+  <section class="panel" id="step-parts" hidden>
+    <h2><span class="num">2</span> Choose the parts</h2>
+    <p class="hint">Each part is labelled by how many notes it plays at once. <b>Mono</b> and <b>mostly mono</b> parts (only overlapping note tails) go across as they are. <b>Chords</b> are turned into one line. Untick a part to leave it out and free its track for another.</p>
+    <div class="tablewrap">
+      <table class="tracks m2r-parts" id="parts">
+        <thead><tr><th class="c-on">Use</th><th>Part</th><th class="c-num">Notes</th><th>Type</th><th>Chords become</th><th>Sound</th><th class="adv">Range</th><th>Track</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <h3 class="m2r-sub">The eight tracks</h3>
+    <div class="budget" id="budget"></div>
+    <ul class="warnings" id="dropped"></ul>
+  </section>
+
+  <section class="panel" id="step-sounds" hidden>
+    <h2><span class="num">3</span> Sounds and fitting</h2>
+    <div class="options">
+      <div class="field"><label for="kit">Drum kit (slots 113–128)</label><select id="kit"></select></div>
+      <div class="field adv"><label for="range">Keep lines near the sample's note</label>
+        <select id="range"><option value="7">Within ±7 semitones</option><option value="12" selected>Within ±12 semitones</option><option value="18">Within ±18 semitones</option><option value="0">Off (play at written pitch)</option></select></div>
+      <div class="field adv"><label for="drum-tracks">Tracks for drums, at most</label>
+        <select id="drum-tracks"><option>2</option><option selected>3</option><option>4</option></select></div>
+      <div class="field adv"><label for="arp-rate">Arpeggio speed</label>
+        <select id="arp-rate"><option value="0.125">1/32</option><option value="0.25" selected>1/16</option><option value="0.5">1/8</option></select></div>
+      <div class="field check adv"><label><input type="checkbox" id="share" checked> Parts that never play at the same time can share a track</label></div>
+    </div>
+    <p class="hint small">Each RhythmInstGM sample is one recording at one pitch (its note is in its name, e.g. "001 Grand Piano C4"). Played far from that note it speeds up or slows down and stops sounding like the instrument, so each part is moved by whole octaves towards it, and any stray notes are folded an octave towards it. RhythmInstGM's GM programs 113–128 make way for the drum kit: Tinkle Bell, Agogo, Steel Drums, Woodblock, Taiko, Melodic Tom and Synth Drum play on a similar instrument; the sound effects are left out.</p>
+  </section>
+
+  <section class="panel" id="step-arrange" hidden>
+    <h2><span class="num">4</span> Check the arrangement</h2>
+    <div class="options adv">
+      <div class="field"><label for="rate">Pattern length</label>
+        <select id="rate"><option value="track" selected>Per track: keep notes (each track its own step rate)</option><option value="auto">Auto: fewest projects (can lose notes)</option><option value="16">1/16 steps</option><option value="8">1/8 steps</option><option value="4">1/4 steps</option></select></div>
+      <div class="field"><label for="section-bars">Section length</label>
+        <select id="section-bars"><option value="auto" selected>Auto (fewest projects)</option><option value="4">4 bars</option><option value="8">8 bars</option><option value="16">16 bars</option><option value="32">32 bars</option></select></div>
+      <div class="field"><label for="tempo-div">Tempo</label>
+        <select id="tempo-div"><option value="1" selected>Original</option><option value="2">÷2</option><option value="4">÷4</option></select></div>
+      <div class="field"><label for="match">Repeats</label>
+        <select id="match"><option value="exact">Match exactly</option><option value="loose" selected>Match ignoring velocity</option></select></div>
+      <div class="field check"><label><input type="checkbox" id="align" checked> Line up sections with repeats</label></div>
+      <div class="field check"><label><input type="checkbox" id="trimstart" checked> Skip empty bars at the start</label></div>
+    </div>
+    <div class="summary" id="summary"></div>
+    <div class="transport">
+      <button class="btn primary" id="play" type="button" disabled>Play preview</button>
+      <span class="time" id="time">0:00</span>
+      <span class="hint inline">The preview plays the RhythmGM samples as the Rhythm will: one note per step per track, each new note cutting off the last.</span>
+    </div>
+    <div class="gridwrap"><div class="m2r-grid" id="grid"></div></div>
+    <ul class="warnings errors" id="errors"></ul>
+    <ul class="warnings adv" id="warnings"></ul>
+  </section>
+
+  <section class="panel" id="step-build" hidden>
+    <h2><span class="num">5</span> Build the pack</h2>
+    <div class="options">
+      <div class="field grow"><label for="title">Project name</label><input id="title" maxlength="16" autocomplete="off" title="Up to 16 characters, as Components allows"></div>
+      <div class="field grow"><label for="packname">Pack name</label><input id="packname" maxlength="16" autocomplete="off" title="Up to 16 characters, as Components allows"></div>
+      <div class="field adv"><label for="packcolor">Pack colour</label><select id="packcolor"><option>blue</option><option>green</option><option>orange</option><option>red</option></select></div>
+      <div class="field check adv"><label><input type="checkbox" id="trim"> Trim the pack: keep only the samples the song uses</label></div>
+    </div>
+    <div class="buildrow">
+      <button class="btn primary big" id="build" type="button">Download pack</button>
+      <span class="status" id="build-status"></span>
+    </div>
+    <p class="hint">Open the pack in Novation Components and send it to your Circuit Rhythm. It holds RhythmInstGM's instruments in slots 1–112, the chosen drum kit in 113–128, and the song in project slots 1 onwards, so it replaces whatever pack you send it over. In each project, scenes 1 onwards hold the song's sections in order and are saved as one scene chain.</p>
+  </section>
+</main>
+
+<footer class="wrap foot">
+  <p>Samples: <a href="https://github.com/mrbumpy409/GeneralUser-GS">GeneralUser GS</a> by S. Christian Collins (<a href="../rhythmgm/LICENSE-GeneralUser-GS.txt">licence</a>). Not affiliated with Novation or Focusrite; "Circuit Rhythm" and "Components" are their trademarks.</p>
+</footer>
+
+<script type="module" src="../js/m2r/app.js?v=20261114m2r"></script>
+</body>
+</html>
