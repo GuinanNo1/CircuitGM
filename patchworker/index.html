@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/patchworker.css?v=20261114p">
+<link rel="stylesheet" href="../css/patchworker.css?v=20261114r">
 </head>
 <body>
 <nav class="topnav" aria-label="CircuitGM">
@@ -45,6 +45,9 @@
       <div class="row">
         <button type="button" class="btn quiet" id="pack-bank" title="All 128 patches as one .syx file">Bank .syx</button>
         <button type="button" class="btn quiet" id="pack-reset" title="Throw away this session and load the TracksGM pack again">Load TracksGM</button>
+      </div>
+      <div class="row" id="pack-tracks-row" hidden>
+        <button type="button" class="btn" id="pack-tracks" title="Read the 128 patches of a pack on the linked Circuit Tracks into this pack">Patches from the Circuit Tracks…</button>
       </div>
     </div>
     <div class="listhead">
@@ -170,6 +173,6 @@
 </dialog>
 <input type="file" id="file-pack" accept=".circuittrackspack,.zip" hidden>
 <input type="file" id="file-syx" accept=".syx" multiple hidden>
-<script type="module" src="../js/patchworker.js?v=20261114p"></script>
+<script type="module" src="../js/patchworker.js?v=20261114r"></script>
 </body>
 </html>

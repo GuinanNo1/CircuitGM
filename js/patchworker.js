@@ -3,12 +3,12 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114p';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114p';
-import { TracksLink, VIEW_CODES } from './pw/midi.js?v=20261114p';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114r';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114r';
+import { TracksLink, VIEW_CODES } from './pw/midi.js?v=20261114r';
 import { openPack, buildPack, bankSyx, slotEdited, slotBlank, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114p';
-import { buildPanel } from './pw/panel.js?v=20261114p';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114r';
+import { buildPanel } from './pw/panel.js?v=20261114r';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_v1.circuittrackspack';
 const $ = (s) => document.querySelector(s);
@@ -990,6 +990,7 @@ function paintLink() {
   $('#link-btn').textContent = link.access && !link.off ? 'Look again' : 'Link Circuit Tracks';
   $('#hw').hidden = !on;
   $('#hw-get').disabled = !link.in;
+  $('#pack-tracks-row').hidden = !on;
   for (const b of document.querySelectorAll('#hear button')) if (b.dataset.hear !== 'browser') { b.disabled = !on; b.title = on ? '' : 'Link a Circuit Tracks first'; }
   if (!on && S.hear !== 'browser') setHear('browser');
 }
@@ -1170,34 +1171,88 @@ function tracksChanged(synth, { slot = null, bytes = null }) {
   }, p.bytes && p.slot != null ? 0 : 150);
 }
 // Write the patch being edited into a slot on the Tracks itself. Returns true if it was sent.
-async function storeOnTracks(slot = S.slot) {
-  if (!link.connected || !link.in) { toast('Link the Circuit Tracks (both directions) to store on it.'); return false; }
+// The packs on the Circuit Tracks' SD card, in its order (the pack number Store and the patch files
+// use), from a short file session. Null (with a toast) if it can't be had.
+async function tracksPacks() {
+  if (!link.connected || !link.in) { toast('Link the Circuit Tracks (both directions) first.'); return null; }
   let packs;
-  try { packs = await link.fileSession(async (p) => p.slice()); } catch (e) { toast(`The Circuit Tracks did not answer: ${e.message}`); return false; }
-  if (!packs.length) { toast('The Circuit Tracks did not list its packs: nothing was stored.'); return false; }
-  // Pre-select the pack stored to last time, else the one named like the pack open here (the Tracks
-  // lists packs as "NN_<name>"); otherwise the user chooses. The Tracks can't be asked which is loaded.
-  const last = (() => { try { return localStorage.getItem('circuitgm-store-pack'); } catch { return null; } })();
+  try { packs = await link.fileSession(async (p) => p.slice()); } catch (e) { toast(`The Circuit Tracks did not answer: ${e.message}`); return null; }
+  if (!packs.length) { toast('The Circuit Tracks did not list its packs.'); return null; }
+  return packs;
+}
+// A pack chooser: the pack used last time, else the one named like the pack open here (the Tracks
+// lists packs as "NN_<name>"); otherwise "Choose the pack…". The Tracks can't be asked which is loaded.
+const LAST_PACK = 'circuitgm-store-pack';
+function packChooser(packs) {
+  const last = (() => { try { return localStorage.getItem(LAST_PACK); } catch { return null; } })();
   const bare = (n) => (n ?? '').replace(/^\d+_/, '').trim().toLowerCase();
   let guess = packs.indexOf(last);
   if (guess < 0 && S.pack.name) guess = packs.findIndex((n) => bare(n) === bare(S.pack.name));
-  const packSel = h('select', { class: 'wide' }, [h('option', { value: '', text: 'Choose the pack…' }),
+  return h('select', { class: 'wide' }, [h('option', { value: '', text: 'Choose the pack…' }),
     ...packs.map((n, i) => h('option', { value: i, selected: i === guess, text: n ?? `(pack ${i + 1}, unnamed)` }))]);
+}
+function rememberPack(name) { try { localStorage.setItem(LAST_PACK, name); } catch { /* private mode */ } }
+
+// Write the patch being edited into a slot of a pack on the Circuit Tracks, then read it back to
+// check it arrived (Components' Store: see TracksLink.writeSlot). Returns true if it was stored.
+async function storeOnTracks(slot = S.slot) {
+  const packs = await tracksPacks();
+  if (!packs) return false;
+  const packSel = packChooser(packs);
   const sel = slotSelect(slot);
   if (!(await ask('Store on the Circuit Tracks', [`Writes "${getName(S.bytes)}" into a patch slot of a pack on the Circuit Tracks, replacing the patch that is there now. This cannot be undone from here.`,
     h('label', { class: 'field' }, 'Pack on the Circuit Tracks ', packSel),
     h('label', { class: 'field' }, 'Patch slot ', sel),
     h('p', { class: 'hint', text: 'Choose the pack that is loaded on your Circuit Tracks to change the patches you play. The slot names listed are from the pack open here.' })], 'Store'))) return false;
   if (packSel.value === '') { toast('No pack chosen: nothing was stored.'); return false; }
-  const pack = +packSel.value;
-  try { localStorage.setItem('circuitgm-store-pack', packs[pack]); } catch { /* private mode */ }
+  const pack = +packSel.value, to = +sel.value, sent = S.bytes.slice(0, 340);
+  rememberPack(packs[pack]);
   toast('Storing on the Circuit Tracks…');
   let ok = false;
-  try { ok = await link.writeSlot(S.bytes, pack, +sel.value); } catch (e) { toast(e.message); return false; }
+  try { ok = await link.writeSlot(sent, pack, to); } catch (e) { toast(e.message); return false; }
   if (!ok) { toast('The Circuit Tracks could not be reached: nothing was stored.'); return false; }
   for (const hw of S.hw) if (hw.slot === S.slot) hw.edited = false;
-  toast(`Stored in patch slot ${pad3(+sel.value + 1)} of "${packs[pack]}" on the Circuit Tracks.`);
+  // Read it back: the Tracks says nothing when it takes (or ignores) a Store.
+  let back = null, readErr = null;
+  try { back = await link.readSlot(pack, to); } catch (e) { readErr = e.message; }
+  const where = `patch slot ${pad3(to + 1)} of "${packs[pack]}"`;
+  if (back && sameBytes(back, sent)) toast(`Stored in ${where} on the Circuit Tracks, and checked.`);
+  else if (readErr) toast(`Stored in ${where}, but it could not be read back to check (${readErr}).`, 7000);
+  else await ask('Store not confirmed', [`The Circuit Tracks has ${back ? `"${getName(back)}", not exactly the patch sent,` : 'nothing'} in ${where}. Try Store again, or put the pack on the Circuit Tracks with Novation Components.`], 'OK', { cancel: 'Close' });
   return true;
+}
+
+// Read the 128 patches of a pack on the Circuit Tracks into the pack open here (its samples and
+// projects stay). Each changed slot can be undone; slots empty on the Tracks become the Initial Patch.
+async function openFromTracks() {
+  const packs = await tracksPacks();
+  if (!packs) return;
+  const packSel = packChooser(packs);
+  if (!(await ask('Patches from the Circuit Tracks', ['Reads the 128 patches of a pack on the Circuit Tracks into the pack open here, replacing its patches. Its samples and projects stay as they are. You can undo each slot.',
+    h('label', { class: 'field' }, 'Pack on the Circuit Tracks ', packSel)], 'Read patches'))) return;
+  if (packSel.value === '') { toast('No pack chosen: nothing was read.'); return; }
+  const pack = +packSel.value, name = packs[pack];
+  rememberPack(name);
+  let patches;
+  try { patches = await link.readPack(pack, (n) => { if (n % 4 === 0) toast(`Reading patches from "${name}"… ${n * 8} of 128`, 1500); }); } catch (e) { toast(e.message, 6000); return; }
+  const start = S.slot;
+  let changed = 0;
+  for (let i = 0; i < PATCH_SLOTS; i++) {
+    let want = patches[i];
+    if (!want) { if (slotBlank(S.pack, i)) continue; want = initPatch(); }
+    if (S.pack.patches[i] && sameBytes(S.pack.patches[i], want)) continue;
+    S.slot = i;
+    if (!S.pack.patches[i]) S.pack.patches[i] = initPatch();
+    S.bytes = S.pack.patches[i];
+    checkpoint(null);
+    S.bytes.set(want);
+    setOrigin(i, 'tracks', `fetched from "${name}" on the Circuit Tracks`);
+    changed++;
+  }
+  paintList();
+  selectSlot(start, { send: false });
+  const used = patches.filter(Boolean).length;
+  toast(changed ? `Read ${used} patches from "${name}" on the Circuit Tracks: ${changed} slot(s) changed here.` : `Read ${used} patches from "${name}": the pack open here already has them all.`, 6000);
 }
 
 // Before leaving a patch whose edits only the Tracks' synth has (it forgets them when it changes
@@ -1536,6 +1591,7 @@ function bindUI() {
   $('#hw-get').addEventListener('click', getFromTracks);
   $('#hw-live').addEventListener('change', (e) => { if (e.target.checked && link.connected) hwSend(); paintStatus(); });
   $('#hw-store').addEventListener('click', () => storeOnTracks());
+  $('#pack-tracks').addEventListener('click', openFromTracks);
 
   document.querySelectorAll('#hear button').forEach((b) => b.addEventListener('click', () => setHear(b.dataset.hear)));
   $('#oct-down').addEventListener('click', () => setOctave(S.octave - 1));
@@ -1611,5 +1667,5 @@ async function start() {
 }
 
 // Handy when testing from the console, and for the automated tests.
-window.patchworker = { S, link, audio, selectSlot, copyTo, setByte, toSyx, buildPack, undo, redo, setFace, panel: () => tracksPanel };
+window.patchworker = { S, link, audio, selectSlot, copyTo, setByte, toSyx, buildPack, undo, redo, setFace, storeOnTracks, openFromTracks, panel: () => tracksPanel };
 start();

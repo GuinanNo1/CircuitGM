@@ -362,6 +362,69 @@ const { chromium } = require('playwright');
     return { json: dl.length ? JSON.parse(await dl[0].text()) : null, log: document.querySelector('.midilog').textContent };
   });
   check('the scan lists each pack\'s first patch names', /★ pack 1 "B" \(files 04 01 00-0f\): 1:BLOCK ONE PATCH/.test(scan.log) && /★ pack 0 "A" \(files 04 00 00-0f\): empty/.test(scan.log) && scan.json?.blocks?.length === 32 && scan.json.blocks[1][0] === '1:BLOCK ONE PATCH');
+  // A simulated Tracks with real storage: 2 packs x 128 slots. Store writes a slot (unless told to
+  // ignore it); file reads 04 <pack> <file> answer 8 slots x 512 bytes, as the hardware does.
+  await q.evaluate(() => {
+    const w = window.patchworker, L = w.link, H = [0xf0, 0x00, 0x20, 0x29, 0x01, 0x64, 0x03];
+    const nib = (v, n) => Array.from({ length: n }, (_, k) => (v >> (4 * (n - 1 - k))) & 15);
+    const pack7 = (b) => { const o = []; for (let i = 0; i < b.length; i += 7) { const g = [...b.slice(i, i + 7)]; o.push(g.reduce((h, x, j) => h | ((x >> 7) << j), 0), ...g.map((x) => x & 127)); } return o; };
+    const crc32 = (bytes) => { let c = 0xffffffff; for (const b of bytes) { c ^= b; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; } return (c ^ 0xffffffff) >>> 0; };
+    const reply = (d) => setTimeout(() => L.receive({ name: 'Circuit Tracks' }, Uint8Array.from(d)), 1);
+    const store = window.simTracks = { packs: [[], []], ignoreStore: false };
+    for (let i = 0; i < 128; i += 3) store.packs[1][i] = w.S.pack.patches[(i + 5) % 128]?.slice(0, 340) ?? null;   // pack 1: every 3rd slot used
+    L.in = { name: 'Circuit Tracks' };
+    L.out = { name: 'Circuit Tracks', send(b) {
+      if (b.length === 352 && b[6] === 1) { if (!store.ignoreStore) store.packs[b[7]][b[9]] = Uint8Array.from(b.slice(11, 351)); return; }
+      if (b[6] !== 3) return;
+      if (b[7] === 0x0b && b[8] === 2) { reply([...H, 0x0c, 0x02, 0, ...[...'00_Other'].map((c) => c.charCodeAt(0)), 0xf7]); reply([...H, 0x0c, 0x02, 1, ...[...'01_Live Pack'].map((c) => c.charCodeAt(0)), 0xf7]); }
+      if (b[7] === 0x01 && b[16] === 4) {
+        const pk = b[17], f = b[18], slots = store.packs[pk] ?? [], a = (k) => [0, 0, 0, 0, 0, 0, 0, k];
+        let last = -1;
+        for (let k = 0; k < 8; k++) if (slots[f * 8 + k]) last = k;
+        if (last < 0) return reply([...H, 0x06, 0x04, pk, f, 0xf7]);
+        const data = new Uint8Array(last * 512 + 340).fill(0xff);
+        for (let k = 0; k <= last; k++) if (slots[f * 8 + k]) data.set(slots[f * 8 + k], k * 512);
+        reply([...H, 0x01, ...a(0), 4, pk, f, 1, 0, 0, 0, ...nib(data.length, 5), 0xf7]);
+        reply([...H, 0x02, ...a(1), 4, pk, f, ...pack7(data), 0xf7]);
+        reply([...H, 0x03, ...a(2), 4, pk, f, ...nib(crc32(data), 8), 0xf7]);
+      }
+    } };
+  });
+  const dlgDo = (fn) => q.evaluate(fn);
+  const waitDlg = () => q.waitForFunction(() => document.querySelector('#dlg').open, null, { timeout: 8000 });
+  // Store into pack 1 slot 7, checked by reading it back.
+  await q.evaluate(() => { window.patchworker.selectSlot(6); window.__store = window.patchworker.storeOnTracks(6); });
+  await waitDlg();
+  check('Store asks for the pack from the Tracks\' list', await q.evaluate(() => [...document.querySelectorAll('#dlg select')[0].options].map((o) => o.text).join() === 'Choose the pack…,00_Other,01_Live Pack'));
+  await dlgDo(() => { document.querySelectorAll('#dlg select')[0].value = '1'; document.querySelector('#dlg-ok').click(); });
+  await q.waitForFunction(() => /and checked/.test(document.querySelector('#toast')?.textContent ?? ''), null, { timeout: 8000 }).catch(() => {});
+  check(`a Store is read back and confirmed (${await q.evaluate(() => document.querySelector('#toast')?.textContent)})`, await q.evaluate(() => /Stored in patch slot 007 of "01_Live Pack" on the Circuit Tracks, and checked/.test(document.querySelector('#toast')?.textContent ?? '') && window.simTracks.packs[1][6] && window.simTracks.packs[1][6].every((v, i) => v === window.patchworker.S.bytes[i])));
+  // A Store the Tracks ignores is reported.
+  await q.evaluate(() => { window.simTracks.ignoreStore = true; window.patchworker.selectSlot(10); window.patchworker.storeOnTracks(10); });
+  await waitDlg();
+  check('Store pre-selects the pack used last time', await q.evaluate(() => document.querySelectorAll('#dlg select')[0].value === '1'));
+  await dlgDo(() => document.querySelector('#dlg-ok').click());
+  await q.waitForFunction(() => document.querySelector('#dlg').open && /Store not confirmed/.test(document.querySelector('#dlg-title').textContent), null, { timeout: 8000 }).catch(() => {});
+  check('a Store the Tracks ignored is reported as not confirmed', await q.evaluate(() => /Store not confirmed/.test(document.querySelector('#dlg-title').textContent) && /has nothing in patch slot 011/.test(document.querySelector('#dlg-body').textContent)));
+  await dlgDo(() => document.querySelector('#dlg-cancel').click());
+  // From Tracks: pack 1's patches into the pack open here, undoable per slot.
+  const before = await q.evaluate(() => ({ s3: window.patchworker.S.pack.patches[3].slice(0, 16).join(), s6: window.patchworker.S.pack.patches[6].slice() }));
+  await q.evaluate(() => { window.patchworker.selectSlot(0); window.__open = window.patchworker.openFromTracks(); });
+  await waitDlg();
+  await dlgDo(() => { document.querySelectorAll('#dlg select')[0].value = '1'; document.querySelector('#dlg-ok').click(); });
+  await q.evaluate(() => window.__open);
+  const got = await q.evaluate(() => {
+    const w = window.patchworker, sim = window.simTracks.packs[1], eq = (a, b) => a && b && a.length >= 340 && b.length >= 340 && a.slice(0, 340).every((v, i) => v === b[i]);
+    let same = 0, wrong = [];
+    for (let i = 0; i < 128; i++) { if (sim[i]) { if (eq(w.S.pack.patches[i], sim[i])) same++; else wrong.push(i); } }
+    return { same, wrong, used: sim.filter(Boolean).length, toast: document.querySelector('#toast')?.textContent, slot: w.S.slot, tag: document.querySelector('#patchlist li[data-slot="0"]').classList.contains('from-hw') };
+  });
+  check(`From Tracks loads every patch of the chosen pack (${got.same}/${got.used}, wrong ${got.wrong.slice(0, 5)})`, got.same === got.used && got.used > 40 && !got.wrong.length);
+  check(`and says so, staying on the slot being edited (${got.toast})`, /Read \d+ patches from "01_Live Pack" on the Circuit Tracks: \d+ slot\(s\) changed here/.test(got.toast) && got.slot === 0 && got.tag);
+  check('slots empty on the Tracks become the Initial Patch', await q.evaluate(() => { const p = window.patchworker.S.pack.patches; return p[1] && p[2] && p[1].every((v, i) => v === p[2][i]) && !p[1].every((v, i) => v === p[3][i]); }));
+  await q.evaluate(() => { window.patchworker.selectSlot(3); window.patchworker.undo(); });
+  check('each changed slot can be undone', await q.evaluate((s3) => window.patchworker.S.pack.patches[3].slice(0, 16).join() === s3, before.s3));
+  await q.evaluate(() => { window.patchworker.link.out = null; window.patchworker.link.in = null; });
   await q.close();
   check(`no console errors (${errs.length ? errs.join('; ') : 'none'})`, !errs.length);
   await b.close();

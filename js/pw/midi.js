@@ -1,7 +1,7 @@
 // PatchWorker's link to a Circuit Tracks over Web MIDI (Chrome, Edge, Opera; Firefox with its
 // site permission add-on). Everything here follows the Circuit Tracks Programmer's Reference
 // Guide v3: patches travel as SysEx, single parameters as CC or NRPN on the synth's channel.
-import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261114p';
+import { P, toSyx, parseSyx, SYX_HEAD, PRODUCT_TRACKS } from './params.js?v=20261114r';
 
 // Views on the Tracks whose message carries the selected track (not Mixer 0C, FX 0D, Patterns 0B).
 export const TRACK_VIEWS = new Set([0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a]);
@@ -178,6 +178,33 @@ export class TracksLink extends EventTarget {
     });
   }
 
+  // A pack's 128 patches straight from the Tracks: files 04 <pack> 00-0F, 8 patches each, 512 bytes
+  // apiece (340-byte patch + 172 bytes FF; an empty slot is all FF; a file stops after its last patch;
+  // a file with no patches doesn't exist). Confirmed for all 32 packs, 2026-11-14.
+  // Resolves an array of 128: Uint8Array(340) or null (empty slot). onFile(n) reports progress 1-16.
+  async readPack(pack, onFile = null) {
+    if (!(pack >= 0 && pack < 32)) throw new Error('No pack chosen.');
+    return this.fileSession(async () => {
+      const patches = new Array(128).fill(null);
+      for (let f = 0; f < 16; f++) {
+        const file = await this.readFile(0x04, pack * 128 + f);
+        onFile?.(f + 1);
+        if (!file) continue;
+        if (!file.crcOk) throw new Error(`Patch file ${f + 1} of 16 arrived damaged (CRC). Nothing was loaded.`);
+        for (let k = 0; k < 8; k++) patches[f * 8 + k] = slotIn(file.data, k);
+      }
+      return patches;
+    });
+  }
+
+  // One patch slot as the Tracks has it now (null if empty), e.g. to check a Store.
+  async readSlot(pack, slot) {
+    return this.fileSession(async () => {
+      const file = await this.readFile(0x04, pack * 128 + (slot >> 3));
+      return file ? slotIn(file.data, slot & 7) : null;
+    });
+  }
+
   // Store a patch in slot 0-127 of pack 0-31 on the Tracks' SD card (packs in the order the Tracks
   // lists them in a file session). The Programmer's Reference's Replace Patch (01 <slot> 00) is
   // ignored by the Tracks. Components' form, from namirsab/circuit-tracks-tools (MIT): a file session
@@ -300,4 +327,11 @@ export function crc32(bytes) {
   let c = 0xffffffff;
   for (const b of bytes) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8);
   return (c ^ 0xffffffff) >>> 0;
+}
+
+// Patch k (0-7) of a type 04 file: 340 bytes at k * 512, or null if the slot is empty (FF) or absent.
+function slotIn(data, k) {
+  const at = k * 512;
+  if (data.length < at + 340 || data[at] === 0xff) return null;
+  return data.slice(at, at + 340);
 }
