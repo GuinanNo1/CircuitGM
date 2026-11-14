@@ -14,6 +14,8 @@ const BLOCK_SIZE = 2600;
 const TAIL = BLOCK_BASE + 64 * BLOCK_SIZE;   // 0x28ce4
 const T_DEFAULT_SAMPLES = 8;
 const T_TRACK_ROWS = 44;                       // 8 x 41 bytes; byte 6 = the track's sample again
+const ROW_TUNE = 16;                           // row byte 16: the track's Tune (macro 1), 64 = no change
+const TUNE_CENTRE = 64;
 const NO_SAMPLE = 0xff;
 
 export async function fetchBuf(url) {
@@ -81,6 +83,9 @@ export function buildRhythmProjects(plan, tracks, template, settings) {
       }
       d[TAIL + T_DEFAULT_SAMPLES + t] = def;
       d[TAIL + T_TRACK_ROWS + t * 41 + 6] = def;
+      // Tune at centre, so every track plays its notes at the pitch the step bytes say (the
+      // template's source project had track 4 tuned down 9 steps, about 1.8 semitones).
+      d[TAIL + T_TRACK_ROWS + t * 41 + ROW_TUNE] = TUNE_CENTRE;
     }
     return { name, bytes: d };
   });
