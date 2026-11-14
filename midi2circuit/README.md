@@ -1,4 +1,4 @@
-# CircuitGM MIDI to Circuit Converter (MIDI2Circuit), alpha 0.1
+# CircuitGM MIDI to Circuit Converter (MIDI2Circuit), alpha 0.5
 
 **Try it:** https://guinanno1.github.io/CircuitGM/midi2circuit/
 

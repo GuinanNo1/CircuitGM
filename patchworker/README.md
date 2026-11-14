@@ -1,4 +1,4 @@
-# CircuitGM Patch Editor (PatchWorker), alpha 0.1
+# CircuitGM Patch Editor (PatchWorker), for testing, v0.6
 
 **Try it:** https://guinanno1.github.io/CircuitGM/patchworker/
 
