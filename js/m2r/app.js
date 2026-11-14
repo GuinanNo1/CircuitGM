@@ -5,9 +5,9 @@ import { parseMidi } from '../midifile.js';
 import { setupMode } from '../mode.js';
 import { projectColours, PROJECT_COLOURS } from '../convert.js';
 import { Player } from '../player.js';
-import { planTracks, METHODS, ADV_ONLY_METHODS, INST_SLOTS, KIT_FIRST, isUnpitched, rootFromName, drumMap } from './engine.js?v=20261114m2r4';
-import { arrangeRhythm, playOrder, MAX_PROJECTS } from './arrange.js?v=20261114m2r4';
-import { buildRhythmProjects, buildRhythmPack, openPack, fetchBuf, usedSamples, shortName } from './build.js?v=20261114m2r4';
+import { planTracks, METHODS, ADV_ONLY_METHODS, INST_SLOTS, KIT_FIRST, isUnpitched, rootFromName, drumMap } from './engine.js?v=20261114m2r5';
+import { arrangeRhythm, playOrder, MAX_PROJECTS } from './arrange.js?v=20261114m2r5';
+import { buildRhythmProjects, buildRhythmPack, openPack, fetchBuf, usedSamples, shortName } from './build.js?v=20261114m2r5';
 
 const $ = (s) => document.querySelector(s);
 const DRUM_KITS = ['Std', 'Room', 'Power', 'Elec', '808', 'Jazz', 'Brush', 'Orch'];
@@ -22,6 +22,7 @@ const state = {
   res: null, arr: null,
   solo: -1,
   mutes: new Set(),          // muted track indices (preview and pack); cleared when the tracks change
+  barMutes: new Map(),       // 't<track>' or 'p:<part id>' -> Set of bars (from the start of the file) muted
   playingPart: null,
 };
 const player = new Player();
@@ -143,6 +144,7 @@ function recompute() {
   setPlayButton(false);
   const names = state.inst.index.samples.map((s) => s.name);
   state.mutes.clear();
+  for (const k of [...state.barMutes.keys()]) if (k[0] === 't') state.barMutes.delete(k);   // track numbers change
   state.res = planTracks(state.midi, names, kitEntries(), {
     parts: state.parts,
     range: Number($('#range').value),
@@ -258,7 +260,13 @@ function rearrange() {
   if (!state.res) return;
   player.stop();
   setPlayButton(false);
-  state.arr = arrangeRhythm(state.midi, state.res.tracks, {
+  // Bar mutes take those notes out before arranging, so they change the preview and the pack.
+  const bt = barTicksOf();
+  const off = (key, tick) => !!state.barMutes.get(key)?.has(Math.floor(tick / bt + 1e-9));
+  const tracks = state.barMutes.size
+    ? state.res.tracks.map((tr, t) => ({ ...tr, notes: tr.notes.filter((n) => !off(`t${t}`, n.tick) && !off(`p:${n.part}`, n.tick)) }))
+    : state.res.tracks;
+  state.arr = arrangeRhythm(state.midi, tracks, {
     rate: $('#rate').value === 'track' || $('#rate').value === 'auto' ? $('#rate').value : Number($('#rate').value),
     sectionBars: $('#section-bars').value,
     tempoDiv: Number($('#tempo-div').value),
@@ -277,12 +285,35 @@ function rearrange() {
   if (a.error) {
     $('#summary').innerHTML = ''; $('#warnings').innerHTML = '';
     // Everything muted: keep the grid's labels so tracks can be unmuted.
-    if (state.mutes.size) renderGrid({ ...a, projects: [], mixed: false, chunkBars: 1, barTicks: 1, startTick: 0, trackRates: [] }); else $('#grid').innerHTML = '';
+    if (state.mutes.size || state.barMutes.size) {
+      renderGrid({ ...a, projects: [], mixed: false, chunkBars: 1, barTicks: 1, startTick: 0, trackRates: [] });
+      $('#grid').insertAdjacentHTML('beforeend', '<div style="padding:8px"><button class="btn small" id="unmute-all" type="button">Unmute everything</button></div>');
+    } else $('#grid').innerHTML = '';
     return;
   }
   renderSummary(a);
   renderGrid(a);
   renderWarnings(a);
+}
+
+function barTicksOf() {
+  const m = state.midi;
+  return m.ppq * 4 * m.timeSig.num / m.timeSig.den;
+}
+
+// Mute state of a key over some bars: { has (notes there), muted (all muted), partial }.
+function muteState(key, bars) {
+  const set = state.barMutes.get(key);
+  const n = bars.filter((b) => set?.has(b)).length;
+  return { muted: n === bars.length && n > 0, partial: n > 0 && n < bars.length };
+}
+
+function toggleBars(key, bars) {
+  const set = state.barMutes.get(key) ?? new Set();
+  const all = bars.every((b) => set.has(b));
+  for (const b of bars) { if (all) set.delete(b); else set.add(b); }
+  if (set.size) state.barMutes.set(key, set); else state.barMutes.delete(key);
+  rearrange();
 }
 
 function renderSummary(a) {
@@ -365,6 +396,12 @@ function renderGrid(a) {
       partChunks.get(key).add(Math.floor((n.tick - a.startTick) / chunkTicks));
     }
   });
+  const trackChunks = new Map();
+  state.res.tracks.forEach((tr, t) => {
+    const set = new Set();
+    for (const n of tr.notes) set.add(Math.floor((n.tick - a.startTick) / chunkTicks));
+    trackChunks.set(t, set);
+  });
   const colours = projectColours(a.projects.length, 'rainbow');
   const startBar = Math.round(a.startTick / a.barTicks);
   order.forEach((o, k) => {
@@ -380,19 +417,26 @@ function renderGrid(a) {
     const sceneHead = !prev || prev.section !== o.section ? `${o.scene + 1}·${bar + 1}` : '';
     let html = `<div class="hd">${projHead}</div><div class="hd">${sceneHead}</div>`;
     for (const row of rows) {
+      const bars = Array.from({ length: a.chunkBars }, (_, i) => bar + i);
+      const range = a.chunkBars > 1 ? `bars ${bar + 1}–${bar + a.chunkBars}` : `bar ${bar + 1}`;
       if (row.kind === 'src') {
         const has = partChunks.get(`${row.t}|${row.id}`)?.has(o.chunk);
-        html += `<div class="cell src ${has ? 'on' : 'empty'}" style="--c:var(--t${row.t});cursor:default"></div>`;
+        const ms = muteState(`p:${row.id}`, bars);
+        const cls = !has ? 'empty' : ms.muted ? 'muted' : ms.partial ? 'on part' : 'on';
+        html += `<button type="button" class="cell src ${cls}" data-key="p:${esc(row.id)}" data-bars="${bars.join(',')}" style="--c:var(--t${row.t})" title="${esc(row.name)}, ${range}${has ? (ms.muted ? ' (muted): click to unmute' : ms.partial ? ' (partly muted): click to mute all' : ': click to mute') : ' (no notes)'}"${has ? '' : ' disabled'}></button>`;
         continue;
       }
       const subs = o.sub[row.t];
       const p = subs[0];
-      const muted = state.mutes.has(row.t);
+      const ms = muteState(`t${row.t}`, bars);
+      const has = trackChunks.get(row.t)?.has(o.chunk);
+      const muted = state.mutes.has(row.t) || (has && ms.muted);
       const empty = subs.every((i) => !proj.patterns[row.t]?.[i]?.steps?.length);
       const mix = 100 - (p % 8) * 8;
       const same = subs.every((i) => i === p);
       const txt = same ? `${p + 1}` : subs.every((i, j) => i === p + j) ? `${p + 1}–${subs[subs.length - 1] + 1}` : subs.map((i) => i + 1).join('·');
-      html += `<div class="cell ${muted ? 'muted' : empty ? 'empty' : ''}${txt.length > 2 ? ' multi' : ''}" style="cursor:default;${empty || muted ? '' : `background:color-mix(in srgb, var(--t${row.t}) ${mix}%, #000)`}" title="Track ${row.t + 1}: pattern ${subs.map((i) => i + 1).join(', ')}, project ${o.project + 1}, scene ${o.scene + 1}">${muted || empty ? '' : txt}</div>`;
+      const what = `Track ${row.t + 1}: pattern ${subs.map((i) => i + 1).join(', ')}, ${range}`;
+      html += `<button type="button" class="cell ${muted ? 'muted' : empty ? 'empty' : ''}${txt.length > 2 ? ' multi' : ''}" data-key="t${row.t}" data-bars="${bars.join(',')}" style="${empty || muted ? '' : `background:color-mix(in srgb, var(--t${row.t}) ${mix}%, #000)`}" title="${what}${muted ? ' (muted): click to unmute' : has ? ': click to mute these bars' : ' (empty)'}"${has && !state.mutes.has(row.t) ? '' : ' disabled'}>${muted || empty ? '' : txt}</button>`;
     }
     col.innerHTML = html;
     grid.append(col);
@@ -400,6 +444,9 @@ function renderGrid(a) {
 }
 
 function onGridClick(e) {
+  const cell = e.target.closest('.cell[data-key]');
+  if (cell && !cell.disabled) { toggleBars(cell.dataset.key, cell.dataset.bars.split(',').map(Number)); return; }
+  if (e.target.closest('#unmute-all')) { state.mutes.clear(); state.barMutes.clear(); rearrange(); return; }
   const m = e.target.closest('[data-mute]');
   if (m) {
     const t = Number(m.dataset.mute);
