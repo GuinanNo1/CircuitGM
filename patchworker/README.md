@@ -60,4 +60,4 @@ python3 -m http.server 8765 &
 node tests/ui_patchworker.cjs tests/out
 ```
 
-Not yet checked on hardware: the live CC / NRPN stream, Get, and Store. They follow the Programmer's Reference Guide.
+Not yet checked on hardware: the live CC / NRPN stream, Get, and Save to Tracks (Store). They follow the Programmer's Reference Guide.

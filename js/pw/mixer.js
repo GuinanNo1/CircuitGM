@@ -9,7 +9,7 @@
 //                                                     \-> reverb send, delay send -> FX -> bus
 import { levelGain, balance, reverbRt60, reverbHfRatio, reverbSpread, sendGain, delaySeconds,
   delayFeedback, delayWidth, delayLR, delaySlew, DELAY_ECHO_GAIN, masterFilter, sidechainShape,
-  drumDrive, drumTilt, DELAY_MAX } from './mixlaws.js?v=20261114r';
+  drumDrive, drumTilt, DELAY_MAX } from './mixlaws.js?v=20261114s';
 
 // The reverb's wet level for a full send, against the dry signal (set by ear: not measured).
 export const REVERB_WET = 0.3;

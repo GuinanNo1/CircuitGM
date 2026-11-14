@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/patchworker.css?v=20261114r">
+<link rel="stylesheet" href="../css/patchworker.css?v=20261114s">
 </head>
 <body>
 <nav class="topnav" aria-label="CircuitGM">
@@ -77,7 +77,7 @@
           <button type="button" data-act="open-syx">Open .syx…</button>
           <button type="button" data-act="save-syx">Download .syx</button>
           <hr>
-          <button type="button" data-act="copy">Copy to another slot…</button>
+          <button type="button" data-act="copy" title="Copy this patch into another slot and edit the copy">Duplicate to slot…</button>
           <button type="button" data-act="init">Start from the Initial Patch</button>
           <button type="button" data-act="revert">Revert to how the pack had it</button>
         </div>
@@ -88,9 +88,9 @@
           <button type="button" data-synth="0" class="on" title="Edit and play Synth 1 on the Circuit Tracks. This page can't change which track the Circuit Tracks itself shows.">Synth 1</button>
           <button type="button" data-synth="1" title="Edit and play Synth 2 on the Circuit Tracks. This page can't change which track the Circuit Tracks itself shows.">Synth 2</button>
         </span>
-        <button type="button" class="btn primary" id="hw-send" title="Replace what the chosen synth is playing with this patch (not stored on the Circuit Tracks)">Send</button>
+        <button type="button" class="btn primary" id="hw-send" title="Play this patch on the chosen synth now, without saving it on the Circuit Tracks. Only needed with Live off: Live sends every edit by itself." hidden>Play on Tracks</button>
         <button type="button" class="btn" id="hw-get" title="Fetch the patch the chosen synth is playing into a pack slot, to edit it here">Get</button>
-        <button type="button" class="btn quiet" id="hw-store" title="Write this patch into a patch slot on the Circuit Tracks">Store…</button>
+        <button type="button" class="btn quiet" id="hw-store" title="Save this patch into a patch slot on the Circuit Tracks itself">Save to Tracks…</button>
         <label class="check" title="Send every edit, and each patch you choose, to the Circuit Tracks as you go, and follow patch changes made on the Circuit Tracks. Ticking this sends the patch you are editing."><input type="checkbox" id="hw-live" checked> Live</label>
       </div>
     </header>
@@ -173,6 +173,6 @@
 </dialog>
 <input type="file" id="file-pack" accept=".circuittrackspack,.zip" hidden>
 <input type="file" id="file-syx" accept=".syx" multiple hidden>
-<script type="module" src="../js/patchworker.js?v=20261114r"></script>
+<script type="module" src="../js/patchworker.js?v=20261114s"></script>
 </body>
 </html>

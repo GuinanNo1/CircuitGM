@@ -71,7 +71,7 @@ export function buildPanel(root, api) {
   const lcd = h('p', { class: 'panel-lcd', role: 'status' });
   const hint = h('p', { class: 'panel-hint' });
   const pages = h('div', { class: 'pages seg', role: 'group', 'aria-label': 'Pages' });
-  const copyBtn = h('button', { type: 'button', class: 'btn small', 'aria-pressed': 'false', title: 'Copy the patch being edited onto another pad: press this, then the pad', onclick: () => { st.copying = !st.copying; paint(); } });
+  const copyBtn = h('button', { type: 'button', class: 'btn small', 'aria-pressed': 'false', title: 'Duplicate the patch being edited onto another pad and edit the copy: press this, then the pad', onclick: () => { st.copying = !st.copying; paint(); } });
   const revertBtn = h('button', { type: 'button', class: 'btn small', text: 'Revert', title: 'Put back the patch the pack had in this slot', onclick: () => api.revert() });
   const tools = h('div', { class: 'pad-tools' }, pages, h('span', { class: 'grow' }), copyBtn, revertBtn);
   const grid = h('div', { class: 'pads', role: 'group', 'aria-label': 'Pads' });
@@ -181,7 +181,7 @@ export function buildPanel(root, api) {
     copyBtn.hidden = revertBtn.hidden = !synth;
     if (synth) {
       const info = api.slotInfo(api.slot());
-      copyBtn.textContent = st.copying ? 'Cancel copy' : 'Copy to pad…';
+      copyBtn.textContent = st.copying ? 'Cancel' : 'Duplicate to pad…';
       copyBtn.classList.toggle('on', st.copying);
       copyBtn.setAttribute('aria-pressed', String(st.copying));
       revertBtn.disabled = !info.edited;
@@ -272,7 +272,7 @@ export function buildPanel(root, api) {
     paintPages();
     if (v.id === 'preset') {
       if (t.kind === 'synth') hint.textContent = st.copying
-        ? 'Press the pad to copy the patch being edited onto. Esc cancels.'
+        ? 'Press the pad to duplicate the patch being edited onto. Esc cancels.'
         : 'Press a pad to edit that patch; it plays while you hold the pad. An orange dot marks a patch changed since the pack was opened, a ring one fetched from the Circuit Tracks.';
       else if (t.kind === 'drum') hint.textContent = `Press a pad to choose ${t.label}'s sample and hear it. A project sets each drum's sample when the Projects view comes (step 3).`;
       else hint.textContent = 'MIDI tracks have no presets here.';

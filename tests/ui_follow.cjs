@@ -398,14 +398,14 @@ const { chromium } = require('playwright');
   check('Store asks for the pack from the Tracks\' list', await q.evaluate(() => [...document.querySelectorAll('#dlg select')[0].options].map((o) => o.text).join() === 'Choose the pack…,00_Other,01_Live Pack'));
   await dlgDo(() => { document.querySelectorAll('#dlg select')[0].value = '1'; document.querySelector('#dlg-ok').click(); });
   await q.waitForFunction(() => /and checked/.test(document.querySelector('#toast')?.textContent ?? ''), null, { timeout: 8000 }).catch(() => {});
-  check(`a Store is read back and confirmed (${await q.evaluate(() => document.querySelector('#toast')?.textContent)})`, await q.evaluate(() => /Stored in patch slot 007 of "01_Live Pack" on the Circuit Tracks, and checked/.test(document.querySelector('#toast')?.textContent ?? '') && window.simTracks.packs[1][6] && window.simTracks.packs[1][6].every((v, i) => v === window.patchworker.S.bytes[i])));
+  check(`a Store is read back and confirmed (${await q.evaluate(() => document.querySelector('#toast')?.textContent)})`, await q.evaluate(() => /Saved to patch slot 007 of "01_Live Pack" on the Circuit Tracks, and checked/.test(document.querySelector('#toast')?.textContent ?? '') && window.simTracks.packs[1][6] && window.simTracks.packs[1][6].every((v, i) => v === window.patchworker.S.bytes[i])));
   // A Store the Tracks ignores is reported.
   await q.evaluate(() => { window.simTracks.ignoreStore = true; window.patchworker.selectSlot(10); window.patchworker.storeOnTracks(10); });
   await waitDlg();
   check('Store pre-selects the pack used last time', await q.evaluate(() => document.querySelectorAll('#dlg select')[0].value === '1'));
   await dlgDo(() => document.querySelector('#dlg-ok').click());
-  await q.waitForFunction(() => document.querySelector('#dlg').open && /Store not confirmed/.test(document.querySelector('#dlg-title').textContent), null, { timeout: 8000 }).catch(() => {});
-  check('a Store the Tracks ignored is reported as not confirmed', await q.evaluate(() => /Store not confirmed/.test(document.querySelector('#dlg-title').textContent) && /has nothing in patch slot 011/.test(document.querySelector('#dlg-body').textContent)));
+  await q.waitForFunction(() => document.querySelector('#dlg').open && /Save not confirmed/.test(document.querySelector('#dlg-title').textContent), null, { timeout: 8000 }).catch(() => {});
+  check('a Store the Tracks ignored is reported as not confirmed', await q.evaluate(() => /Save not confirmed/.test(document.querySelector('#dlg-title').textContent) && /has nothing in patch slot 011/.test(document.querySelector('#dlg-body').textContent)));
   await dlgDo(() => document.querySelector('#dlg-cancel').click());
   // From Tracks: pack 1's patches into the pack open here, undoable per slot.
   const before = await q.evaluate(() => ({ s3: window.patchworker.S.pack.patches[3].slice(0, 16).join(), s6: window.patchworker.S.pack.patches[6].slice() }));

@@ -199,11 +199,14 @@ const fakeMidi = () => {
   check(await page.inputValue('#patch-name') === 'From Synth 2' && (await page.innerText('#ed-what')).includes('fetched from Synth 2 on the Circuit Tracks') && await page.locator('#patchlist li[data-slot="38"].from-hw').count() === 1,
     `a fetched patch is labelled as from the Circuit Tracks (${await page.innerText('#ed-what')})`);
   check(!msgs.some((m) => m.length === 350) && (await page.getAttribute('#ed-hw', 'data-state')) === 'same', 'a fetched patch is not sent back to the synth it came from');
-  // Live off: later edits leave the synth with an older version until Send.
+  check(await page.locator('#hw-send').isHidden(), 'Play on Tracks is hidden while Live is on');
+  // Live off: later edits leave the synth with an older version until Play on Tracks.
   await page.uncheck('#hw-live');
+  check(await page.locator('#hw-send').isVisible() && (await page.innerText('#hw-send')) === 'Play on Tracks', 'Play on Tracks shows with Live off');
   await page.evaluate(() => window.patchworker.setByte(75, 31));
   msgs = await sent();
   check(msgs.length === 0 && (await page.innerText('#ed-hw')).includes('older version'), 'with Live off the status line says the synth is behind');
+  check((await page.innerText('#ed-hw')).includes('press Play on Tracks'), 'the status line names Play on Tracks');
   await page.check('#hw-live');
   msgs = await sent();
   check(msgs.some((m) => m.length === 350) && (await page.getAttribute('#ed-hw', 'data-state')) === 'same', 'ticking Live sends the patch');

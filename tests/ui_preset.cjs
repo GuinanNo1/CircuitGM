@@ -40,7 +40,7 @@ const { chromium } = require('playwright');
     await p.evaluate(() => { const w = window.patchworker; w.setByte(20, (w.S.bytes[20] + 1) & 127); });
     check(`${name}: an edited patch gets its mark`, await p.evaluate(() => document.querySelector('.pad[data-slot="100"]').classList.contains('edited')));
     // Copy to pad 102 (not empty: asks first).
-    await p.click('.pad-tools .btn >> text=Copy to pad…');
+    await p.click('.pad-tools .btn >> text=Duplicate to pad…');
     check(`${name}: Copy to pad makes the other pads targets`, await p.evaluate(() => document.querySelectorAll('.pad.preset.target').length === 31));
     await p.click('.pad[data-slot="101"]');
     const dlg = await p.waitForSelector('dialog[open]');

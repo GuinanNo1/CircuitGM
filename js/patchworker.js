@@ -3,12 +3,12 @@
 import { P, PATCH_SIZE, OSC_WAVES, FILTER_TYPES, DRIVE_TYPES, LFO_WAVES, POLY_MODES, ROUTINGS,
   FADE_MODES, CATEGORIES, GENRES, MOD_SOURCES, MOD_DESTS, MACRO_DESTS, MOD_SLOTS, FMT, modAddr,
   macroPosAddr, macroAddr, macroRows, initPatch, getName, setName, parseSyx, toSyx, sanitise,
-  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114r';
-import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114r';
-import { TracksLink, VIEW_CODES } from './pw/midi.js?v=20261114r';
+  cutoffHz, eqDb, eqHz, syncName } from './pw/params.js?v=20261114s';
+import { PatchSynth, waveTable, lfoShape, envelopePoints } from './pw/engine.js?v=20261114s';
+import { TracksLink, VIEW_CODES } from './pw/midi.js?v=20261114s';
 import { openPack, buildPack, bankSyx, slotEdited, slotBlank, editedSlots, projectsFollowing, download,
-  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114r';
-import { buildPanel } from './pw/panel.js?v=20261114r';
+  fileSafe, session, PATCH_SLOTS } from './pw/packio.js?v=20261114s';
+import { buildPanel } from './pw/panel.js?v=20261114s';
 
 const DEFAULT_PACK = '../tracksgm/TracksGM_v1.circuittrackspack';
 const $ = (s) => document.querySelector(s);
@@ -737,12 +737,14 @@ function paintStatus() {
   if (link.connected) {
     const hw = S.hw[S.synth];
     if (hw.slot === S.slot && !hw.dirty) { text = `${n} is playing this patch${$('#hw-live').checked ? ': edits go to it as you make them' : ' (Live is off: later edits stay here)'}`; state = 'same'; }
-    else if (hw.slot === S.slot) { text = `${n} has an older version of this patch: press Send to update it`; state = 'differs'; }
+    else if (hw.slot === S.slot) { text = `${n} has an older version of this patch: press Play on Tracks to update it`; state = 'differs'; }
     else if (hw.slot != null) { text = `${n} is playing ${slotLabel(hw.slot)}, not this patch`; state = 'differs'; }
     else if (hw.bytes) { text = `${n} is playing "${getName(hw.bytes)}", which is not in this pack: Get brings it in`; state = 'differs'; }
     else { text = `${n} is playing its own patch, not this one`; state = 'differs'; }
   }
   el.textContent = text;
+  // Play on Tracks is only needed when Live won't send the patch by itself.
+  $('#hw-send').hidden = !link.connected || (hwLive() && !(S.hw[S.synth]?.slot === S.slot && S.hw[S.synth]?.dirty));
   el.dataset.state = state;
   $('#editing').title = 'Edits are kept in this browser until you download the pack. Nothing is stored on the Circuit Tracks unless you press Store.';
 }
@@ -891,8 +893,8 @@ async function offerSync() {
   const name = getName(S.bytes);
   const choice = await ask(`${n} on the Circuit Tracks`, [
     `${n} is playing ${hw.slot != null ? slotLabel(hw.slot) : hw.bytes ? `"${getName(hw.bytes)}", which is not in this pack` : 'its own patch'}. Here you are editing ${slotLabel(S.slot)} from the pack.`,
-    `Sending replaces what ${n} is playing now. Nothing is stored on the Circuit Tracks unless you press Store, but a patch you have changed on the Circuit Tracks and not saved would be lost.`,
-  ], `Send "${name}"`, { alt: `Edit ${n}'s patch…`, cancel: 'Not now: keep my edits here' });
+    `Sending replaces what ${n} is playing now. Nothing is saved on the Circuit Tracks unless you press Save to Tracks, but a patch you have changed on the Circuit Tracks and not saved would be lost.`,
+  ], `Play "${name}" on ${n}`, { alt: `Edit ${n}'s patch…`, cancel: 'Not now: keep my edits here' });
   offering = false;
   if (choice === true) hwSend();
   else if (choice === 'alt' && link.in) { if ((await getFromTracks()) == null) S.hw[S.synth].declined = S.slot; }
@@ -928,7 +930,7 @@ async function patchAction(act) {
     const paintNote = () => { note.textContent = replaceNote(+sel.value); note.classList.toggle('warn', slotEdited(S.pack, +sel.value)); };
     sel.addEventListener('change', paintNote);
     paintNote();
-    if (!(await ask(`Copy "${getName(S.bytes)}"`, [h('label', { class: 'field' }, 'To pack slot ', sel), note], 'Replace slot'))) return;
+    if (!(await ask(`Duplicate "${getName(S.bytes)}"`, [h('label', { class: 'field' }, 'To pack slot ', sel), note, h('p', { class: 'hint', text: 'You then edit the copy; the original stays as it is.' })], 'Duplicate'))) return;
     copyTo(+sel.value);
   }
 }
@@ -941,12 +943,12 @@ function copyTo(target) {
   S.bytes.set(src);
   setOrigin(S.slot, 'copy', `copied from slot ${from}`);
   changed(null);
-  toast(`Copied to slot ${pad3(S.slot + 1)}. Undo brings back what was there.`);
+  toast(`Duplicated to slot ${pad3(S.slot + 1)}: you are now editing the copy. Undo brings back what was there.`, 5000);
 }
 // Copy onto a pad in the Tracks panel: ask first unless the slot is empty.
 async function copyToPad(target) {
   if (target === S.slot) return;
-  if (!slotBlank(S.pack, target) && !(await ask(`Copy "${getName(S.bytes)}" to slot ${pad3(target + 1)}?`, [h('p', { class: `hint${slotEdited(S.pack, target) ? ' warn' : ''}`, text: replaceNote(target) })], 'Replace slot'))) return;
+  if (!slotBlank(S.pack, target) && !(await ask(`Duplicate "${getName(S.bytes)}" to slot ${pad3(target + 1)}?`, [h('p', { class: `hint${slotEdited(S.pack, target) ? ' warn' : ''}`, text: replaceNote(target) })], 'Duplicate'))) return;
   copyTo(target);
 }
 
@@ -1200,25 +1202,25 @@ async function storeOnTracks(slot = S.slot) {
   if (!packs) return false;
   const packSel = packChooser(packs);
   const sel = slotSelect(slot);
-  if (!(await ask('Store on the Circuit Tracks', [`Writes "${getName(S.bytes)}" into a patch slot of a pack on the Circuit Tracks, replacing the patch that is there now. This cannot be undone from here.`,
+  if (!(await ask('Save to the Circuit Tracks', [`Saves "${getName(S.bytes)}" into a patch slot of a pack on the Circuit Tracks, replacing the patch that is there now. This cannot be undone from here.`,
     h('label', { class: 'field' }, 'Pack on the Circuit Tracks ', packSel),
     h('label', { class: 'field' }, 'Patch slot ', sel),
-    h('p', { class: 'hint', text: 'Choose the pack that is loaded on your Circuit Tracks to change the patches you play. The slot names listed are from the pack open here.' })], 'Store'))) return false;
-  if (packSel.value === '') { toast('No pack chosen: nothing was stored.'); return false; }
+    h('p', { class: 'hint', text: 'Choose the pack that is loaded on your Circuit Tracks to change the patches you play. The slot names listed are from the pack open here.' })], 'Save'))) return false;
+  if (packSel.value === '') { toast('No pack chosen: nothing was saved.'); return false; }
   const pack = +packSel.value, to = +sel.value, sent = S.bytes.slice(0, 340);
   rememberPack(packs[pack]);
-  toast('Storing on the Circuit Tracks…');
+  toast('Saving to the Circuit Tracks…');
   let ok = false;
   try { ok = await link.writeSlot(sent, pack, to); } catch (e) { toast(e.message); return false; }
-  if (!ok) { toast('The Circuit Tracks could not be reached: nothing was stored.'); return false; }
+  if (!ok) { toast('The Circuit Tracks could not be reached: nothing was saved.'); return false; }
   for (const hw of S.hw) if (hw.slot === S.slot) hw.edited = false;
   // Read it back: the Tracks says nothing when it takes (or ignores) a Store.
   let back = null, readErr = null;
   try { back = await link.readSlot(pack, to); } catch (e) { readErr = e.message; }
   const where = `patch slot ${pad3(to + 1)} of "${packs[pack]}"`;
-  if (back && sameBytes(back, sent)) toast(`Stored in ${where} on the Circuit Tracks, and checked.`);
-  else if (readErr) toast(`Stored in ${where}, but it could not be read back to check (${readErr}).`, 7000);
-  else await ask('Store not confirmed', [`The Circuit Tracks has ${back ? `"${getName(back)}", not exactly the patch sent,` : 'nothing'} in ${where}. Try Store again, or put the pack on the Circuit Tracks with Novation Components.`], 'OK', { cancel: 'Close' });
+  if (back && sameBytes(back, sent)) toast(`Saved to ${where} on the Circuit Tracks, and checked.`);
+  else if (readErr) toast(`Saved to ${where}, but it could not be read back to check (${readErr}).`, 7000);
+  else await ask('Save not confirmed', [`The Circuit Tracks has ${back ? `"${getName(back)}", not exactly the patch sent,` : 'nothing'} in ${where}. Try Save to Tracks again, or put the pack on the Circuit Tracks with Novation Components.`], 'OK', { cancel: 'Close' });
   return true;
 }
 
@@ -1263,9 +1265,9 @@ async function leaveEdited(cancellable) {
   if (!link.connected || hw.slot !== S.slot || !hw.edited) return true;
   const n = `Synth ${S.synth + 1}`;
   const choice = await ask(`Keep your changes to "${getName(S.bytes)}"?`, [
-    `${n} on the Circuit Tracks ${cancellable ? 'is playing' : 'was playing'} your changed ${slotLabel(S.slot)}. The Circuit Tracks forgets those changes when it changes patch unless they are stored on it.`,
+    `${n} on the Circuit Tracks ${cancellable ? 'is playing' : 'was playing'} your changed ${slotLabel(S.slot)}. The Circuit Tracks forgets those changes when it changes patch unless they are saved on it.`,
     'They stay in the pack open here either way, until you download the pack.',
-  ], 'Store on the Circuit Tracks…', { alt: 'Save .syx', alt2: cancellable ? 'Don\'t save' : null, cancel: cancellable ? 'Cancel' : 'Don\'t save' });
+  ], 'Save to Tracks…', { alt: 'Save .syx', alt2: cancellable ? 'Don\'t save' : null, cancel: cancellable ? 'Cancel' : 'Don\'t save' });
   if (choice === false && cancellable) return false;
   hw.edited = false;
   if (choice === true) await storeOnTracks();
@@ -1587,7 +1589,7 @@ function bindUI() {
     tracksPanel?.paint();
     if (hwLive()) followTracks(S.synth);
   }));
-  $('#hw-send').addEventListener('click', () => { if (hwSend()) toast(`Sent "${getName(S.bytes)}" to Synth ${S.synth + 1}.`); });
+  $('#hw-send').addEventListener('click', () => { if (hwSend()) toast(`Playing "${getName(S.bytes)}" on Synth ${S.synth + 1} (not saved on the Circuit Tracks).`); });
   $('#hw-get').addEventListener('click', getFromTracks);
   $('#hw-live').addEventListener('change', (e) => { if (e.target.checked && link.connected) hwSend(); paintStatus(); });
   $('#hw-store').addEventListener('click', () => storeOnTracks());
