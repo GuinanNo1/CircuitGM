@@ -5,9 +5,14 @@ import { parseMidi } from '../midifile.js';
 import { setupMode } from '../mode.js';
 import { projectColours, PROJECT_COLOURS } from '../convert.js';
 import { Player } from '../player.js';
-import { planTracks, METHODS, ADV_ONLY_METHODS, INST_SLOTS, KIT_FIRST, isUnpitched, rootFromName, drumMap } from './engine.js?v=20261114m2r6';
-import { arrangeRhythm, playOrder, MAX_PROJECTS } from './arrange.js?v=20261114m2r6';
-import { buildRhythmProjects, buildRhythmPack, openPack, fetchBuf, usedSamples, shortName } from './build.js?v=20261114m2r6';
+import { planTracks, METHODS, ADV_ONLY_METHODS, INST_SLOTS, KIT_FIRST, isUnpitched, rootFromName, drumMap } from './engine.js?v=20261114m2r7';
+import { arrangeRhythm, playOrder, MAX_PROJECTS } from './arrange.js?v=20261114m2r7';
+import { buildRhythmProjects, buildRhythmPack, openPack, fetchBuf, usedSamples, shortName } from './build.js?v=20261114m2r7';
+
+// Shown next to "For testing" (from the code actually running, so a stale cached page shows
+// its own version). Bump it, with a line in help.html's version list, on every change.
+export const VERSION = '0.6';
+export const VERSION_DATE = '14 Nov 2026';
 
 const $ = (s) => document.querySelector(s);
 const DRUM_KITS = ['Std', 'Room', 'Power', 'Elec', '808', 'Jazz', 'Brush', 'Orch'];
@@ -31,6 +36,8 @@ const mode = setupMode('m2r');
 init();
 
 async function init() {
+  const v = $('#version');
+  if (v) { v.textContent = `v${VERSION}`; v.parentElement.title = `MIDI2Rhythm v${VERSION}, ${VERSION_DATE}`; }
   wireLoad();
   for (const id of ['#kit', '#range', '#drum-tracks', '#arp-rate', '#share', '#autosplit']) $(id).addEventListener('change', recompute);
   for (const id of ['#rate', '#section-bars', '#tempo-div', '#match', '#align', '#trimstart']) $(id).addEventListener('change', rearrange);
@@ -48,7 +55,7 @@ async function init() {
     const [inst, drum, tpl, dmeta, lmeta] = await Promise.all([
       fetchBuf('../rhythmgm/RhythmInstGM.circuitrhythmpack').then(openPack),
       fetchBuf('../rhythmgm/RhythmDrumGM.circuitrhythmpack').then(openPack),
-      fetchBuf('../data/RhythmEmpty.ncs?v=20261114m2r6'),
+      fetchBuf('../data/RhythmEmpty.ncs?v=20261114m2r7'),
       fetch('../rhythmgm/rhythmdrumgm_samples.json').then((r) => r.json()),
       fetch('../rhythmgm/rhythmlatingm_samples.json').then((r) => r.json()),
     ]);

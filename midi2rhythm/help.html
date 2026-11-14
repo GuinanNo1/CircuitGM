@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/app.css?v=20261114m2r">
+<link rel="stylesheet" href="../css/app.css?v=20261114m2r7">
 </head>
 <body>
 <nav class="sitenav" aria-label="CircuitGM">
@@ -29,7 +29,7 @@
 <header class="masthead">
   <div class="wrap">
     <p class="crumbs"><a href="./">← Back to MIDI2Rhythm</a></p>
-    <h1>MIDI2Rhythm help <span>CircuitGM MIDI to Circuit Rhythm Converter</span> <em class="badge">For testing</em></h1>
+    <h1>MIDI2Rhythm help <span>CircuitGM MIDI to Circuit Rhythm Converter</span> <em class="badge">For testing · v0.6</em></h1>
     <p class="lede">How MIDI2Rhythm fits a General MIDI song onto the Circuit Rhythm's eight tracks.</p>
   </div>
 </header>
@@ -91,6 +91,19 @@
     <h2>The pack</h2>
     <p>RhythmInstGM's samples 1–112 keep their GM program numbers; slots 113–128 hold the 16 sounds of the chosen RhythmDrumGM or RhythmLatinGM kit, so GM programs 113–128 aren't available. Tinkle Bell, Agogo, Steel Drums, Woodblock, Taiko, Melodic Tom and Synth Drum play on a similar instrument; the sound effects (Reverse Cymbal to Gunshot) are left out unless you choose another sound for them in Advanced.</p>
     <p>The arrangement works as in MIDI2Circuit: patterns of up to 32 steps, sections as scenes in one scene chain, identical patterns reused, and a new project when 8 patterns per track or 16 scenes run out. Each track can have its own step rate. Projects start from a project saved empty on the Circuit Rhythm, so mixer and FX settings are the hardware's defaults.</p>
+  </section>
+
+  <section class="panel">
+    <h2>Versions</h2>
+    <p>The version is shown next to "For testing" at the top of the page. If it's older than the newest one here, refresh the page (Shift-reload); GitHub Pages can take about 10 minutes to serve a new version.</p>
+    <ul>
+      <li><b>v0.6</b> (14 Nov 2026): every track's Tune set to the centre, so packs play in tune (track 4 was about 1.8 semitones flat). Version number added.</li>
+      <li><b>v0.5</b> (14 Nov 2026): mute bars by clicking boxes in the arrangement grid.</li>
+      <li><b>v0.4</b> (14 Nov 2026): play button for each part; track mute dots; grid laid out as in MIDI2Circuit.</li>
+      <li><b>v0.3</b> (14 Nov 2026): Activity column.</li>
+      <li><b>v0.2</b> (14 Nov 2026): chord parts split into voices on free tracks (Auto); drum track limit moved to step 2.</li>
+      <li><b>v0.1</b> (14 Nov 2026): first test version.</li>
+    </ul>
   </section>
 
   <section class="panel">

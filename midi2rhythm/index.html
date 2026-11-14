@@ -9,8 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/app.css?v=20261114m2r6">
-<link rel="stylesheet" href="../css/m2r.css?v=20261114m2r6">
+<link rel="stylesheet" href="../css/app.css?v=20261114m2r7">
+<link rel="stylesheet" href="../css/m2r.css?v=20261114m2r7">
 <script>(function(){var r=document.documentElement;try{if(localStorage.getItem('circuitgm-advanced-m2r')!=='1')r.classList.add('simple')}catch(e){r.classList.add('simple')}})();</script>
 </head>
 <body>
@@ -30,7 +30,7 @@
 </nav>
 <header class="masthead">
   <div class="wrap">
-    <h1>MIDI2Rhythm <span>MIDI to Circuit Rhythm converter</span> <em class="badge">For testing</em></h1>
+    <h1>MIDI2Rhythm <span>MIDI to Circuit Rhythm converter</span> <em class="badge" title="Version of the MIDI2Rhythm code running in this page">For testing · <span id="version">v0.6</span></em></h1>
     <p class="helplinks"><a href="help.html">How it works</a></p>
     <p class="lede">Turn a General MIDI file into a Novation Circuit Rhythm pack. Every Rhythm track plays one note at a time, so MIDI2Rhythm picks the parts that matter most (drums, bass, melody, then the busiest), turns chords into a single line, keeps each line near its sample's own pitch, and builds a <code>.circuitrhythmpack</code> on <a href="../rhythmgm/">RhythmInstGM</a> with a RhythmDrumGM kit in slots 113–128.</p>
     <p class="alpha">For testing: not yet tried on a Circuit Rhythm. The project format is reverse-engineered, so keep a backup of your packs, and please report anything odd on <a href="https://github.com/GuinanNo1/CircuitGM/issues">GitHub</a>.</p>
@@ -144,6 +144,6 @@
   <p>Samples: <a href="https://github.com/mrbumpy409/GeneralUser-GS">GeneralUser GS</a> by S. Christian Collins (<a href="../rhythmgm/LICENSE-GeneralUser-GS.txt">licence</a>). Not affiliated with Novation or Focusrite; "Circuit Rhythm" and "Components" are their trademarks.</p>
 </footer>
 
-<script type="module" src="../js/m2r/app.js?v=20261114m2r6"></script>
+<script type="module" src="../js/m2r/app.js?v=20261114m2r7"></script>
 </body>
 </html>
