@@ -27,14 +27,5 @@
 .budget .slot .tl { font-weight: 600; font-size: 0.9rem; overflow-wrap: anywhere; line-height: 1.25; }
 .budget .slot .tr { color: var(--muted); font-size: 0.8rem; }
 .hint.small { font-size: 0.85rem; margin-top: 12px; }
-.m2r-grid { display: grid; grid-auto-rows: 26px; gap: 2px; padding: 8px; min-width: max-content; font-size: 0.75rem; }
-.m2r-grid .lab { position: sticky; left: 0; background: var(--panel); display: flex; align-items: center; gap: 6px; padding-right: 8px; white-space: nowrap; max-width: 190px; overflow: hidden; z-index: 1; }
-.m2r-grid .lab .nm { overflow: hidden; text-overflow: ellipsis; }
-.m2r-grid .lab .solo { font: 600 0.66rem var(--mono); border: 1px solid var(--line); background: var(--panel); color: var(--muted); border-radius: 4px; padding: 0 4px; cursor: pointer; }
-.m2r-grid .lab .solo.on { background: var(--ink); color: var(--panel); }
-.m2r-grid .hd { color: var(--muted); font: 500 0.68rem var(--mono); display: flex; align-items: flex-end; justify-content: center; }
-.m2r-grid .hd.proj { border-left: 2px solid var(--ink); }
-.m2r-grid .c { min-width: 26px; border-radius: 3px; background: var(--cell-empty); color: #fff; font: 600 0.68rem var(--mono); display: flex; align-items: center; justify-content: center; }
-.m2r-grid .c.proj { box-shadow: -2px 0 0 var(--ink); }
-.m2r-grid .c.now { outline: 2px solid var(--ink); outline-offset: -1px; }
 .m2r-trackopts { margin: 0 0 12px; align-items: center; }
+.m2r-parts .c-play { width: 40px; }

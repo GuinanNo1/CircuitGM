@@ -18,7 +18,7 @@ const fs = require('fs');
     await page.goto('http://localhost:8765/midi2rhythm/index.html');
     await page.waitForFunction(() => document.querySelector('#base-status').textContent.startsWith('Ready'), null, { timeout: 30000 });
     await page.setInputFiles('#file', mid);
-    await page.waitForSelector('#step-arrange:not([hidden]) .m2r-grid .c');
+    await page.waitForSelector('#step-arrange:not([hidden]) .grid .col');
     if (name === 'desktop') {
       const rows = await page.$$eval('#parts tbody tr', (r) => r.length);
       const slots = await page.$$eval('#budget .slot:not(.empty)', (r) => r.length);
@@ -32,11 +32,23 @@ const fs = require('fs');
         await page.waitForTimeout(300);
         ok((await page.$eval('#parts select[data-method]', (s) => s.value)) === 'arp', 'arpeggio chosen in Advanced');
       }
+      // play one part, then mute and unmute track 1 with its dot
+      await page.click('#parts .playbtn');
+      await page.waitForTimeout(800);
+      ok(await page.$eval('#parts .playbtn', (b) => b.classList.contains('on')), 'part play button on');
+      await page.click('#parts .playbtn');
+      const before = (await page.textContent('#summary')).replace(/\s+/g, ' ');
+      await page.click('#grid .row-label [data-mute="0"]');
+      await page.waitForTimeout(300);
+      ok(await page.$eval('#grid [data-mute="0"]', (b) => b.classList.contains('off')), 'track 1 muted by its dot');
+      await page.click('#grid .row-label [data-mute="0"]');
+      await page.waitForTimeout(300);
+      ok((await page.textContent('#summary')).replace(/\s+/g, ' ') === before, 'unmuted: arrangement back as before');
       await page.click('#play');
       await page.waitForFunction(() => document.querySelector('#play').textContent === 'Stop', null, { timeout: 30000 });
       await page.waitForTimeout(2500);
       const t = await page.textContent('#time');
-      ok(t !== '0:00', `preview clock ${t}, now column ${await page.$$eval('.c.now', (x) => x.length)}`);
+      ok(t !== '0:00', `preview clock ${t}, now column ${await page.$$eval('.col.now', (x) => x.length)}`);
       await page.click('#play');
       const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.click('#build')]);
       const p = `${shots}/ui-m2r.circuitrhythmpack`;

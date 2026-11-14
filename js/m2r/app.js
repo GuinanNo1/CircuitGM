@@ -3,22 +3,26 @@
 // tracks), js/m2r/arrange.js (patterns, scenes, projects) and js/m2r/build.js (pack).
 import { parseMidi } from '../midifile.js';
 import { setupMode } from '../mode.js';
-import { projectColours } from '../convert.js';
+import { projectColours, PROJECT_COLOURS } from '../convert.js';
 import { Player } from '../player.js';
-import { planTracks, METHODS, ADV_ONLY_METHODS, INST_SLOTS, KIT_FIRST, isUnpitched } from './engine.js?v=20261114m2r3';
-import { arrangeRhythm, playOrder, MAX_PROJECTS } from './arrange.js?v=20261114m2r3';
-import { buildRhythmProjects, buildRhythmPack, openPack, fetchBuf, usedSamples, shortName } from './build.js?v=20261114m2r3';
+import { planTracks, METHODS, ADV_ONLY_METHODS, INST_SLOTS, KIT_FIRST, isUnpitched, rootFromName, drumMap } from './engine.js?v=20261114m2r4';
+import { arrangeRhythm, playOrder, MAX_PROJECTS } from './arrange.js?v=20261114m2r4';
+import { buildRhythmProjects, buildRhythmPack, openPack, fetchBuf, usedSamples, shortName } from './build.js?v=20261114m2r4';
 
 const $ = (s) => document.querySelector(s);
 const DRUM_KITS = ['Std', 'Room', 'Power', 'Elec', '808', 'Jazz', 'Brush', 'Orch'];
 const LATIN_KITS = ['Std', 'Room', 'Power', 'Elec', '808', 'Dance', 'Jazz', 'Brush'];
 const NAME_MAX = 16;
+const PLAY_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1l9 5-9 5z"/></svg>';
+const STOP_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="2" width="8" height="8"/></svg>';
 const state = {
   midi: null, fileName: '',
   inst: null, packs: {}, meta: {}, template: null,
   parts: new Map(),          // source id -> { on, method, sample }
   res: null, arr: null,
   solo: -1,
+  mutes: new Set(),          // muted track indices (preview and pack); cleared when the tracks change
+  playingPart: null,
 };
 const player = new Player();
 const mode = setupMode('m2r');
@@ -138,6 +142,7 @@ function recompute() {
   player.stop();
   setPlayButton(false);
   const names = state.inst.index.samples.map((s) => s.name);
+  state.mutes.clear();
   state.res = planTracks(state.midi, names, kitEntries(), {
     parts: state.parts,
     range: Number($('#range').value),
@@ -201,13 +206,14 @@ function renderParts() {
       track = r.tracks.map((i) => trackTag(i, state.res.tracks[i].roles.join(', '))).join('<br>');
       if (r.dropped) track += `<span class="tracktag none">${r.dropped} voice${r.dropped > 1 ? 's' : ''}: no track left</span>`;
     } else track = '<span class="tracktag none">No track left</span>';
-    tr.innerHTML = `<td class="c-on"><input type="checkbox" data-on="${r.id}" ${cfg.on !== false ? 'checked' : ''} aria-label="Use ${esc(r.name)}"></td>
+    tr.innerHTML = `<td class="c-play"><button class="playbtn" type="button" data-play="${r.id}" aria-label="Play ${esc(r.name)}" title="Hear this part as the Rhythm will play it">${PLAY_ICON}</button></td><td class="c-on"><input type="checkbox" data-on="${r.id}" ${cfg.on !== false ? 'checked' : ''} aria-label="Use ${esc(r.name)}"></td>
       <td><div class="pname">${esc(r.name)}</div><div class="psub">${esc(r.instrument)}</div></td>
       <td class="c-num">${r.notes}</td><td class="c-roll"><canvas class="roll" width="400" height="56" data-roll="${r.id}" aria-label="When ${esc(r.name)} plays"></canvas></td><td>${type}</td><td>${method}</td><td>${sound}</td><td class="adv">${range}</td><td>${track}</td>`;
     tb.append(tr);
   }
   const len = Math.max(1, state.midi.lengthTicks);
   tb.querySelectorAll('canvas[data-roll]').forEach((cv) => drawRoll(cv, state.midi.sources.find((x) => x.id === cv.dataset.roll), len));
+  tb.querySelectorAll('[data-play]').forEach((b) => b.addEventListener('click', () => togglePartPlay(b.dataset.play, b)));
   tb.querySelectorAll('[data-on]').forEach((el) => el.addEventListener('change', () => { state.parts.get(el.dataset.on).on = el.checked; recompute(); }));
   tb.querySelectorAll('[data-method]').forEach((el) => el.addEventListener('change', () => { state.parts.get(el.dataset.method).method = el.value; recompute(); }));
   tb.querySelectorAll('[data-sample]').forEach((el) => el.addEventListener('change', () => { state.parts.get(el.dataset.sample).sample = el.value === '' ? undefined : Number(el.value); recompute(); }));
@@ -259,6 +265,7 @@ function rearrange() {
     match: $('#match').value,
     align: $('#align').checked,
     trimStart: $('#trimstart').checked,
+    mutes: state.mutes,
   });
   const a = state.arr;
   const errors = [];
@@ -267,7 +274,12 @@ function rearrange() {
   $('#errors').innerHTML = errors.map((e) => `<li>${esc(e)}</li>`).join('');
   $('#build').disabled = !!errors.length;
   $('#play').disabled = !!a.error;
-  if (a.error) { $('#summary').innerHTML = ''; $('#grid').innerHTML = ''; $('#warnings').innerHTML = ''; return; }
+  if (a.error) {
+    $('#summary').innerHTML = ''; $('#warnings').innerHTML = '';
+    // Everything muted: keep the grid's labels so tracks can be unmuted.
+    if (state.mutes.size) renderGrid({ ...a, projects: [], mixed: false, chunkBars: 1, barTicks: 1, startTick: 0, trackRates: [] }); else $('#grid').innerHTML = '';
+    return;
+  }
   renderSummary(a);
   renderGrid(a);
   renderWarnings(a);
@@ -289,31 +301,119 @@ function renderSummary(a) {
   ].join('');
 }
 
+// The arrangement grid, laid out as in MIDI2Circuit (same classes): a row per Rhythm track
+// with its dot (mute, preview and pack), name, step-rate tag and S (solo, preview only,
+// Advanced), then a row per MIDI part feeding it (dot = use the part or leave it out).
 function renderGrid(a) {
+  const grid = $('#grid');
+  grid.className = 'grid';
+  grid.style.gridTemplateColumns = '';
+  grid.innerHTML = '';
   const order = playOrder(a);
-  const rows = [...Array(8).keys()].filter((t) => a.active[t]);
-  const g = $('#grid');
-  g.style.gridTemplateColumns = `minmax(120px, 190px) repeat(${order.length}, 26px)`;
-  let html = '<div class="lab"></div>';
-  order.forEach((o, i) => {
-    const first = i === 0 || order[i - 1].project !== o.project;
-    html += `<div class="hd${first ? ' proj' : ''}">${first ? `P${o.project + 1}` : ''}</div>`;
+  const rows = [];
+  state.res.tracks.forEach((tr, t) => {
+    rows.push({ kind: 'track', t, name: `${t + 1} ${tr.label}` });
+    for (const id of tr.parts) {
+      const r = state.res.parts.find((x) => x.id === id);
+      if (r) rows.push({ kind: 'src', t, id, name: r.name, sub: r.instrument });
+    }
   });
-  for (const t of rows) {
-    const tr = state.res.tracks[t];
-    html += `<div class="lab"><button class="solo${state.solo === t ? ' on' : ''}" data-solo="${t}" title="Solo this track in the preview">S</button><span class="sw" style="width:9px;height:9px;border-radius:2px;background:var(--t${t})"></span><span class="nm" title="${esc(tr.label)}">${t + 1} ${esc(tr.label)}</span></div>`;
-    order.forEach((o, i) => {
-      const proj = a.projects[o.project];
-      const subs = o.sub[t];
-      const has = subs.some((p) => proj.patterns[t][p]?.key);
-      const first = i > 0 && order[i - 1].project !== o.project;
-      html += `<div class="c${first ? ' proj' : ''}" data-i="${i}" style="${has ? `background:var(--t${t})` : ''}" title="Project ${o.project + 1}, scene ${o.scene + 1}, pattern ${subs.map((p) => p + 1).join('+')}">${has ? subs[0] + 1 : ''}</div>`;
-    });
+  const labels = document.createElement('div');
+  labels.className = 'labels';
+  labels.innerHTML = '<div class="row-label head">Project</div><div class="row-label head">Scene · bar</div>';
+  for (const row of rows) {
+    const d = document.createElement('div');
+    d.className = `row-label ${row.kind === 'src' ? 'src' : ''}`;
+    const off = row.kind === 'track' ? state.mutes.has(row.t) : state.parts.get(row.id)?.on === false;
+    const dot = document.createElement('button');
+    dot.type = 'button';
+    dot.className = `dot${off ? ' off' : ''}`;
+    dot.style.setProperty('--c', `var(--t${row.t})`);
+    dot.setAttribute('aria-pressed', String(!off));
+    dot.title = row.kind === 'track' ? `${off ? 'Unmute' : 'Mute'} track ${row.t + 1} (preview and pack)` : `Leave ${row.name} out (its track goes to another part)`;
+    if (row.kind === 'track') dot.dataset.mute = row.t; else dot.dataset.part = row.id;
+    const name = document.createElement('span');
+    name.className = 'nm';
+    name.textContent = row.name;
+    name.title = row.sub ? `${row.name} · ${row.sub}` : row.name;
+    if (row.kind === 'track' && a.mixed) {
+      const tag = document.createElement('small');
+      tag.className = 'rtag';
+      tag.textContent = a.trackRates[row.t].label.replace(' steps', '');
+      name.append(' ', tag);
+    }
+    d.append(dot, name);
+    if (row.kind === 'track') {
+      const sb = document.createElement('button');
+      sb.type = 'button'; sb.textContent = 'S';
+      sb.className = `solo adv${state.solo === row.t ? ' on' : ''}`;
+      sb.title = `Solo track ${row.t + 1} in the preview`;
+      sb.dataset.solo = row.t;
+      d.append(sb);
+    }
+    labels.append(d);
   }
-  g.innerHTML = html;
+  grid.append(labels);
+
+  // Which chunks each part has notes in (for its row).
+  const chunkTicks = a.chunkBars * a.barTicks;
+  const partChunks = new Map();
+  state.res.tracks.forEach((tr, t) => {
+    for (const n of tr.notes) {
+      const key = `${t}|${n.part}`;
+      if (!partChunks.has(key)) partChunks.set(key, new Set());
+      partChunks.get(key).add(Math.floor((n.tick - a.startTick) / chunkTicks));
+    }
+  });
+  const colours = projectColours(a.projects.length, 'rainbow');
+  const startBar = Math.round(a.startTick / a.barTicks);
+  order.forEach((o, k) => {
+    const col = document.createElement('div');
+    col.className = 'col';
+    const prev = order[k - 1];
+    if (prev && prev.project !== o.project) col.classList.add('proj-start');
+    else if (prev && prev.section !== o.section) col.classList.add('sec-start');
+    const proj = a.projects[o.project];
+    const projHead = !prev || prev.project !== o.project
+      ? `<span class="pdot" style="background:rgb(${PROJECT_COLOURS[colours[o.project]][1].join(',')})" title="${PROJECT_COLOURS[colours[o.project]][0]}"></span>P${o.project + 1}` : '';
+    const bar = startBar + o.chunk * a.chunkBars;
+    const sceneHead = !prev || prev.section !== o.section ? `${o.scene + 1}·${bar + 1}` : '';
+    let html = `<div class="hd">${projHead}</div><div class="hd">${sceneHead}</div>`;
+    for (const row of rows) {
+      if (row.kind === 'src') {
+        const has = partChunks.get(`${row.t}|${row.id}`)?.has(o.chunk);
+        html += `<div class="cell src ${has ? 'on' : 'empty'}" style="--c:var(--t${row.t});cursor:default"></div>`;
+        continue;
+      }
+      const subs = o.sub[row.t];
+      const p = subs[0];
+      const muted = state.mutes.has(row.t);
+      const empty = subs.every((i) => !proj.patterns[row.t]?.[i]?.steps?.length);
+      const mix = 100 - (p % 8) * 8;
+      const same = subs.every((i) => i === p);
+      const txt = same ? `${p + 1}` : subs.every((i, j) => i === p + j) ? `${p + 1}–${subs[subs.length - 1] + 1}` : subs.map((i) => i + 1).join('·');
+      html += `<div class="cell ${muted ? 'muted' : empty ? 'empty' : ''}${txt.length > 2 ? ' multi' : ''}" style="cursor:default;${empty || muted ? '' : `background:color-mix(in srgb, var(--t${row.t}) ${mix}%, #000)`}" title="Track ${row.t + 1}: pattern ${subs.map((i) => i + 1).join(', ')}, project ${o.project + 1}, scene ${o.scene + 1}">${muted || empty ? '' : txt}</div>`;
+    }
+    col.innerHTML = html;
+    grid.append(col);
+  });
 }
 
 function onGridClick(e) {
+  const m = e.target.closest('[data-mute]');
+  if (m) {
+    const t = Number(m.dataset.mute);
+    if (state.mutes.has(t)) state.mutes.delete(t); else state.mutes.add(t);
+    rearrange();
+    return;
+  }
+  const pd = e.target.closest('[data-part]');
+  if (pd) {
+    const cfg = state.parts.get(pd.dataset.part);
+    cfg.on = cfg.on === false;
+    recompute();
+    return;
+  }
   const b = e.target.closest('[data-solo]');
   if (!b) return;
   const t = Number(b.dataset.solo);
@@ -328,8 +428,9 @@ function markNow(t) {
   const i = state.chunkTimes.findIndex((x, k) => t >= x && t < (state.chunkTimes[k + 1] ?? Infinity));
   if (i === nowCol) return;
   nowCol = i;
-  $('#grid').querySelectorAll('.c.now').forEach((c) => c.classList.remove('now'));
-  $('#grid').querySelectorAll(`.c[data-i="${i}"]`).forEach((c) => c.classList.add('now'));
+  const cols = $('#grid').querySelectorAll('.col');
+  cols.forEach((c) => c.classList.remove('now'));
+  cols[i]?.classList.add('now');
 }
 
 function renderWarnings(a) {
@@ -386,21 +487,80 @@ function previewEvents(a) {
   return events.sort((x, y) => x.t - y.t);
 }
 
+// The player's samples: '#slot' -> file bytes, decoded together. Kit slots are dropped when
+// the kit changes.
+async function ensureSamples(slots) {
+  const kit = $('#kit').value;
+  state.sampleBytes ??= new Map();
+  if (state.kitLoaded !== kit) {
+    for (const k of [...state.sampleBytes.keys()]) if (Number(k.slice(1)) >= KIT_FIRST) state.sampleBytes.delete(k);
+    state.kitLoaded = kit;
+    state.samplesDirty = true;
+  }
+  for (const s of slots) {
+    if (state.sampleBytes.has(`#${s}`)) continue;
+    state.sampleBytes.set(`#${s}`, (await sampleBytes(s)).buffer);
+    state.samplesDirty = true;
+  }
+  if (state.samplesDirty) { await player.setDrumSamples(state.sampleBytes); state.samplesDirty = false; }
+}
+
+// One part as the Rhythm will play it: its converted line(s) on their tracks, or (left out or
+// with no track) its MIDI notes on its sound, unquantised.
+async function togglePartPlay(id, btn) {
+  if (state.playingPart === id) { player.stop(); setPartButton(null); return; }
+  player.stop();
+  setPlayButton(false);
+  const m = state.midi;
+  const sec = (tick) => (tick / m.ppq) * (60 / m.tempo);
+  const ev = [];
+  state.res.tracks.forEach((t, i) => {
+    for (const n of t.notes) if (n.part === id) ev.push({ t: sec(n.tick), d: sec(n.dur), track: i, vel: n.vel, part: `#${n.sample}`, rate: 2 ** ((n.byte - 72) / 12), choke: true });
+  });
+  if (!ev.length) {
+    const src = m.sources.find((x) => x.id === id);
+    const rep = state.res.parts.find((r) => r.id === id);
+    if (src.isDrum) {
+      const map = drumMap(kitEntries());
+      for (const n of src.notes) ev.push({ t: sec(n.tick), d: 0.1, track: 0, vel: n.vel, part: `#${KIT_FIRST + map(n.note)}`, choke: false });
+    } else if (rep?.sample != null) {
+      const root = rootFromName(state.inst.index.samples[rep.sample].name);
+      for (const n of src.notes) ev.push({ t: sec(n.tick), d: sec(n.dur), track: 0, vel: n.vel, part: `#${rep.sample}`, rate: 2 ** ((n.note - root) / 12), choke: false });
+    }
+  }
+  if (!ev.length) return;
+  ev.sort((a, b) => a.t - b.t);
+  btn.disabled = true;
+  try {
+    await ensureSamples(new Set(ev.map((e) => Number(e.part.slice(1)))));
+    const saved = player.mutes.slice(), savedSolo = player.solo;
+    player.mutes.fill(false); player.solo = -1;
+    player.onPosition = null;
+    player.onEnd = () => setPartButton(null);
+    await player.play(ev, { from: Math.max(0, ev[0].t - 0.2) });
+    player.mutes = saved; player.solo = savedSolo;
+    state.playingPart = id;
+    setPartButton(btn);
+  } finally { btn.disabled = false; }
+}
+
+function setPartButton(btn) {
+  for (const b of document.querySelectorAll('.playbtn')) { b.classList.remove('on'); b.innerHTML = PLAY_ICON; }
+  if (btn) { btn.classList.add('on'); btn.innerHTML = STOP_ICON; } else state.playingPart = null;
+}
+
 async function togglePlay() {
-  if (player.playing) { player.stop(); setPlayButton(false); return; }
+  if (player.playing && !state.playingPart) { player.stop(); setPlayButton(false); return; }
+  player.stop();
   const a = state.arr;
   if (!a || a.error) return;
   $('#play').disabled = true;
   $('#play').textContent = 'Loading sounds…';
   try {
-    const used = usedSamples(a, state.res.tracks);
-    const key = `${$('#kit').value}|${[...used].sort((x, y) => x - y).join(',')}`;
-    if (state.loadedKey !== key) {
-      const map = new Map();
-      for (const s of used) map.set(`#${s}`, (await sampleBytes(s)).buffer);
-      await player.setDrumSamples(map);
-      state.loadedKey = key;
-    }
+    await ensureSamples(usedSamples(a, state.res.tracks));
+    setPartButton(null);
+    player.onPosition = (t) => { $('#time').textContent = mmss(t); markNow(t); };
+    player.onEnd = () => setPlayButton(false);
     await player.play(previewEvents(a));
     setPlayButton(true);
   } catch (e) {
@@ -413,7 +573,8 @@ async function togglePlay() {
 
 function setPlayButton(on) {
   $('#play').textContent = on ? 'Stop' : 'Play preview';
-  if (!on) { nowCol = -1; $('#grid').querySelectorAll('.c.now').forEach((c) => c.classList.remove('now')); }
+  if (!on && state.playingPart) setPartButton(null);
+  if (!on) { nowCol = -1; $('#grid').querySelectorAll('.col.now').forEach((c) => c.classList.remove('now')); }
 }
 
 // ---------- build ----------

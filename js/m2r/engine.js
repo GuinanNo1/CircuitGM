@@ -600,7 +600,7 @@ function planCore(midi, samples, kit, o, splitSet) {
         kind: 'melodic', partId: s.id, voice: raw.length > 1 ? v + 1 : 0, voices: raw.length,
         label: raw.length > 1 ? `${s.name} (voice ${v + 1} of ${raw.length})` : s.name,
         program: s.program ?? 0,
-        notes: notes.map((n) => ({ tick: n.tick, dur: n.dur, vel: n.vel, note: n.note, byte: clamp(72 + n.note - root, 0, 127), sample })),
+        notes: notes.map((n) => ({ tick: n.tick, dur: n.dur, vel: n.vel, note: n.note, byte: clamp(72 + n.note - root, 0, 127), sample, part: s.id })),
         median: median(notes.map((n) => n.note)),
         mono: a.kind !== 'chords',
       });
@@ -636,7 +636,7 @@ function planCore(midi, samples, kit, o, splitSet) {
   const rest = lines.filter((l) => l !== bass && l !== melody).sort((a, b) => b.notes.length - a.notes.length);
 
   const queue = [
-    ...drumTracks.map((d, i) => ({ kind: 'drum', label: d.label, role: i === 0 ? 'Drums' : 'Drums', notes: d.hits.map((h) => ({ tick: h.tick, dur: Math.max(1, Math.min(h.dur || ppq / 4, ppq / 4)), vel: h.vel, byte: 72, sample: KIT_FIRST + h.kitIndex })), drum: d })),
+    ...drumTracks.map((d, i) => ({ kind: 'drum', label: d.label, role: i === 0 ? 'Drums' : 'Drums', notes: d.hits.map((h) => ({ tick: h.tick, dur: Math.max(1, Math.min(h.dur || ppq / 4, ppq / 4)), vel: h.vel, byte: 72, sample: KIT_FIRST + h.kitIndex, part: h.src })), drum: d })),
     ...[bass, melody].filter(Boolean),
     ...rest,
   ];
