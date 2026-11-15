@@ -1003,7 +1003,7 @@ async function build() {
       sampleMap,
       colors: projectColours(state.plan.projects.length, $('#projcolors').value),
     });
-    const blob = await buildPack(base, projects.slice(0, 64), { name: packName, color: $('#packcolor').value });
+    const blob = await buildPack(base, projects.slice(0, 64), { name: packName });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `${packName.replace(/[^A-Za-z0-9 _-]+/g, '').trim() || 'TracksGM'}.circuittrackspack`;

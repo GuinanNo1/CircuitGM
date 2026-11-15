@@ -61,8 +61,10 @@ export function numbered(name, n, max = NAME_MAX) {
 // Pack colour in index.json: Components' names are red, rose, peach, orange, sand, yellow,
 // khaki, lime, green, teal, cyan, blue, purple, pink (indexes 0-13, the same palette as project
 // colours; blue is the default and is left out). Read from Components' own code on 2026-11-15.
-// Note: Components seems to ignore this when it imports a pack file; the colour that reaches
-// the device is the one set in Components (a pack with none arrives as 0, red).
+// Components doesn't read this when it imports a pack file (its loadPackFileContent reads only
+// projects, samples and patches/grid FX, for Tracks and Rhythm alike): a pack's colour is set in
+// Components or read back from the device. The tools no longer offer a colour; the default
+// (blue) leaves the key out, as Components does.
 export const PACK_COLOUR_NAMES = ['red', 'rose', 'peach', 'orange', 'sand', 'yellow', 'khaki', 'lime', 'green', 'teal', 'cyan', 'blue', 'purple', 'pink'];
 export function setPackColour(index, colour) {
   if (!PACK_COLOUR_NAMES.includes(colour) || colour === 'blue') delete index.color; else index.color = colour;

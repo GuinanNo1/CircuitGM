@@ -5,17 +5,17 @@ import { parseMidi } from '../midifile.js';
 import { setupMode } from '../mode.js';
 import { projectColours, PROJECT_COLOURS } from '../convert.js';
 import { Player } from '../player.js';
-import { planTracks, METHODS, ADV_ONLY_METHODS, INST_SLOTS, KIT_FIRST, isUnpitched, rootFromName, drumMap, ownSamples, MAX_OWN } from './engine.js?v=20261115m2r13';
+import { planTracks, METHODS, ADV_ONLY_METHODS, INST_SLOTS, KIT_FIRST, isUnpitched, rootFromName, drumMap, ownSamples, MAX_OWN } from './engine.js?v=20261115m2r14';
 import { loadPack, PRODUCTS } from '../pack.js';
 import { packSong, projectChoices } from '../packsong.js';
-import { arrangeRhythm, playOrder, MAX_PROJECTS } from './arrange.js?v=20261115m2r13';
-import { buildRhythmProjects, buildRhythmPack, buildLayoutProject, openPack, fetchBuf, usedSamples, shortName } from './build.js?v=20261115m2r13';
-import { layoutPlan, layoutSamples, renderLayout } from './layout.js?v=20261115m2r13';
+import { arrangeRhythm, playOrder, MAX_PROJECTS } from './arrange.js?v=20261115m2r14';
+import { buildRhythmProjects, buildRhythmPack, buildLayoutProject, openPack, fetchBuf, usedSamples, shortName } from './build.js?v=20261115m2r14';
+import { layoutPlan, layoutSamples, renderLayout } from './layout.js?v=20261115m2r14';
 import { sceneOrder, defaultOrderKind, PPQ } from '../song.js';
 
 // Shown next to "For testing" (from the code actually running, so a stale cached page shows
 // its own version). Bump it, with a line in help.html's version list, on every change.
-export const VERSION = '0.12';
+export const VERSION = '0.13';
 export const VERSION_DATE = '15 Nov 2026';
 
 const $ = (s) => document.querySelector(s);
@@ -61,7 +61,7 @@ async function init() {
     const [inst, drum, tpl, dmeta, lmeta] = await Promise.all([
       fetchBuf('../rhythmgm/RhythmInstGM.circuitrhythmpack').then(openPack),
       fetchBuf('../rhythmgm/RhythmDrumGM.circuitrhythmpack').then(openPack),
-      fetchBuf('../data/RhythmEmpty.ncs?v=20261115m2r13'),
+      fetchBuf('../data/RhythmEmpty.ncs?v=20261115m2r14'),
       fetch('../rhythmgm/rhythmdrumgm_samples.json').then((r) => r.json()),
       fetch('../rhythmgm/rhythmlatingm_samples.json').then((r) => r.json()),
     ]);
@@ -934,7 +934,7 @@ async function build() {
       }
     }
     const blob = await buildRhythmPack(state.inst, await kitPack(), kitChoice().index, projects, {
-      name: packName, color: $('#packcolor').value, trim: $('#trim').checked, used: lay ? layoutSamples(a) : usedSamples(a, state.res.tracks), replace,
+      name: packName, trim: $('#trim').checked, used: lay ? layoutSamples(a) : usedSamples(a, state.res.tracks), replace,
     });
     const el = document.createElement('a');
     el.href = URL.createObjectURL(blob);

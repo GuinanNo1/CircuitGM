@@ -6,8 +6,8 @@ Each tool page shows its version next to its status badge, so you can tell which
 
 | Tool | Current | Shown as |
 |---|---|---|
-| MIDI2Circuit | 0.8 | alpha 0.8 |
-| MIDI2Rhythm | 0.12 | For testing · v0.12 |
+| MIDI2Circuit | 0.9 | alpha 0.9 |
+| MIDI2Rhythm | 0.13 | For testing · v0.13 |
 | Circuit2MIDI | 0.4 | alpha 0.4 |
 | PackTrim | 0.2 | alpha 0.2 |
 | PatchWorker | 0.6 | For testing · v0.6 (top bar) |
@@ -15,6 +15,7 @@ Each tool page shows its version next to its status badge, so you can tell which
 Numbering started on 14 Nov 2026. Earlier changes are grouped roughly:
 
 ## MIDI2Circuit
+- **0.9** (15 Nov 2026): Pack colour setting removed (Components ignores a pack file's colour on import; set it in Components).
 - **0.8** (15 Nov 2026): pack colour names from Components' own list (red … pink, blue = default); 0.7's green = "teal" undone. Components seems to ignore the file's colour on import.
 - **0.7** (15 Nov 2026): Pack colour written as Components stores it (Blue = no entry, Green = "teal"); the others still unmapped.
 - **0.6** (15 Nov 2026): Circuit Tracks projects loaded as the song read their synth and MIDI notes relative to the project's scale root (they were off by the root, e.g. a whole tone flat with root D).
@@ -25,7 +26,7 @@ Numbering started on 14 Nov 2026. Earlier changes are grouped roughly:
 - 0.1 (6 Nov 2026): first public alpha.
 
 ## MIDI2Rhythm
-See `midi2rhythm/help.html` (Versions). 0.1–0.6 on 14 Nov 2026; 0.7 (15 Nov): Circuit packs as the song; 0.8: pack projects keep their layout; 0.9: drum Pitch to Tune, project colours; 0.10: scale-root fix for Tracks notes, scene mute recall copied; 0.11: pack colour names (wrong guess); 0.12: Components' real colour names.
+See `midi2rhythm/help.html` (Versions). 0.1–0.6 on 14 Nov 2026; 0.7 (15 Nov): Circuit packs as the song; 0.8: pack projects keep their layout; 0.9: drum Pitch to Tune, project colours; 0.10: scale-root fix for Tracks notes, scene mute recall copied; 0.11: pack colour names (wrong guess); 0.12: Components' real colour names; 0.13: Pack colour setting removed.
 
 ## Circuit2MIDI
 - **0.4** (15 Nov 2026): Circuit Tracks synth and MIDI notes are read relative to the project's scale root (exports were off by the root, e.g. a whole tone flat with root D).

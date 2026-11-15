@@ -28,7 +28,7 @@
 </nav>
 <header class="masthead">
   <div class="wrap">
-    <h1>MIDI2Circuit <span>MIDI to Circuit Tracks converter</span> <em class="badge" title="Version of this page. If you expect a newer one, refresh with Shift-reload; GitHub Pages can take about 10 minutes to update.">alpha 0.8</em></h1>
+    <h1>MIDI2Circuit <span>MIDI to Circuit Tracks converter</span> <em class="badge" title="Version of this page. If you expect a newer one, refresh with Shift-reload; GitHub Pages can take about 10 minutes to update.">alpha 0.9</em></h1>
     <p class="helplinks"><a href="help.html#quickstart">Quickstart</a> · <a href="help.html">User guide</a></p>
     <p class="lede">Turn a General MIDI file, or a project from a Circuit Tracks or Circuit Rhythm pack, into a Novation Circuit Tracks pack. Pick the parts you want, hear how they'll play, and download a <code>.circuittrackspack</code> for Novation Components, built on the <a href="../tracksgm/">TracksGM pack</a> or a pack of your own.</p>
     <p class="alpha">Alpha 0.1, for testing. Packs load and play on the Circuit Tracks, but the project format is reverse-engineered: keep a backup of your packs, and please report anything odd on <a href="https://github.com/GuinanNo1/CircuitGM/issues">GitHub</a>.</p>
@@ -150,14 +150,13 @@
       <div class="field grow"><label for="packname">Pack name</label><input id="packname" maxlength="16" autocomplete="off" title="Up to 16 characters, as Components allows"><span class="sub count" id="packname-count"></span></div>
       <div class="field adv"><label for="projcolors">Project colours</label>
         <select id="projcolors"><option value="rainbow" selected>Repeating rainbow</option><optgroup label="One colour"><option value="0">Red</option><option value="1">Rose</option><option value="2">Peach</option><option value="3">Orange</option><option value="4">Sand</option><option value="5">Yellow</option><option value="6">Khaki</option><option value="7">Lime</option><option value="8">Green</option><option value="9">Teal</option><option value="10">Cyan</option><option value="11">Blue</option><option value="12">Purple</option><option value="13">Pink</option></optgroup></select></div>
-      <div class="field adv"><label for="packcolor">Pack colour</label>
-        <select id="packcolor"><option>blue</option><option>green</option><option>orange</option><option>red</option></select></div>
+
     </div>
     <div class="buildrow">
       <button class="btn primary big" id="build" type="button">Download pack</button>
       <span class="status" id="build-status"></span>
     </div>
-    <p class="hint">Open the pack in Novation Components and send it to your Circuit Tracks. It holds the whole base pack (<span id="base-summary">TracksGM pack: 128 patches, 64 drum samples</span>) plus the new projects in project slots 1 onwards, so it replaces whatever pack you send it over. In each project, scenes 1 onwards hold the song's sections in order and are saved as one scene chain.</p>
+    <p class="hint">Open the pack in Novation Components and send it to your Circuit Tracks. It holds the whole base pack (<span id="base-summary">TracksGM pack: 128 patches, 64 drum samples</span>) plus the new projects in project slots 1 onwards, so it replaces whatever pack you send it over. In each project, scenes 1 onwards hold the song's sections in order and are saved as one scene chain. Components doesn't take a pack's colour from the file, so set it there after importing.</p>
   </section>
 </main>
 
@@ -165,6 +164,6 @@
   <p>Patches: TracksGM by Ian Guinan. Drum samples: <a href="https://github.com/mrbumpy409/GeneralUser-GS">GeneralUser GS</a> by S. Christian Collins (<a href="../tracksgm/LICENSE-GeneralUser-GS.txt">licence</a>). Project format code from <a href="https://github.com/namirsab/circuit-tracks-tools">circuit-tracks-tools</a> by Namir Sayed-Ahmad Baraza (MIT). Not affiliated with Novation or Focusrite; "Circuit Tracks" and "Components" are their trademarks.</p>
 </footer>
 
-<script type="module" src="../js/app.js?v=20261115x"></script>
+<script type="module" src="../js/app.js?v=20261115y"></script>
 </body>
 </html>

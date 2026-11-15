@@ -9,8 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/app.css?v=20261115m2r13">
-<link rel="stylesheet" href="../css/m2r.css?v=20261115m2r13">
+<link rel="stylesheet" href="../css/app.css?v=20261115m2r14">
+<link rel="stylesheet" href="../css/m2r.css?v=20261115m2r14">
 <script>(function(){var r=document.documentElement;try{if(localStorage.getItem('circuitgm-advanced-m2r')!=='1')r.classList.add('simple')}catch(e){r.classList.add('simple')}})();</script>
 </head>
 <body>
@@ -141,14 +141,13 @@
       <div class="field grow"><label for="packname">Pack name</label><input id="packname" maxlength="16" autocomplete="off" title="Up to 16 characters, as Components allows"></div>
       <div class="field adv"><label for="projcolors">Project colours</label>
         <select id="projcolors"><option value="source" selected class="lay-only">As in the pack</option><option value="rainbow">Repeating rainbow</option><optgroup label="One colour"><option value="0">Red</option><option value="1">Rose</option><option value="2">Peach</option><option value="3">Orange</option><option value="4">Sand</option><option value="5">Yellow</option><option value="6">Khaki</option><option value="7">Lime</option><option value="8">Green</option><option value="9">Teal</option><option value="10">Cyan</option><option value="11">Blue</option><option value="12">Purple</option><option value="13">Pink</option></optgroup></select></div>
-      <div class="field adv"><label for="packcolor">Pack colour</label><select id="packcolor"><option>blue</option><option>green</option><option>orange</option><option>red</option></select></div>
       <div class="field check adv"><label><input type="checkbox" id="trim"> Trim the pack: keep only the samples the song uses</label></div>
     </div>
     <div class="buildrow">
       <button class="btn primary big" id="build" type="button">Download pack</button>
       <span class="status" id="build-status"></span>
     </div>
-    <p class="hint">Open the pack in Novation Components and send it to your Circuit Rhythm. It holds RhythmInstGM's instruments in slots 1–112, the chosen drum kit in 113–128, and the song in project slots 1 onwards, so it replaces whatever pack you send it over. In each project, scenes 1 onwards hold the song's sections in order and are saved as one scene chain.</p>
+    <p class="hint">Open the pack in Novation Components and send it to your Circuit Rhythm. It holds RhythmInstGM's instruments in slots 1–112, the chosen drum kit in 113–128, and the song in project slots 1 onwards, so it replaces whatever pack you send it over. In each project, scenes 1 onwards hold the song's sections in order and are saved as one scene chain. Components doesn't take a pack's colour from the file, so set it there after importing.</p>
   </section>
 </main>
 
@@ -156,6 +155,6 @@
   <p>Samples: <a href="https://github.com/mrbumpy409/GeneralUser-GS">GeneralUser GS</a> by S. Christian Collins (<a href="../rhythmgm/LICENSE-GeneralUser-GS.txt">licence</a>). Not affiliated with Novation or Focusrite; "Circuit Rhythm" and "Components" are their trademarks.</p>
 </footer>
 
-<script type="module" src="../js/m2r/app.js?v=20261115m2r13"></script>
+<script type="module" src="../js/m2r/app.js?v=20261115m2r14"></script>
 </body>
 </html>

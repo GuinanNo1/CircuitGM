@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/app.css?v=20261115m2r13">
+<link rel="stylesheet" href="../css/app.css?v=20261115m2r14">
 </head>
 <body>
 <nav class="sitenav" aria-label="CircuitGM">
@@ -29,7 +29,7 @@
 <header class="masthead">
   <div class="wrap">
     <p class="crumbs"><a href="./">← Back to MIDI2Rhythm</a></p>
-    <h1>MIDI2Rhythm help <span>CircuitGM MIDI to Circuit Rhythm Converter</span> <em class="badge">For testing · v0.12</em></h1>
+    <h1>MIDI2Rhythm help <span>CircuitGM MIDI to Circuit Rhythm Converter</span> <em class="badge">For testing · v0.13</em></h1>
     <p class="lede">How MIDI2Rhythm fits a General MIDI song onto the Circuit Rhythm's eight tracks.</p>
   </div>
 </header>
@@ -103,6 +103,7 @@
     <h2>Versions</h2>
     <p>The version is shown next to "For testing" at the top of the page. If it's older than the newest one here, refresh the page (Shift-reload); GitHub Pages can take about 10 minutes to serve a new version.</p>
     <ul>
+      <li><b>v0.13</b> (15 Nov 2026): Pack colour setting removed: Components doesn't read a pack file's colour when it imports one, so set the pack colour in Components.</li>
       <li><b>v0.12</b> (15 Nov 2026): pack colour names corrected (Components' own list; v0.11's Green = "teal" was a mix-up). Components seems to ignore a pack file's colour on import: set the pack colour in Components.</li>
       <li><b>v0.11</b> (15 Nov 2026): Pack colour written as Components stores it (Blue = no colour entry, Green = "teal"), so Components no longer shows the pack as red.</li>
       <li><b>v0.10</b> (15 Nov 2026): Circuit Tracks synth and MIDI notes are read relative to the project's scale root (Blue Monday, root D, came out a whole tone flat); a kept layout copies the project's scene mute recall setting.</li>
