@@ -69,8 +69,13 @@ Sync rates seen: 3 (1/16), 5 (1/8), 7 (1/4), with the same meaning as on the Tra
 | +0 | 8 bytes, 1 for tracks 1-7 and 0 for track 8 in the test project | unknown |
 | +8 | 8 bytes: default sample slot per track | confirmed (matches each track's steps and sample names) |
 | +16 | 8 bytes, mostly 72 (0x48): probably the last note played per track | unknown |
-| +44 | 8 × 41 bytes: per-track settings (levels 0x7F, pans 0x40 and similar). Byte 6 = the track's default sample again. Byte 16 = **Tune** (macro 1), 64 = centre: it is 64 in nearly every hardware-saved project, with odd values where a track was retuned (CHILDREN project 0 has track 4 at 55, TEARDROP tracks 1-2 at 65). Bytes 16-23 look like the eight macros in order (64, 0, 127, 64, 0, 0, 127, 0 = Tune, Start, Length, Slope, Distortion, HP, LP, Resonance), not yet confirmed. | byte 16 likely (2026-11-14: track 4's 55 made MIDI2Rhythm packs play its notes about 1.8 semitones flat) |
+| +32 | **Delay preset**, 0-15 (Delay 1-16 on the Rhythm's two rows). Found 2026-11-15 from Ian's saves (Delay 1 = 0, Delay 5 = 4, Delay 16 = 15). | yes |
+| +33 | **Reverb preset**, 0-7 (Reverb 1-8). Reverb 1 = 0, Reverb 3 = 2, Reverb 8 = 7. | yes |
+| +44 | 8 × 41 bytes: per-track settings (levels 0x7F, pans 0x40 and similar). Byte 6 = the track's default sample again. Byte 16 = **Tune** (macro 1), 64 = centre: it is 64 in nearly every hardware-saved project, with odd values where a track was retuned (CHILDREN project 0 has track 4 at 55, TEARDROP tracks 1-2 at 65). Byte 34 = the track's **reverb send** (0-127; found 2026-11-15: track 1 full = 127). Byte 35 is probably the delay send (to confirm). Bytes 16-23 look like the eight macros in order (64, 0, 127, 64, 0, 0, 127, 0 = Tune, Start, Length, Slope, Distortion, HP, LP, Resonance), not yet confirmed. | byte 16 likely (2026-11-14: track 4's 55 made MIDI2Rhythm packs play its notes about 1.8 semitones flat) |
 | +440 | 128 × 4 bytes `[0xFF, 3, 0, n]`: probably per-sample settings | not decoded |
+| +378 | 3 bytes: the **reverb's values**, written when a preset is picked. Reverb 1 = 0,80,120; Reverb 3 = 2,80,80; Reverb 4 = 2,100,110 (CHILDREN template); Reverb 8 = 5,120,115. | values yes, meaning no |
+| +386 | 6 bytes: the **delay's values**, written when a preset is picked. Delay 1 = 3,0,100,115,5,115; Delay 5 = 0,5,59,15,5,39; Delay 13 = 0,10,33,127,3,33 (template); Delay 16 = 0,12,50,115,5,111. Whether the Rhythm plays these or reloads them from the preset number is being tested. | values yes, meaning no |
+| +393 | **FX off** (bypass), 1 = off. | yes |
 | +950 | **Scene mute recall**, 1 = on (found 2026-11-15: the only byte that changed when Ian switched it on and saved). | yes |
 
 Everything after that (FX and mixer) is not decoded.
