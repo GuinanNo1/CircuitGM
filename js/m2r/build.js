@@ -5,7 +5,7 @@
 // (so its mixer and FX settings are the hardware's own defaults), with the name and tempo
 // reset and the track sends at 0. Layout: docs/circuit-rhythm-format.md.
 import { readZip, writeZipDeflate } from '../vendor/zip.js';
-import { cleanName } from '../names.js';
+import { cleanName, setPackColour } from '../names.js';
 import { KIT_FIRST } from './engine.js';
 
 const SC_BASE = 0x38;
@@ -148,7 +148,7 @@ export function buildLayoutProject(plan, template, settings) {
 export async function buildRhythmPack(inst, drums, kitIndex, projects, { name, color = 'blue', trim = false, used = null, replace = null }) {
   const index = JSON.parse(JSON.stringify(inst.index));
   index.name = shortName(name) || 'MIDI2Rhythm';
-  index.color = color;
+  setPackColour(index, color);
   const files = new Map();
   for (const [i, s] of index.samples.entries()) {
     if (i < KIT_FIRST) {

@@ -1,6 +1,6 @@
 // Arrangement -> .ncs projects -> .circuittrackspack (the base pack's patches and samples,
 // TracksGM_v1 by default, plus the new projects).
-import { fitName, numbered } from './names.js';
+import { fitName, numbered, setPackColour } from './names.js';
 import { parseNCS, serializeNCS } from './vendor/ncs.js';
 import { readZip, writeZip } from './vendor/zip.js';
 import { KIT_PARTS, MAX_NOTES, MICRO } from './convert.js';
@@ -169,7 +169,7 @@ function drumSteps(content, slotOf, defaultSlot) {
 export async function buildPack(base, projects, { name, color }) {
   const index = JSON.parse(JSON.stringify(base.index));
   index.name = fitName(name) || 'TracksGM';
-  index.color = color;
+  setPackColour(index, color);
   index.projects = Array.from({ length: 64 }, (_, i) => ({
     name: projects[i]?.name ?? '',
     url: `projects/project_${i}.ncs`,

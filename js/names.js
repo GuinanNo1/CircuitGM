@@ -57,3 +57,12 @@ export function numbered(name, n, max = NAME_MAX) {
   const tight = fitName(name, max - num.length);
   return tight.length > spaced.length ? `${tight}${num}` : `${spaced} ${num}`;
 }
+
+// Pack colour as Components stores it in index.json. Its names differ from the menu's: Blue
+// (the default) is stored as no "color" at all, and Green (6th in the menu) as "teal" (found
+// 2026-11-15 from packs Ian saved in Components). Other colours aren't mapped yet.
+const PACK_COLOURS = { blue: null, green: 'teal' };
+export function setPackColour(index, colour) {
+  const v = colour in PACK_COLOURS ? PACK_COLOURS[colour] : colour;
+  if (v == null) delete index.color; else index.color = v;
+}
