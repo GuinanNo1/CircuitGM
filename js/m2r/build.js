@@ -39,6 +39,9 @@ export async function openPack(buf) {
 // docs/circuit-rhythm-format.md). The Rhythm plays the values stored with a preset, not the
 // preset number, so picking a preset writes both. Values: tail +386 (delay, 6 bytes) and +378
 // (reverb, 3 bytes), as the Rhythm writes them for Delay 1-16 and Reverb 1-8.
+// Names, from the Circuit Rhythm user guide (delay pads 1-16, reverb pads 17-24).
+export const DELAY_NAMES = ["Slapback Fast", "Slapback Slow", "32nd Triplets", "32nd", "16th Triplets", "16th", "16th Ping Pong", "16th Ping Pong Swung", "8th Triplets", "8th dotted Ping Pong", "8th", "8th Ping Pong", "8th Ping Pong Swung", "4th Triplets", "4th dotted Ping Pong Swung", "4th Triplets Ping Pong Wide"];
+export const REVERB_NAMES = ["Small Chamber", "Small Room 1", "Small Room 2", "Large Room", "Hall", "Large Hall", "Hall – long reflection", "Large Hall – long reflection"];
 export const DELAY_PRESETS = [
   [3, 0, 100, 115, 5, 115], [6, 0, 45, 104, 6, 26], [0, 2, 63, 62, 5, 40], [0, 4, 25, 10, 5, 75],
   [0, 5, 59, 15, 5, 39], [0, 7, 15, 34, 6, 56], [0, 7, 75, 115, 5, 98], [0, 7, 75, 75, 3, 23],

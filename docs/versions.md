@@ -7,7 +7,7 @@ Each tool page shows its version next to its status badge, so you can tell which
 | Tool | Current | Shown as |
 |---|---|---|
 | MIDI2Circuit | 0.9 | alpha 0.9 |
-| MIDI2Rhythm | 0.14 | For testing · v0.14 |
+| MIDI2Rhythm | 0.15 | For testing · v0.15 |
 | Circuit2MIDI | 0.4 | alpha 0.4 |
 | PackTrim | 0.2 | alpha 0.2 |
 | PatchWorker | 0.6 | For testing · v0.6 (top bar) |
@@ -26,7 +26,7 @@ Numbering started on 14 Nov 2026. Earlier changes are grouped roughly:
 - 0.1 (6 Nov 2026): first public alpha.
 
 ## MIDI2Rhythm
-See `midi2rhythm/help.html` (Versions). 0.1–0.6 on 14 Nov 2026; 0.7 (15 Nov): Circuit packs as the song; 0.8: pack projects keep their layout; 0.9: drum Pitch to Tune, project colours; 0.10: scale-root fix for Tracks notes, scene mute recall copied; 0.11: pack colour names (wrong guess); 0.12: Components' real colour names; 0.13: Pack colour setting removed; 0.14: effects (presets and sends).
+See `midi2rhythm/help.html` (Versions). 0.1–0.6 on 14 Nov 2026; 0.7 (15 Nov): Circuit packs as the song; 0.8: pack projects keep their layout; 0.9: drum Pitch to Tune, project colours; 0.10: scale-root fix for Tracks notes, scene mute recall copied; 0.11: pack colour names (wrong guess); 0.12: Components' real colour names; 0.13: Pack colour setting removed; 0.14: effects (presets and sends); 0.15: preset names.
 
 ## Circuit2MIDI
 - **0.4** (15 Nov 2026): Circuit Tracks synth and MIDI notes are read relative to the project's scale root (exports were off by the root, e.g. a whole tone flat with root D).
