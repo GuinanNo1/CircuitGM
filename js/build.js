@@ -4,6 +4,7 @@ import { fitName, numbered, setPackColour } from './names.js';
 import { parseNCS, serializeNCS } from './vendor/ncs.js';
 import { readZip, writeZip } from './vendor/zip.js';
 import { KIT_PARTS, MAX_NOTES, MICRO } from './convert.js';
+import { DELAY_PRESETS, REVERB_PRESETS, SIDECHAIN_PRESETS } from './fx.js';
 
 const STEPS = 32;
 const MAX_GATE = 96;                 // 16 steps; longer notes continue with a tied note
@@ -102,6 +103,7 @@ export function buildProjects(plan, base, settings) {
       proj.drumConfigs = proj.drumConfigs.map((c, i) => ({ ...c, patchSelect: drumDefault[i] }));
     }
 
+    applyFx(proj, settings.fx);
     const bytes = serializeNCS(proj, base.template, { freshScenes: true });
     bytes[DRUM0_HEADER] = s1;
     bytes[DRUM0_HEADER + 8] = s2;
@@ -109,6 +111,37 @@ export function buildProjects(plan, base, settings) {
     out.push({ name: proj.name.trim(), bytes });
   }
   return out;
+}
+
+// Effects, as the Circuit Tracks stores them (js/vendor/ncs.js reads and writes the bytes; see
+// docs/circuit-tracks-file-formats.md). The Tracks keeps a preset's values with its number, so
+// picking a preset writes both (values in js/fx.js, from Ian's save of every preset).
+// fx: { reverb: 0-7 | null, delay: 0-15 | null (null keeps the template's),
+//       reverbSends, delaySends: [6 x 0-127] for Synth 1, Synth 2, Drum 1-4 | null,
+//       sidechain: [{ preset: 0-7 (0 = off), source: 0-3 (Drum 1-4) }, same for Synth 2] | null }
+// The tail's 8 send bytes run Synth 1, Synth 2, Drum 1-4, then two that are never set in any
+// hardware save we have (most likely MIDI 1 and 2); those are left at 0.
+export function applyFx(proj, fx) {
+  if (!fx) return;
+  const f = proj.fx;
+  if (fx.delay != null) {
+    proj.delayPreset = fx.delay;
+    [f.delayTime, f.delaySync, f.delayFeedback, f.delayWidth, f.delayLrRatio, f.delaySlew] = DELAY_PRESETS[fx.delay];
+  }
+  if (fx.reverb != null) {
+    proj.reverbPreset = fx.reverb;
+    [f.reverbType, f.reverbDecay, f.reverbDamping] = REVERB_PRESETS[fx.reverb];
+  }
+  const clamp = (v) => Math.max(0, Math.min(127, v | 0));
+  for (let t = 0; t < 6; t++) {
+    if (fx.reverbSends) f.reverbSends[t] = clamp(fx.reverbSends[t]);
+    if (fx.delaySends) f.delaySends[t] = clamp(fx.delaySends[t]);
+  }
+  (fx.sidechain || []).forEach((sc, i) => {
+    if (!sc || i > 1) return;
+    const [attack, hold, decay, depth] = SIDECHAIN_PRESETS[sc.preset];
+    proj.sidechain[i] = { ...proj.sidechain[i], preset: sc.preset, source: sc.source ?? 0, attack, hold, decay, depth };
+  });
 }
 
 function synthSteps(content) {

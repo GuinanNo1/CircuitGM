@@ -29,6 +29,28 @@ Tracks/0<N> <Pack name>/{meta (empty), Patches (8 "hexbanks" = 128 patches, undo
 - Validator ranges for active synth/MIDI notes: note number 1-139, gate 1-224 (so a tied gate tops out at 0x80 | 96), delay 0-5, velocity 0-127. A drum step's velocity and rhythm mask must be both zero or both non-zero.
 - Scale type 15 = Chromatic; stored note = MIDI note + 12 when the scale is chromatic with root C. **More generally, stored note = MIDI note + 12 - scale root** (any scale type): Blue Monday (root D = 2, type 2) stores its F-C-D bassline as 39/34/36, i.e. D#-A#-C read with root C. Found 2026-11-15 when its converted melodies were a whole tone flat against its sampled stabs; js/song.js now adds the root.
 
+## Effects and sidechain (CONFIRMED 2026-11-16 from Ian's Circuit_FX_test save)
+
+Ian saved one project per preset on the Circuit Tracks: projects 1–16 = Delay 1–16, 17–24 = Reverb 1–8, 25 = sidechain off, 26–32 = sidechain presets 1–7. `tests/m2c_fx.mjs <pack>` checks MIDI2Circuit's output against it byte for byte. Names and ranges are from the Programmer's Reference v3 (project control, MIDI channel 16).
+
+| Offset | Meaning |
+|---|---|
+| 0x26D0E (tail +18) | delay preset, 0–15 |
+| 0x26D0F (tail +19) | reverb preset, 0–7 |
+| 0x26FE8 (tail +748) | reverb sends, 8 bytes: **Synth 1, Synth 2, Drum 1, Drum 2, Drum 3, Drum 4**, then 2 bytes never set in any save (most likely MIDI 1, 2). Order from 12 hardware-saved song projects: bytes 3–4 are often set although no song uses the MIDI tracks, and bytes 7–8 never are although Drum 3–4 play. The drum configs' bytes 8/9 (0x26FBC + 11·t) were 0 in every save. |
+| 0x26FF0 (tail +756) | reverb values: type (0–5: Chamber, Small Room, Large Room, Small Hall, Large Hall, Great Hall), decay, damping |
+| 0x26FF8 (tail +764) | delay sends, 8 bytes, same order as the reverb sends |
+| 0x27000 (tail +772) | delay values: time, time sync (0–35), feedback, width, left-right ratio (0–12), slew rate |
+| 0x27007 (tail +779) | FX bypass (1 = FX off) |
+| 0x27008 (tail +780) | sidechain, 4 × 5 bytes for Synth 1, Synth 2, MIDI 1, MIDI 2: **source** (0–3 = Drum 1–4, 4 = off), **attack, hold, decay, depth**. Reset values 0, 0, 50, 70, 0 = the Programmer's Reference defaults. |
+| 0xCD67, 0xCD6F (synth info +3, +11) | sidechain preset of Synth 1, Synth 2: 0 = off, 1–7. MIDI 1/2's are at tail +3/+11 (per `ncs.js`; not in this save). |
+
+- **Every delay and reverb preset stores the same values as on the Circuit Rhythm** (delay 2–16, reverb 1–8 compared; Delay 1 wasn't captured because preset 1 was already selected, so the Rhythm's row is used). Tables: `js/fx.js`.
+- A fresh project has delay preset 1 and reverb preset 1 selected, but values no preset uses (delay 64,20,64,127,4,5; reverb 2,64,64), as on the Rhythm.
+- Sidechain preset values (attack, hold, decay, depth): off 0,50,70,0; 1 = 5,50,80,80; 2 = 5,70,70,100; 3 = 5,85,70,115; 4 = 5,90,75,123; 5 = 5,90,85,127; 6 = 5,95,95,127; 7 = 5,102,95,127.
+- The Side Chain view's source pads change only the synth whose preset was pressed last (user guide p. 93; in the save only Synth 2's source varies).
+- Still to test: whether the Tracks plays the stored values rather than the preset number (the Rhythm does).
+
 ## Patch (official, Programmer's Reference Guide v3)
 340 bytes 7-bit; SysEx F0 00 20 29 01 64 00 <loc> 00 <340> F7 (current) / 01 <slot> 00 (flash). Bank file = 64 Replace Patch msgs. OG Circuit = product byte 0x60.
 - Map (added 2026-11-04): 0-15 name ASCII space-padded; 16 category 0-14; 17 genre 0-9; 18-31 reserved; 32-35 voice (poly 0-2, portamento, pre-glide 52-76, octave 58-69); 36-44 osc1 (wave 0-29, interpolate, PW, vsync, density, density detune, semis, cents, bend 52-76); 45-53 osc2 same; 54-59 mixer (osc1, osc2, ring, noise, preFX 52-82, postFX 52-82); 60-68 filter (routing, drive, drive type 0-6, type 0-5 [lp12, lp24, bp6, bp12, hp12, hp24], freq, tracking, res, Q norm, env2->freq bipolar); 69-73 env1 (vel, A, D, S, R); 74-78 env2; 79-83 env3 (delay, A, D, S, R); 84-91 LFO1 (wave 0-37, phase 0-119, slew, delay, delay sync, rate, rate sync, flags: bit0 one-shot, bit1 key sync, bit2 common sync, bit3 delay trigger, bits4-5 fade mode); 92-99 LFO2; 100 dist level; 102 chorus level; 105-110 EQ; 116 dist type; 117 dist comp; 118-123 chorus (type 0 phaser/1 chorus, rate, rate sync, feedback, depth, delay); 124-203 mod matrix 20 x [src1, src2, depth (64=0), dest]; 204-339 macros 8 x 17 [position, 4 x (dest 0-70, start, end, depth 64=0)].

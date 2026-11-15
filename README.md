@@ -9,8 +9,8 @@ General MIDI for the Novation Circuit Tracks and Circuit Rhythm: sound packs, an
 | **RhythmGM** | General MIDI sample packs for the Circuit Rhythm: RhythmInstGM (all 128 GM instruments, slot = GM program) and RhythmDrumGM (8 kits × 16 hits, same order in every kit) | Beta | [Page and sample lists](https://guinanno1.github.io/CircuitGM/rhythmgm/) · Download [RhythmInstGM](https://github.com/GuinanNo1/CircuitGM/raw/main/rhythmgm/RhythmInstGM.circuitrhythmpack), [RhythmDrumGM](https://github.com/GuinanNo1/CircuitGM/raw/main/rhythmgm/RhythmDrumGM.circuitrhythmpack) · [Code](rhythmgm/) |
 | **PatchWorker** | Synth patch editor for the Circuit Tracks: edit any patch in a pack, hear it in the browser or live on a linked Circuit Tracks, save `.syx` patches and whole packs | For testing (v0.6) | [Open](https://guinanno1.github.io/CircuitGM/patchworker/) · [Help](https://guinanno1.github.io/CircuitGM/patchworker/help.html) · [Code](patchworker/) |
 | **PackTrim** | Trims a Circuit Tracks or Circuit Rhythm pack to the samples and patches its projects use | Alpha 0.2 | [Open](https://guinanno1.github.io/CircuitGM/packtrim/) · [Code](packtrim/) |
-| **MIDI2Circuit** | MIDI files, or Circuit Tracks and Circuit Rhythm projects, to Circuit Tracks packs | Alpha 0.9 | [Open](https://guinanno1.github.io/CircuitGM/midi2circuit/) · [Help](https://guinanno1.github.io/CircuitGM/midi2circuit/help.html) · [Code](midi2circuit/) |
-| **MIDI2Rhythm** | MIDI files or Circuit pack projects to Circuit Rhythm packs (RhythmInstGM + a RhythmDrumGM kit, or the pack's own samples) | For testing (v0.15) | [Open](https://guinanno1.github.io/CircuitGM/midi2rhythm/) · [Help](https://guinanno1.github.io/CircuitGM/midi2rhythm/help.html) · [Code](midi2rhythm/) |
+| **MIDI2Circuit** | MIDI files, or Circuit Tracks and Circuit Rhythm projects, to Circuit Tracks packs | Alpha 0.10 | [Open](https://guinanno1.github.io/CircuitGM/midi2circuit/) · [Help](https://guinanno1.github.io/CircuitGM/midi2circuit/help.html) · [Code](midi2circuit/) |
+| **MIDI2Rhythm** | MIDI files or Circuit pack projects to Circuit Rhythm packs (RhythmInstGM + a RhythmDrumGM kit, or the pack's own samples) | For testing (v0.16) | [Open](https://guinanno1.github.io/CircuitGM/midi2rhythm/) · [Help](https://guinanno1.github.io/CircuitGM/midi2rhythm/help.html) · [Code](midi2rhythm/) |
 | **Circuit2MIDI** | A project from a Circuit Tracks or Circuit Rhythm pack to a Standard MIDI file | Alpha 0.4 | [Open](https://guinanno1.github.io/CircuitGM/circuit2midi/) · [Help](https://guinanno1.github.io/CircuitGM/circuit2midi/help.html) · [Code](circuit2midi/) |
 
 Everything runs in the browser: nothing is uploaded, and there is no server. Each folder has its own README with the details. The alpha tools are for testing: please report problems in [Issues](https://github.com/GuinanNo1/CircuitGM/issues).
@@ -69,6 +69,7 @@ node tests/roundtrip.mjs                             # MIDI -> MIDI2Circuit -> C
 node tests/pack2pack.mjs [out-dir]                   # Circuit Tracks / Rhythm pack -> MIDI2Circuit -> pack, every hit compared
 node tests/m2r_build.mjs <file.mid | pack[@n]>... [--out dir]  # MIDI2Rhythm: MIDI or pack project -> Rhythm pack, every step read back
 node tests/m2r_layout.mjs <pack[@n]>... [--combine]       # MIDI2Rhythm: a pack project with its layout kept, checked against the source
+node tests/m2c_fx.mjs <Circuit_FX_test.circuittrackspack>   # MIDI2Circuit effects vs Ian's save of every preset, byte for byte
 node tests/pack_compare.mjs <pack> [track|auto|16|8|4] # any pack: convert each project, play it back, account for every hit
 node tests/compact_only.mjs [save-two-project-pack]  # PackTrim: Keep only project N
 ```

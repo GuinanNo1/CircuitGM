@@ -1,6 +1,6 @@
 import { parseMidi, GM_NAMES } from './midifile.js';
 import { arrange, playOrder, laneOf, partOf, patternBars, projectColours, PROJECT_COLOURS, RATES, TRACKS, KITS, KIT_PARTS, MELODIC_ROLES } from './convert.js';
-import { loadBase, loadBaseFromBuffers, buildProjects, buildPack, composePack, SAMPLE_CAP_S } from './build.js?v=20261114s';
+import { loadBase, loadBaseFromBuffers, buildProjects, buildPack, composePack, SAMPLE_CAP_S } from './build.js?v=20261116fx';
 import { loadPack, PRODUCTS } from './pack.js';
 import { packSong, projectChoices, setLane } from './packsong.js';
 import { takeHandoff, putHandoff } from './handoff.js';
@@ -981,6 +981,14 @@ function setSourceButton(btn) {
 }
 
 // ---------- step 5: build ----------
+// Advanced: Effects, the same for every project (js/build.js applyFx).
+function fxSettings() {
+  const num = (sel) => ($(sel).value === '' ? null : Number($(sel).value));
+  const sends = (k) => [...document.querySelectorAll(`[data-${k}]`)].sort((x, y) => x.dataset[k] - y.dataset[k]).map((el) => Number(el.value) || 0);
+  const sc = (n) => ({ preset: Number($(`#sc${n}-preset`).value), source: Number($(`#sc${n}-source`).value) });
+  return { reverb: num('#fx-reverb'), delay: num('#fx-delay'), reverbSends: sends('rsend'), delaySends: sends('dsend'), sidechain: [sc(1), sc(2)] };
+}
+
 async function build() {
   if (!state.plan || !state.base) return;
   const status = $('#build-status');
@@ -1002,6 +1010,7 @@ async function build() {
       kit: Number($('#kit').value),
       sampleMap,
       colors: projectColours(state.plan.projects.length, $('#projcolors').value),
+      fx: fxSettings(),
     });
     const blob = await buildPack(base, projects.slice(0, 64), { name: packName });
     const a = document.createElement('a');

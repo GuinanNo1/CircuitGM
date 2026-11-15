@@ -7,6 +7,7 @@
 import { readZip, writeZipDeflate } from '../vendor/zip.js';
 import { cleanName, setPackColour } from '../names.js';
 import { KIT_FIRST } from './engine.js';
+import { DELAY_PRESETS, REVERB_PRESETS, DELAY_NAMES, REVERB_NAMES } from '../fx.js';
 
 const SC_BASE = 0x38;
 const BLOCK_BASE = 0x2e4;
@@ -39,18 +40,8 @@ export async function openPack(buf) {
 // docs/circuit-rhythm-format.md). The Rhythm plays the values stored with a preset, not the
 // preset number, so picking a preset writes both. Values: tail +386 (delay, 6 bytes) and +378
 // (reverb, 3 bytes), as the Rhythm writes them for Delay 1-16 and Reverb 1-8.
-// Names, from the Circuit Rhythm user guide (delay pads 1-16, reverb pads 17-24).
-export const DELAY_NAMES = ["Slapback Fast", "Slapback Slow", "32nd Triplets", "32nd", "16th Triplets", "16th", "16th Ping Pong", "16th Ping Pong Swung", "8th Triplets", "8th dotted Ping Pong", "8th", "8th Ping Pong", "8th Ping Pong Swung", "4th Triplets", "4th dotted Ping Pong Swung", "4th Triplets Ping Pong Wide"];
-export const REVERB_NAMES = ["Small Chamber", "Small Room 1", "Small Room 2", "Large Room", "Hall", "Large Hall", "Hall – long reflection", "Large Hall – long reflection"];
-export const DELAY_PRESETS = [
-  [3, 0, 100, 115, 5, 115], [6, 0, 45, 104, 6, 26], [0, 2, 63, 62, 5, 40], [0, 4, 25, 10, 5, 75],
-  [0, 5, 59, 15, 5, 39], [0, 7, 15, 34, 6, 56], [0, 7, 75, 115, 5, 98], [0, 7, 75, 75, 3, 23],
-  [0, 8, 80, 10, 6, 68], [0, 9, 50, 100, 5, 33], [0, 10, 82, 23, 5, 56], [0, 10, 78, 88, 6, 47],
-  [0, 10, 33, 127, 3, 33], [0, 11, 50, 60, 6, 86], [0, 12, 24, 90, 3, 106], [0, 12, 50, 115, 5, 111],
-];
-export const REVERB_PRESETS = [
-  [0, 80, 120], [1, 90, 100], [2, 80, 80], [2, 100, 110], [3, 90, 100], [4, 105, 105], [5, 90, 80], [5, 120, 115],
-];
+// Preset values and names (as in the user guides) are shared with MIDI2Circuit: js/fx.js.
+export { DELAY_PRESETS, REVERB_PRESETS, DELAY_NAMES, REVERB_NAMES };
 const T_DELAY_PRESET = 32, T_REVERB_PRESET = 33, T_REVERB_VALUES = 378, T_DELAY_VALUES = 386, T_FX_OFF = 393;
 const ROW_REVERB_SEND = 34, ROW_DELAY_SEND = 35;   // per-track row bytes (35: delay send, very likely)
 
