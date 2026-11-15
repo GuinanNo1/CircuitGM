@@ -21,6 +21,7 @@
       <li><a href="../patchworker/">PatchWorker</a></li>
       <li><a href="../packtrim/">PackTrim</a></li>
       <li><a href="../midi2circuit/">MIDI2Circuit</a></li>
+      <li><a href="../midi2rhythm/">MIDI2Rhythm</a></li>
       <li><a href="../circuit2midi/">Circuit2MIDI</a></li>
     </ul>
   </div>
@@ -77,7 +78,7 @@
     <ul>
       <li><b>RhythmInstGM: slot = GM program.</b> Slot 1 is Grand Piano, slot 41 Violin, slot 128 Gunshot: the numbering anyone who knows General MIDI expects. Each instrument is one note, up to two seconds long, with its natural attack and release.</li>
       <li><b>RhythmDrumGM: eight kits of sixteen.</b> Std, Room, Power, Elec, 808, Jazz, Brush and Orch. The first eight hits of each kit are its TracksGM kit (kick, snare, rim or clap, closed hat, open hat, tom, cymbal, percussion); the second eight are a second sound for each of those roles, in the same order. A pattern keeps working when you swap kits, and converting between TracksGM and RhythmGM maps drum for drum.</li>
-      <li><b>Instruments plus drums.</b> Slots 113–128 of RhythmInstGM are GM's Percussive and Sound Effects families, the ones a song can most easily do without. When MIDI2Circuit builds Circuit Rhythm packs (planned), it will put the RhythmDrumGM or RhythmLatinGM kit you choose into those sixteen slots, so slots 1–112 keep their GM numbers. Every combination fits the sample limit.</li>
+      <li><b>Instruments plus drums.</b> Slots 113–128 of RhythmInstGM are GM's Percussive and Sound Effects families, the ones a song can most easily do without. When <a href="../midi2rhythm/">MIDI2Rhythm</a> builds a Circuit Rhythm pack, it puts the RhythmDrumGM or RhythmLatinGM kit you choose into those sixteen slots, so slots 1–112 keep their GM numbers. Every combination fits the sample limit.</li>
       <li><b>Pitch.</b> Each instrument's name starts with its GM program number and ends with its root note (for example <i>001 Grand Piano C4</i>, <i>034 Finger Bass C2</i>). Play that note and the sample sounds at its own pitch; other notes pitch it up or down. Basses are rooted low and bells high, so their useful range needs the least stretching.</li>
       <li><b>Levels.</b> Drums peak at −0.5 dBFS, as in TracksGM. Instruments are matched by loudness over their first second, never peaking above −0.5 dBFS.</li>
     </ul>
