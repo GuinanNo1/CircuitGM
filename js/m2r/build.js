@@ -134,7 +134,7 @@ export function buildLayoutProject(plan, template, settings) {
     }
     d[TAIL + T_DEFAULT_SAMPLES + t] = def;
     d[TAIL + T_TRACK_ROWS + t * 41 + 6] = def;
-    d[TAIL + T_TRACK_ROWS + t * 41 + ROW_TUNE] = TUNE_CENTRE;
+    d[TAIL + T_TRACK_ROWS + t * 41 + ROW_TUNE] = tr?.tune ?? TUNE_CENTRE;
   }
   return { name, bytes: d };
 }

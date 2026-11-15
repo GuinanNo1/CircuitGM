@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/app.css?v=20261115m2r9">
+<link rel="stylesheet" href="../css/app.css?v=20261115m2r10">
 </head>
 <body>
 <nav class="sitenav" aria-label="CircuitGM">
@@ -29,7 +29,7 @@
 <header class="masthead">
   <div class="wrap">
     <p class="crumbs"><a href="./">← Back to MIDI2Rhythm</a></p>
-    <h1>MIDI2Rhythm help <span>CircuitGM MIDI to Circuit Rhythm Converter</span> <em class="badge">For testing · v0.8</em></h1>
+    <h1>MIDI2Rhythm help <span>CircuitGM MIDI to Circuit Rhythm Converter</span> <em class="badge">For testing · v0.9</em></h1>
     <p class="lede">How MIDI2Rhythm fits a General MIDI song onto the Circuit Rhythm's eight tracks.</p>
   </div>
 </header>
@@ -92,7 +92,7 @@
     <p>RhythmInstGM's samples 1–112 keep their GM program numbers; slots 113–128 hold the 16 sounds of the chosen RhythmDrumGM or RhythmLatinGM kit, so GM programs 113–128 aren't available. Tinkle Bell, Agogo, Steel Drums, Woodblock, Taiko, Melodic Tom and Synth Drum play on a similar instrument; the sound effects (Reverse Cymbal to Gunshot) are left out unless you choose another sound for them in Advanced.</p>
     <p id="from-pack"><b>A Circuit pack as the song.</b> Drop a <code>.circuittrackspack</code> or <code>.circuitrhythmpack</code> and choose one of its projects in the Project box. <b>Layout</b> sets how it comes across:</p>
     <ul>
-      <li><b>Keep the project's layout (one project)</b>, the default: the scenes, scene chain, pattern chains and patterns (length, step rate, direction) are copied as they are, step for step, so one project becomes one Rhythm project. From a Circuit Tracks pack, Drum 1–4 go to tracks 5–8 with every step as written (sample flips, velocity, micro-steps, probability); each drum hit's gate runs to the track's next hit, so long samples aren't cut short. Synth 1 starts on track 1, then Synth 2, then MIDI 1 and 2 if tracks are left. A Tracks synth plays up to six notes per step and a Rhythm track one, so each synth takes one track per voice: <b>Voices</b> (Auto = as many as it plays at once) sets how many; on a step with more notes than voices the outer ones are kept. In Advanced, <b>Combine drum tracks</b> puts drum tracks that play the same chains, with the same pattern settings, and never on the same step, on one track to free tracks for the synths. A scene lasts as long as its longest chain, so a free track can carry an unused track's chains without notes (shown as "scene timing only") to keep every scene's length. The scenes' saved mutes are kept. From a Circuit Rhythm pack, every track goes across as it is.</li>
+      <li><b>Keep the project's layout (one project)</b>, the default: the scenes, scene chain, pattern chains and patterns (length, step rate, direction) are copied as they are, step for step, so one project becomes one Rhythm project. From a Circuit Tracks pack, Drum 1–4 go to tracks 5–8 with every step as written (sample flips, velocity, micro-steps, probability); each drum hit's gate runs to the track's next hit, so long samples aren't cut short. Synth 1 starts on track 1, then Synth 2, then MIDI 1 and 2 if tracks are left. A Tracks synth plays up to six notes per step and a Rhythm track one, so each synth takes one track per voice: <b>Voices</b> (Auto = as many as it plays at once) sets how many; on a step with more notes than voices the outer ones are kept. In Advanced, <b>Combine drum tracks</b> puts drum tracks that play the same chains, with the same pattern settings, and never on the same step, on one track to free tracks for the synths. A scene lasts as long as its longest chain, so a free track can carry an unused track's chains without notes (shown as "scene timing only") to keep every scene's length. The scenes' saved mutes are kept (switch on the Rhythm's scene mute recall to hear them). Each drum track's Pitch on the Tracks becomes the Rhythm track's Tune, and the project keeps its colour. From a Circuit Rhythm pack, every track goes across as it is.</li>
       <li><b>Re-arrange it, as a MIDI file</b>: the project is played through and laid out again as described below, which can need more than one project.</li>
     </ul>
     <p>With <b>Its own samples</b> (the drum kit box's first choice, the default for a pack) the project's drum samples, and the sample a melodic sample track plays most, go into the new pack: the kit slots 113–128 first, then down from 112 past any RhythmInstGM sound still in use, up to 48 samples. Circuit Tracks synths and MIDI tracks play the RhythmInstGM instrument nearest their patch name (change it in Advanced). Pick a RhythmGM kit instead to play the drums on GM sounds.</p>
@@ -103,6 +103,7 @@
     <h2>Versions</h2>
     <p>The version is shown next to "For testing" at the top of the page. If it's older than the newest one here, refresh the page (Shift-reload); GitHub Pages can take about 10 minutes to serve a new version.</p>
     <ul>
+      <li><b>v0.9</b> (15 Nov 2026): a kept layout carries each Tracks drum track's Pitch (or a Rhythm track's Tune) to the Rhythm track's Tune, so tuned drum samples stay in tune with the synths; the project keeps its own colour; Project colours setting added (Advanced).</li>
       <li><b>v0.8</b> (15 Nov 2026): a pack project keeps its layout by default (one project): Drum 1–4 on tracks 5–8 with their samples, synths from track 1 with a Voices setting, optional drum combining. Re-arranging is still an option.</li>
       <li><b>v0.7</b> (15 Nov 2026): a Circuit Tracks or Circuit Rhythm pack can be the song (one project at a time), keeping its own samples. "Keep lines near the sample's note" is off by default (tested on the hardware).</li>
       <li><b>v0.6</b> (14 Nov 2026): every track's Tune set to the centre, so packs play in tune (track 4 was about 1.8 semitones flat). Version number added.</li>

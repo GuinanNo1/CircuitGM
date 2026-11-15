@@ -36,7 +36,8 @@ export function voicesNeeded(song, t) {
 
 // Can drum track b share drum track a's Rhythm track? Same chains in every used scene, same
 // settings on the patterns they play, and never a hit on the same step.
-function canShare(song, aTracks, b) {
+function canShare(song, aTracks, b, tuneOf) {
+  if (aTracks.some((a) => tuneOf(a) !== tuneOf(b))) return false;
   for (const sc of song.scenes) {
     if (!sc.used) continue;
     for (const a of aTracks) if (sc.chains[a].start !== sc.chains[b].start || sc.chains[a].end !== sc.chains[b].end) return false;
@@ -56,10 +57,14 @@ function canShare(song, aTracks, b) {
 // .program). opts: {
 //   parts: Map(id -> { on, voices?, sample? }), names: the new pack's 128 sample names,
 //   own: engine.js ownSamples result or null (then drums use `kit`, a RhythmGM kit),
-//   kit: 16 kit entries, range: 0 | 7 | 12 | 18, combine: bool, mutes: Set(Rhythm track) }
+//   kit: 16 kit entries, range: 0 | 7 | 12 | 18, combine: bool, mutes: Set(Rhythm track),
+//   project: the source project as js/pack.js read it (drum Pitch, track Tune, colour) }
 export function layoutPlan(song, sources, opts) {
   const o = { parts: new Map(), range: 0, combine: false, mutes: new Set(), ...opts };
   const rhythm = song.product === 'circuit-rhythm';
+  // Each source track's tuning, carried to the Rhythm track's Tune (64 = centre): a Tracks drum
+  // track's Pitch, or a Rhythm track's Tune. (Same 0-127 scale assumed: to check by ear.)
+  const tuneOf = (t) => (rhythm ? o.project?.trackTunes?.[t] : t >= 4 ? o.project?.drumConfigs?.[t - 4]?.pitch : 64) ?? 64;
   const byTrack = new Map(sources.map((s) => [s.track, s]));
   const cfgOf = (s) => o.parts.get(s.id) ?? {};
   const on = (s) => s && cfgOf(s).on !== false;
@@ -94,7 +99,7 @@ export function layoutPlan(song, sources, opts) {
     if (o.combine) {
       const groups = [];
       for (const t of drums) {
-        const g = groups.find((x) => canShare(song, x, t));
+        const g = groups.find((x) => canShare(song, x, t, tuneOf));
         if (g) g.push(t); else groups.push([t]);
       }
       groups.forEach((g, i) => { assign[4 + i] = { src: g, kind: 'drum', voice: 0, voices: 1, part: byTrack.get(g[0]) }; });
@@ -177,7 +182,7 @@ export function layoutPlan(song, sources, opts) {
     if (!a) return null;
     if (a.kind === 'timing') {
       const patterns = song.tracks[a.src[0]].patterns.map((src) => ({ start: src.start, end: src.end, rate: src.rate, dir: src.dir, steps: Array(32).fill(null) }));
-      return { kind: 'timing', label: '(scene timing only)', src: a.src, voice: 0, voices: 1, parts: [], patterns, defaultSample: 0, notes: 0 };
+      return { kind: 'timing', label: '(scene timing only)', src: a.src, voice: 0, voices: 1, parts: [], patterns, defaultSample: 0, notes: 0, tune: 64 };
     }
     const s = a.part;
     const ps = partSample.get(s.id);
@@ -256,7 +261,8 @@ export function layoutPlan(song, sources, opts) {
     const defaultSample = [...count].sort((x, y) => y[1] - x[1])[0]?.[0] ?? (ps?.sample ?? 0);
     const names = a.src.map((x) => byTrack.get(x).name);
     const label = a.voices > 1 ? `${names[0]} (voice ${a.voice + 1} of ${a.voices})` : names.join(' + ');
-    return { kind: a.kind === 'drum' ? 'drum' : 'melodic', label, src: a.src, voice: a.voice, voices: a.voices, parts: a.src.map((x) => byTrack.get(x).id), patterns, defaultSample, notes };
+    const tune = a.kind === 'synth' ? 64 : tuneOf(a.src[0]);
+    return { kind: a.kind === 'drum' ? 'drum' : 'melodic', label, src: a.src, voice: a.voice, voices: a.voices, parts: a.src.map((x) => byTrack.get(x).id), patterns, defaultSample, notes, tune };
   });
 
   for (const s of sources) {
@@ -275,6 +281,7 @@ export function layoutPlan(song, sources, opts) {
   return {
     kind: 'layout',
     product: song.product,
+    color: o.project?.color ?? null,
     tempo: clamp(song.tempo, 40, 240),
     tempoClamped: song.tempo < 40 || song.tempo > 240,
     swing: song.swing, swingRate: song.swingRate,

@@ -34,8 +34,8 @@ for (const arg of files) {
     const own = ownSamples(m, new Map(), src.samples.map((s) => s.name));
     const names = inst.index.samples.map((s) => s.name);
     for (const [from, to] of own.slotOf) names[to] = src.samples[from].name;
-    const plan = layoutPlan(m.song, m.sources, { names, own, kit, combine });
-    const project = buildLayoutProject(plan, template, { title: entry.name || 'Test' });
+    const plan = layoutPlan(m.song, m.sources, { names, own, kit, combine, project: entry.project });
+    const project = buildLayoutProject(plan, template, { title: entry.name || 'Test', color: plan.color });
     const replace = new Map([...own.slotOf].map(([from, to]) => [to, { name: src.samples[from].name, bytes: new Uint8Array(1) }]));
     const blob = await buildRhythmPack(inst, drums, 1, [project], { name: 'Test', used: layoutSamples(plan), replace });
     const zip = new Uint8Array(await blob.arrayBuffer());
@@ -44,6 +44,15 @@ for (const arg of files) {
     const label = `${basename(f).replace(/\.circuit\w+pack$/, '')}@${entry.slot + 1}`;
     ok(back.projects.filter((p) => !p.empty).length === 1, `${label}: one project`);
     ok(song.tempo === plan.tempo, `${label}: tempo`);
+    ok(back.projects[0].project.color === entry.project.color, `${label}: colour ${back.projects[0].project.color} vs ${entry.project.color}`);
+    // each Rhythm drum track's Tune carries its Tracks drum track's Pitch (Rhythm: its Tune)
+    const tunes = back.projects[0].project.trackTunes;
+    plan.tracks.forEach((tr, t) => {
+      if (!tr || tr.kind === 'timing') return;
+      const want = tr.kind !== 'drum' && m.song.product !== 'circuit-rhythm' ? 64
+        : m.song.product === 'circuit-rhythm' ? entry.project.trackTunes[tr.src[0]] : entry.project.drumConfigs[tr.src[0] - 4].pitch;
+      ok(tunes[t] === want, `${label}: track ${t + 1} tune ${tunes[t]} vs ${want}`);
+    });
     // scenes: same used scenes, chains follow each Rhythm track's source track
     m.song.scenes.forEach((sc, s) => {
       if (!sc.used) return;
