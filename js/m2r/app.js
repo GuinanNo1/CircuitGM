@@ -5,14 +5,16 @@ import { parseMidi } from '../midifile.js';
 import { setupMode } from '../mode.js';
 import { projectColours, PROJECT_COLOURS } from '../convert.js';
 import { Player } from '../player.js';
-import { planTracks, METHODS, ADV_ONLY_METHODS, INST_SLOTS, KIT_FIRST, isUnpitched, rootFromName, drumMap } from './engine.js?v=20261114m2r7';
-import { arrangeRhythm, playOrder, MAX_PROJECTS } from './arrange.js?v=20261114m2r7';
-import { buildRhythmProjects, buildRhythmPack, openPack, fetchBuf, usedSamples, shortName } from './build.js?v=20261114m2r7';
+import { planTracks, METHODS, ADV_ONLY_METHODS, INST_SLOTS, KIT_FIRST, isUnpitched, rootFromName, drumMap, ownSamples, MAX_OWN } from './engine.js?v=20261115m2r8';
+import { loadPack, PRODUCTS } from '../pack.js';
+import { packSong, projectChoices } from '../packsong.js';
+import { arrangeRhythm, playOrder, MAX_PROJECTS } from './arrange.js?v=20261115m2r8';
+import { buildRhythmProjects, buildRhythmPack, openPack, fetchBuf, usedSamples, shortName } from './build.js?v=20261115m2r8';
 
 // Shown next to "For testing" (from the code actually running, so a stale cached page shows
 // its own version). Bump it, with a line in help.html's version list, on every change.
-export const VERSION = '0.6';
-export const VERSION_DATE = '14 Nov 2026';
+export const VERSION = '0.7';
+export const VERSION_DATE = '15 Nov 2026';
 
 const $ = (s) => document.querySelector(s);
 const DRUM_KITS = ['Std', 'Room', 'Power', 'Elec', '808', 'Jazz', 'Brush', 'Orch'];
@@ -29,6 +31,8 @@ const state = {
   mutes: new Set(),          // muted track indices (preview and pack); cleared when the tracks change
   barMutes: new Map(),       // 't<track>' or 'p:<part id>' -> Set of bars (from the start of the file) muted
   playingPart: null,
+  songPack: null, songPackName: '', // a Circuit Tracks or Rhythm pack loaded as the song (one project of it)
+  own: null,                 // the song pack's own samples (engine.js ownSamples), when the kit is 'own'
 };
 const player = new Player();
 const mode = setupMode('m2r');
@@ -55,7 +59,7 @@ async function init() {
     const [inst, drum, tpl, dmeta, lmeta] = await Promise.all([
       fetchBuf('../rhythmgm/RhythmInstGM.circuitrhythmpack').then(openPack),
       fetchBuf('../rhythmgm/RhythmDrumGM.circuitrhythmpack').then(openPack),
-      fetchBuf('../data/RhythmEmpty.ncs?v=20261114m2r7'),
+      fetchBuf('../data/RhythmEmpty.ncs?v=20261115m2r8'),
       fetch('../rhythmgm/rhythmdrumgm_samples.json').then((r) => r.json()),
       fetch('../rhythmgm/rhythmlatingm_samples.json').then((r) => r.json()),
     ]);
@@ -85,7 +89,10 @@ function fillKitSelect() {
   sel.value = 'drum:1';
 }
 
+const OWN = 'own';
+const fromPack = () => state.midi?.format === 'pack';
 function kitChoice() {
+  if ($('#kit').value === OWN) return { pack: 'drum', index: 1 };   // fills the kit slots the pack's samples leave
   const [pack, i] = $('#kit').value.split(':');
   return { pack, index: Number(i) };
 }
@@ -106,42 +113,156 @@ function kitEntries() {
   return all.slice(index * 16, index * 16 + 16);
 }
 
+// The drum sounds the plan uses: the song pack's own drum samples, or a RhythmGM kit.
+function currentKit() {
+  return state.own?.kit.length ? state.own.kit : kitEntries();
+}
+
+// The 128 sample names of the pack being built: RhythmInstGM, with the song pack's own samples
+// in the slots they take.
+function sampleNames() {
+  const names = state.inst.index.samples.map((s) => s.name);
+  if (state.own) for (const [from, to] of state.own.slotOf) names[to] = state.songPack.samples[from]?.name || `Sample ${from + 1}`;
+  return names;
+}
+
+// The kit choice "the pack's own samples" is offered only while a pack is the song.
+function setOwnOption(on) {
+  const sel = $('#kit');
+  sel.querySelector('optgroup.own')?.remove();
+  if (on) {
+    const g = document.createElement('optgroup');
+    g.label = 'The loaded pack';
+    g.className = 'own';
+    g.append(new Option('Its own samples', OWN));
+    sel.prepend(g);
+    sel.value = OWN;
+  } else if (sel.value === OWN || !sel.value) sel.value = 'drum:1';
+}
+
 // ---------- loading ----------
 function wireLoad() {
   const drop = $('#drop');
   const input = $('#file');
-  input.addEventListener('change', () => { if (input.files[0]) loadFile(input.files[0]); input.value = ''; });
+  input.addEventListener('change', () => { if (input.files[0]) routeFile(input.files[0]); input.value = ''; });
+  $('#project').addEventListener('change', (e) => selectProject(Number(e.target.value)));
   drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
   drop.addEventListener('dragleave', () => drop.classList.remove('over'));
   drop.addEventListener('drop', (e) => {
     e.preventDefault();
     drop.classList.remove('over');
-    if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files[0]) routeFile(e.dataTransfer.files[0]);
   });
+}
+
+const STEPS = ['#step-parts', '#step-sounds', '#step-arrange', '#step-build'];
+const isPack = (f) => /\.(circuittrackspack|circuitrhythmpack|zip)$/i.test(f.name);
+function routeFile(f) { if (isPack(f)) loadSongPack(f); else loadFile(f); }
+
+function loadError(msg) {
+  const info = $('#fileinfo');
+  info.hidden = false;
+  info.innerHTML = `<span class="status error">${esc(msg)}</span>`;
+  for (const id of STEPS) $(id).hidden = true;
 }
 
 async function loadFile(file) {
   player.stop();
   setPlayButton(false);
-  const info = $('#fileinfo');
-  info.hidden = false;
   try {
     const midi = parseMidi(await file.arrayBuffer());
     if (!midi.sources.length) throw new Error('This MIDI file has no notes.');
+    leavePackSong();
     state.midi = midi;
     state.fileName = file.name;
-    state.parts = new Map(midi.sources.map((s) => [s.id, { on: true }]));
-    const base = file.name.replace(/\.[^.]+$/, '');
-    $('#title').value = shortName(base, NAME_MAX);
-    if (!state.packTouched) $('#packname').value = $('#title').value;
     const bars = midi.lengthTicks / (midi.ppq * 4 * midi.timeSig.num / midi.timeSig.den);
-    info.innerHTML = `<span><span class="k">File</span><b>${esc(file.name)}</b></span> <span><span class="k">Tempo</span><b>${Math.round(midi.tempo)} BPM</b></span> <span><span class="k">Time</span><b>${midi.timeSig.num}/${midi.timeSig.den}</b></span> <span><span class="k">Length</span><b>${Math.ceil(bars)} bars</b></span> <span><span class="k">Parts</span><b>${midi.sources.length}</b></span>`;
-    for (const id of ['#step-parts', '#step-sounds', '#step-arrange', '#step-build']) $(id).hidden = false;
-    recompute();
+    songLoaded(file.name.replace(/\.[^.]+$/, ''), [
+      ['File', esc(file.name)],
+      ['Tempo', `${Math.round(midi.tempo)} BPM`],
+      ['Time', `${midi.timeSig.num}/${midi.timeSig.den}`],
+      ['Length', `${Math.ceil(bars)} bars`],
+      ['Parts', midi.sources.length],
+    ]);
   } catch (e) {
-    info.innerHTML = `<span class="status error">${esc(e.message)}</span>`;
-    for (const id of ['#step-parts', '#step-sounds', '#step-arrange', '#step-build']) $(id).hidden = true;
+    loadError(e.message);
   }
+}
+
+// A song (MIDI file or pack project) is in state.midi: start the parts, mutes and name again.
+function songLoaded(title, info) {
+  state.parts = new Map(state.midi.sources.map((s) => [s.id, { on: true }]));
+  state.barMutes.clear();
+  $('#title').value = shortName(title, NAME_MAX);
+  if (!state.packTouched) $('#packname').value = $('#title').value;
+  const el = $('#fileinfo');
+  el.hidden = false;
+  el.innerHTML = info.map(([k, v]) => `<span><span class="k">${k}</span><b>${v}</b></span>`).join(' ');
+  for (const id of STEPS) $(id).hidden = false;
+  recompute();
+}
+
+// A Circuit Tracks or Circuit Rhythm pack as the song: one of its projects, chosen in the
+// Project box (as in MIDI2Circuit). Its parts come from js/packsong.js; its samples can be
+// kept ("Its own samples" in the kit box, the default).
+async function loadSongPack(file) {
+  player.stop();
+  setPlayButton(false);
+  let pack;
+  try {
+    pack = await loadPack(await file.arrayBuffer(), file.name);
+    if (!projectChoices(pack).length) throw new Error(`${file.name} has no saved projects with notes to convert.`);
+  } catch (e) {
+    loadError(e.message.replace('Circuit2MIDI reads', 'MIDI2Rhythm reads'));
+    return;
+  }
+  state.songPack = pack;
+  state.songPackName = file.name.replace(/\.(circuittrackspack|circuitrhythmpack|zip)$/i, '');
+  state.kitLoaded = null;
+  const choices = projectChoices(pack);
+  $('#project').innerHTML = choices.map((p) => `<option value="${p.slot}">${p.slot + 1}. ${esc(p.name || `Project ${p.slot + 1}`)}</option>`).join('');
+  $('#projpick').hidden = false;
+  const label = PRODUCTS[pack.product].label;
+  $('#project-hint').textContent = choices.length > 1
+    ? `${choices.length} projects in this ${label} pack have notes. Changing the project starts the parts and mutes again.`
+    : `This ${label} pack has one project with notes.`;
+  setOwnOption(true);
+  selectProject(choices[0].slot);
+}
+
+function leavePackSong() {
+  if (!state.songPack) return;
+  state.songPack = null;
+  state.songPackName = '';
+  state.own = null;
+  state.kitLoaded = null;
+  $('#projpick').hidden = true;
+  setOwnOption(false);
+}
+
+function selectProject(slot) {
+  const pack = state.songPack;
+  player.stop();
+  setPlayButton(false);
+  try {
+    state.midi = packSong(pack, pack.projects[slot]);
+    if (!state.midi.sources.length) throw new Error('This project has no notes to convert.');
+  } catch (e) {
+    state.midi = null;
+    loadError(`Could not read project ${slot + 1}: ${e.message}`);
+    $('#projpick').hidden = false;
+    return;
+  }
+  $('#project').value = String(slot);
+  state.fileName = state.midi.song.name;
+  state.kitLoaded = null;
+  const bars = state.midi.lengthTicks / (state.midi.ppq * 4);
+  songLoaded(state.midi.song.name || state.songPackName, [
+    ['Pack', `${esc(state.songPackName)} (${PRODUCTS[pack.product].label})`],
+    ['Project', esc(state.midi.song.name || `Project ${slot + 1}`)],
+    ['Tempo', `${Math.round(state.midi.tempo)} BPM`],
+    ['Length', `${Math.ceil(bars)} bars`],
+    ['Scenes', state.midi.scenes],
+  ]);
 }
 
 // ---------- parts and tracks ----------
@@ -149,11 +270,16 @@ function recompute() {
   if (!state.midi || !state.inst) return;
   player.stop();
   setPlayButton(false);
-  const names = state.inst.index.samples.map((s) => s.name);
+  state.own = fromPack() && $('#kit').value === OWN
+    ? ownSamples(state.midi, state.parts, state.songPack.samples.map((s) => s.name))
+    : null;
+  const names = sampleNames();
   state.mutes.clear();
   for (const k of [...state.barMutes.keys()]) if (k[0] === 't') state.barMutes.delete(k);   // track numbers change
-  state.res = planTracks(state.midi, names, kitEntries(), {
+  state.res = planTracks(state.midi, names, currentKit(), {
     parts: state.parts,
+    ownSample: state.own?.ownSample,
+    kitBySlot: state.own?.kit.length ? state.own.kitBySlot : null,
     range: Number($('#range').value),
     maxDrumTracks: Number($('#drum-tracks').value),
     arpRate: Number($('#arp-rate').value),
@@ -172,7 +298,7 @@ function trackTag(i, role) {
 
 function renderParts() {
   const tb = $('#parts tbody');
-  const names = state.inst.index.samples.map((s) => s.name);
+  const names = sampleNames();
   tb.innerHTML = '';
   for (const r of state.res.parts) {
     const tr = document.createElement('tr');
@@ -193,7 +319,8 @@ function renderParts() {
     else {
       const cur = r.sample;
       const label = cur == null ? '<span class="tracktag none">No stand-in (sound effect)</span>' : esc(names[cur]);
-      const opts = [`<option value="">GM program ${r.program + 1}${cur == null ? ' (none)' : ''}</option>`]
+      const first = r.own ? `Its own sample: ${esc(names[cur])}` : `GM program ${r.program + 1}${cur == null ? ' (none)' : ''}`;
+      const opts = [`<option value="">${first}</option>`]
         .concat(names.slice(0, INST_SLOTS).map((n, i) => `<option value="${i}"${cfg.sample === i ? ' selected' : ''}>${esc(n)}</option>`)).join('');
       sound = `<span class="simple-only">${label}</span><select class="adv" data-sample="${r.id}" aria-label="Sound for ${esc(r.name)}">${opts}</select>${cfg.sample == null && cur != null ? `<span class="small-note adv">${esc(names[cur])}</span>` : ''}`;
     }
@@ -500,11 +627,18 @@ function renderWarnings(a) {
   if (folded) out.push(`${folded} note${folded > 1 ? 's were' : ' was'} folded an octave towards the sample's own pitch.`);
   const clash = state.res.tracks.reduce((n, t) => n + (t.drum?.dropped ?? 0), 0);
   if (clash) out.push(`${clash} drum hit${clash > 1 ? 's' : ''} clashed with another drum on its shared track and ${clash > 1 ? 'were' : 'was'} left out. Allow more drum tracks to keep them.`);
+  const lostOwn = state.own?.dropped.length ?? 0;
+  if (lostOwn) out.push(`The project plays more than ${MAX_OWN} samples; the ${lostOwn} least used ${lostOwn > 1 ? 'are' : 'is'} not in the pack, and ${lostOwn > 1 ? 'their' : 'its'} hits play the nearest kind of drum that is.`);
   $('#warnings').innerHTML = out.map((x) => `<li>${esc(x)}</li>`).join('');
 }
 
 // ---------- preview ----------
 async function sampleBytes(slot) {
+  const from = state.own ? [...state.own.slotOf].find(([, to]) => to === slot)?.[0] : undefined;
+  if (from != null) {
+    const s = state.songPack.index.samples[from];
+    return new Uint8Array(await state.songPack.zip.get(s.url)());
+  }
   if (slot < KIT_FIRST) {
     const s = state.inst.index.samples[slot];
     return new Uint8Array(await state.inst.zip.get(s.url)());
@@ -544,10 +678,13 @@ function previewEvents(a) {
 // The player's samples: '#slot' -> file bytes, decoded together. Kit slots are dropped when
 // the kit changes.
 async function ensureSamples(slots) {
-  const kit = $('#kit').value;
+  // The kit, plus (with the pack's own samples) which pack sample sits in which slot.
+  const kit = $('#kit').value + (state.own ? `|${state.songPackName}|${[...state.own.slotOf].join(';')}` : '');
   state.sampleBytes ??= new Map();
   if (state.kitLoaded !== kit) {
-    for (const k of [...state.sampleBytes.keys()]) if (Number(k.slice(1)) >= KIT_FIRST) state.sampleBytes.delete(k);
+    const old = state.kitLoaded ?? '';
+    // Slots that held a pack sample or a kit sample are loaded again.
+    for (const k of [...state.sampleBytes.keys()]) if (Number(k.slice(1)) >= KIT_FIRST || old.includes('|') || state.own) state.sampleBytes.delete(k);
     state.kitLoaded = kit;
     state.samplesDirty = true;
   }
@@ -575,10 +712,14 @@ async function togglePartPlay(id, btn) {
     const src = m.sources.find((x) => x.id === id);
     const rep = state.res.parts.find((r) => r.id === id);
     if (src.isDrum) {
-      const map = drumMap(kitEntries());
-      for (const n of src.notes) ev.push({ t: sec(n.tick), d: 0.1, track: 0, vel: n.vel, part: `#${KIT_FIRST + map(n.note)}`, choke: false });
+      const kit = currentKit();
+      const map = drumMap(kit);
+      for (const n of src.notes) {
+        const k = (kit === state.own?.kit ? state.own.kitBySlot.get(n.slot) : undefined) ?? map(n.note);
+        ev.push({ t: sec(n.tick), d: 0.1, track: 0, vel: n.vel, part: `#${kit[k].abs ?? KIT_FIRST + k}`, choke: false });
+      }
     } else if (rep?.sample != null) {
-      const root = rootFromName(state.inst.index.samples[rep.sample].name);
+      const root = rootFromName(sampleNames()[rep.sample]);
       for (const n of src.notes) ev.push({ t: sec(n.tick), d: sec(n.dur), track: 0, vel: n.vel, part: `#${rep.sample}`, rate: 2 ** ((n.note - root) / 12), choke: false });
     }
   }
@@ -642,8 +783,17 @@ async function build() {
     const title = ascii($('#title').value).trim() || 'MIDI2Rhythm';
     const packName = ascii($('#packname').value).trim() || title;
     const projects = buildRhythmProjects(a, state.res.tracks, state.template, { title, colors: projectColours(a.projects.length, 'rainbow') });
+    let replace = null;
+    if (state.own) {
+      replace = new Map();
+      for (const [from, to] of state.own.slotOf) {
+        const s = state.songPack.index.samples[from];
+        const get = s?.url && state.songPack.zip.get(s.url);
+        if (get) replace.set(to, { name: s.name, bytes: new Uint8Array(await get()) });
+      }
+    }
     const blob = await buildRhythmPack(state.inst, await kitPack(), kitChoice().index, projects, {
-      name: packName, color: $('#packcolor').value, trim: $('#trim').checked, used: usedSamples(a, state.res.tracks),
+      name: packName, color: $('#packcolor').value, trim: $('#trim').checked, used: usedSamples(a, state.res.tracks), replace,
     });
     const el = document.createElement('a');
     el.href = URL.createObjectURL(blob);

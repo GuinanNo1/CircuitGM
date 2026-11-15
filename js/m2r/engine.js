@@ -473,8 +473,8 @@ export function packDrums(hits, kit, ppq, maxTracks = 3) {
   const step = ppq / 4;
   const lanes = new Map();
   for (const h of hits) {
-    const k = map(h.note);
-    if (!lanes.has(k)) lanes.set(k, { kitIndex: k, cat: drumCategory(kit[k].note), name: kit[k].name, hits: [] });
+    const k = h.kit ?? map(h.note);
+    if (!lanes.has(k)) lanes.set(k, { kitIndex: k, cat: drumCategory(kit[k].note), name: kit[k].name, short: kit[k].short ?? kit[k].name.replace(/^\S+\s/, ''), hits: [] });
     lanes.get(k).hits.push({ tick: h.tick, dur: h.dur, vel: h.vel, kitIndex: k, src: h.src });
   }
   const order = [...lanes.values()].sort((a, b) => CAT_ORDER.indexOf(a.cat) - CAT_ORDER.indexOf(b.cat) || b.hits.length - a.hits.length);
@@ -503,7 +503,7 @@ export function packDrums(hits, kit, ppq, maxTracks = 3) {
     for (const h of keep) best.steps.add(Math.round(h.tick / step));
   }
   return tracks.map((t) => ({
-    label: t.lanes.map((l) => l.name.replace(/^\S+\s/, '')).join(' + '),
+    label: [...new Set(t.lanes.map((l) => l.short))].join(' + '),
     lanes: t.lanes.map((l) => ({ kitIndex: l.kitIndex, name: l.name, hits: l.hits.length })),
     hits: t.lanes.flatMap((l) => l.hits).sort((a, b) => a.tick - b.tick),
     dropped: t.dropped,
@@ -511,19 +511,74 @@ export function packDrums(hits, kit, ppq, maxTracks = 3) {
   }));
 }
 
+// ---------------------------------------------------------------- a pack's own samples
+
+// A Circuit pack loaded as the song (js/packsong.js) can keep its own samples. Each sample its
+// projects play gets a slot in the new pack: the kit slots 113-128 first, then down from 112,
+// past any RhythmInstGM sample a melodic part still needs. The most-played samples come first;
+// past MAX_OWN, the rest are dropped (their hits fall back to the nearest kind of drum among the
+// kept ones, and their parts to a GM sound).
+export const MAX_OWN = 48;
+export function ownSamples(midi, parts = new Map(), packNames = []) {
+  const uses = new Map();                 // pack slot -> { hits, drumNote, name }
+  const melodicSlot = new Map();          // part id -> its most-played pack slot
+  for (const s of midi.sources) {
+    const count = new Map();
+    for (const n of s.notes) {
+      if (n.slot == null) continue;
+      count.set(n.slot, (count.get(n.slot) ?? 0) + 1);
+      const u = uses.get(n.slot) ?? { hits: 0, drumNote: n.drumNote ?? 38, drum: false, melodic: false };
+      u.hits++;
+      if (s.isDrum) u.drum = true;
+      uses.set(n.slot, u);
+    }
+    if (!s.isDrum && count.size) {
+      const top = [...count].sort((a, b) => b[1] - a[1])[0][0];
+      melodicSlot.set(s.id, top);
+      uses.get(top).melodic = true;
+    }
+  }
+  // Only the drum samples and each melodic part's main sample need a slot.
+  const wanted = [...uses].filter(([, u]) => u.drum || u.melodic).sort((a, b) => b[1].hits - a[1].hits);
+  const keep = wanted.slice(0, MAX_OWN).map(([slot]) => slot).sort((a, b) => a - b);
+  const dropped = wanted.slice(MAX_OWN).map(([slot]) => slot);
+  // GM samples still needed: melodic parts that don't use their own sample.
+  const needed = new Set();
+  for (const s of midi.sources) {
+    if (s.isDrum) continue;
+    const cfg = parts.get(s.id) ?? {};
+    if (cfg.sample != null) needed.add(cfg.sample);
+    else if (!melodicSlot.has(s.id) || !keep.includes(melodicSlot.get(s.id))) {
+      const g = sampleForProgram(s.program ?? 0);
+      if (g != null) needed.add(g);
+    }
+  }
+  const targets = [];
+  for (let t = KIT_FIRST; t < 128 && targets.length < keep.length; t++) targets.push(t);
+  for (let t = KIT_FIRST - 1; t >= 0 && targets.length < keep.length; t--) if (!needed.has(t)) targets.push(t);
+  targets.sort((a, b) => a - b);
+  const slotOf = new Map(keep.map((slot, i) => [slot, targets[i]]));   // pack slot -> new slot
+  const ownSample = new Map();
+  for (const [id, slot] of melodicSlot) if (slotOf.has(slot)) ownSample.set(id, slotOf.get(slot));
+  const drumSlots = keep.filter((slot) => uses.get(slot).drum);
+  const kit = drumSlots.map((slot) => ({ name: packNames[slot] || `Sample ${slot + 1}`, short: packNames[slot] || `Sample ${slot + 1}`, note: uses.get(slot).drumNote, abs: slotOf.get(slot), from: slot }));
+  const kitBySlot = new Map(drumSlots.map((slot, i) => [slot, i]));
+  return { slotOf, ownSample, kit, kitBySlot, dropped };
+}
+
 // ---------------------------------------------------------------- the whole plan
 
 // midi: from js/midifile.js. samples: RhythmInstGM sample names (128). kit: 16 kit entries.
 // opts: {
 //   parts: Map(sourceId -> { on: bool, method?: key, sample?: slot }),
-//   range: 7 | 12 | 18 | 0 (off: no octave shift, no folding),
+//   range: 0 (off, the default: no octave shift, no folding) | 7 | 12 | 18,
 //   maxDrumTracks: 2 | 3 | 4, arpRate: quarters, share: true (lines that never overlap share)
 // }
 // Returns { parts: [...per source report], tracks: [8 or fewer], dropped: [...], kitSlots }
 //   autoSplit: true — chord parts left on "Auto" are split into all their voices, busiest
 //   first, while that fits in the free tracks without pushing another part out.
 export function planTracks(midi, samples, kit, opts = {}) {
-  const o = { range: 12, maxDrumTracks: 3, arpRate: 0.25, share: true, autoSplit: true, parts: new Map(), ...opts };
+  const o = { range: 0, maxDrumTracks: 3, arpRate: 0.25, share: true, autoSplit: true, parts: new Map(), ...opts };
   let res = planCore(midi, samples, kit, o, new Map());
   if (!o.autoSplit) return res;
   const cands = res.parts.filter((r) => r.on && r.kind === 'chords' && r.method === 'smart' && r.auto && r.voices >= 2)
@@ -560,12 +615,13 @@ function planCore(midi, samples, kit, o, splitSet) {
   for (const s of melodic) {
     const a = analysed.get(s.id);
     const cfg = o.parts.get(s.id) ?? {};
-    const sample = cfg.sample ?? sampleForProgram(s.program ?? 0);
+    const own = cfg.sample == null ? o.ownSample?.get(s.id) : undefined;
+    const sample = cfg.sample ?? own ?? sampleForProgram(s.program ?? 0);
     const rep = {
       id: s.id, name: s.name, instrument: s.instrument, program: s.program ?? 0, notes: s.notes.length,
       kind: a.kind, maxPoly: a.maxPoly, avgPoly: a.avgPoly, voices: Math.min(MAX_SPLIT, a.voices), isDrum: false, auto: false, chordDropped: 0,
       on: included(s) && sample != null, sample, method: null, shift: 0, folded: 0, outside: 0, lines: 0,
-      noSample: sample == null,
+      noSample: sample == null, own: own != null,
     };
     reports.push(rep);
     if (!rep.on) continue;
@@ -613,7 +669,7 @@ function planCore(midi, samples, kit, o, splitSet) {
   for (const s of drums) {
     const cfg = o.parts.get(s.id) ?? {};
     reports.push({ id: s.id, name: s.name, instrument: 'Drums', notes: s.notes.length, kind: 'drums', isDrum: true, on: cfg.on !== false, lines: 0 });
-    if (cfg.on !== false) drumHits.push(...s.notes.map((n) => ({ ...n, src: s.id })));
+    if (cfg.on !== false) drumHits.push(...s.notes.map((n) => ({ ...n, src: s.id, kit: o.kitBySlot?.get(n.slot) })));
   }
   const drumTracks = drumHits.length ? packDrums(drumHits, kit, ppq, o.maxDrumTracks) : [];
   for (const r of reports) if (r.isDrum && r.on) r.lines = drumTracks.length;
@@ -636,7 +692,7 @@ function planCore(midi, samples, kit, o, splitSet) {
   const rest = lines.filter((l) => l !== bass && l !== melody).sort((a, b) => b.notes.length - a.notes.length);
 
   const queue = [
-    ...drumTracks.map((d, i) => ({ kind: 'drum', label: d.label, role: i === 0 ? 'Drums' : 'Drums', notes: d.hits.map((h) => ({ tick: h.tick, dur: Math.max(1, Math.min(h.dur || ppq / 4, ppq / 4)), vel: h.vel, byte: 72, sample: KIT_FIRST + h.kitIndex, part: h.src })), drum: d })),
+    ...drumTracks.map((d, i) => ({ kind: 'drum', label: d.label, role: i === 0 ? 'Drums' : 'Drums', notes: d.hits.map((h) => ({ tick: h.tick, dur: Math.max(1, Math.min(h.dur || ppq / 4, ppq / 4)), vel: h.vel, byte: 72, sample: kit[h.kitIndex].abs ?? KIT_FIRST + h.kitIndex, part: h.src })), drum: d })),
     ...[bass, melody].filter(Boolean),
     ...rest,
   ];

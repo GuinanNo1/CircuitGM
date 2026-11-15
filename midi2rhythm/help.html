@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/app.css?v=20261114m2r7">
+<link rel="stylesheet" href="../css/app.css?v=20261115m2r8">
 </head>
 <body>
 <nav class="sitenav" aria-label="CircuitGM">
@@ -29,7 +29,7 @@
 <header class="masthead">
   <div class="wrap">
     <p class="crumbs"><a href="./">← Back to MIDI2Rhythm</a></p>
-    <h1>MIDI2Rhythm help <span>CircuitGM MIDI to Circuit Rhythm Converter</span> <em class="badge">For testing · v0.6</em></h1>
+    <h1>MIDI2Rhythm help <span>CircuitGM MIDI to Circuit Rhythm Converter</span> <em class="badge">For testing · v0.7</em></h1>
     <p class="lede">How MIDI2Rhythm fits a General MIDI song onto the Circuit Rhythm's eight tracks.</p>
   </div>
 </header>
@@ -38,7 +38,7 @@
   <section class="panel">
     <h2>Quickstart</h2>
     <ol class="steps">
-      <li>Drop a MIDI file on step 1.</li>
+      <li>Drop a MIDI file on step 1, or a Circuit Tracks or Circuit Rhythm pack and pick one of its projects.</li>
       <li>Check step 2: every part shows its type and the track it landed on. Untick parts you don't need, to make room for ones listed as "No track left".</li>
       <li>Pick a drum kit in step 3.</li>
       <li>Press <b>Play preview</b> in step 4 to hear it with the RhythmGM samples.</li>
@@ -78,18 +78,19 @@
 
   <section class="panel">
     <h2>Keeping lines near the sample's note</h2>
-    <p>Each RhythmInstGM sample is one recording at one pitch, named in the sample (for example "001 Grand Piano C4"). The Rhythm plays other notes by speeding the sample up or slowing it down, which changes its tone and length, so a sample played far from its own note stops sounding like the instrument. MIDI2Rhythm:</p>
+    <p>Each RhythmInstGM sample is one recording at one pitch, named in the sample (for example "001 Grand Piano C4"). The Rhythm plays other notes by speeding the sample up or slowing it down, which changes its tone and length, so a sample played far from its own note can stop sounding like the instrument. With <b>Keep lines near the sample's note</b> switched on (Advanced), MIDI2Rhythm:</p>
     <ol>
       <li>moves each part by whole octaves so that as few notes as possible fall outside the range, and its middle sits near the sample's note (octave moves keep the tune and harmony intact);</li>
       <li>in Smart line, prefers chord notes near the sample's note;</li>
       <li>folds any note still outside the range an octave towards the sample's note.</li>
     </ol>
-    <p>The range is ±12 semitones; Advanced offers ±7, ±18 or off. The parts table (Advanced) shows each part's octave move and how many notes were folded. Unpitched instruments (Taiko, Seashore and so on) play at their own pitch.</p>
+    <p>This is off by default: notes play at their written pitch, which tested well on the Rhythm even well outside a sample's range. Advanced offers ±7, ±12 or ±18 semitones for songs that need it. The parts table (Advanced) shows each part's octave move and how many notes were folded. Unpitched instruments (Taiko, Seashore and so on) play at their own pitch.</p>
   </section>
 
   <section class="panel">
     <h2>The pack</h2>
     <p>RhythmInstGM's samples 1–112 keep their GM program numbers; slots 113–128 hold the 16 sounds of the chosen RhythmDrumGM or RhythmLatinGM kit, so GM programs 113–128 aren't available. Tinkle Bell, Agogo, Steel Drums, Woodblock, Taiko, Melodic Tom and Synth Drum play on a similar instrument; the sound effects (Reverse Cymbal to Gunshot) are left out unless you choose another sound for them in Advanced.</p>
+    <p id="from-pack"><b>A Circuit pack as the song.</b> Drop a <code>.circuittrackspack</code> or <code>.circuitrhythmpack</code> and choose one of its projects in the Project box. Its scenes and chains are played through in order, and each Circuit track with notes becomes a part. With <b>Its own samples</b> (the drum kit box's first choice, the default for a pack) the project's drum samples, and the sample a melodic sample track plays most, go into the new pack: the kit slots 113–128 first, then down from 112 past any RhythmInstGM sound still in use, up to 48 samples. Circuit Tracks synths and MIDI tracks play the RhythmInstGM instrument nearest their patch name (change it in Advanced). Pick a RhythmGM kit instead to play the drums on GM sounds.</p>
     <p>The arrangement works as in MIDI2Circuit: patterns of up to 32 steps, sections as scenes in one scene chain, identical patterns reused, and a new project when 8 patterns per track or 16 scenes run out. Each track can have its own step rate. Projects start from a project saved empty on the Circuit Rhythm, so mixer and FX settings are the hardware's defaults.</p>
   </section>
 
@@ -97,6 +98,7 @@
     <h2>Versions</h2>
     <p>The version is shown next to "For testing" at the top of the page. If it's older than the newest one here, refresh the page (Shift-reload); GitHub Pages can take about 10 minutes to serve a new version.</p>
     <ul>
+      <li><b>v0.7</b> (15 Nov 2026): a Circuit Tracks or Circuit Rhythm pack can be the song (one project at a time), keeping its own samples. "Keep lines near the sample's note" is off by default (tested on the hardware).</li>
       <li><b>v0.6</b> (14 Nov 2026): every track's Tune set to the centre, so packs play in tune (track 4 was about 1.8 semitones flat). Version number added.</li>
       <li><b>v0.5</b> (14 Nov 2026): mute bars by clicking boxes in the arrangement grid.</li>
       <li><b>v0.4</b> (14 Nov 2026): play button for each part; track mute dots; grid laid out as in MIDI2Circuit.</li>

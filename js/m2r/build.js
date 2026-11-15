@@ -94,7 +94,8 @@ export function buildRhythmProjects(plan, tracks, template, settings) {
 // The pack: RhythmInstGM's 128 samples, with slots 113-128 replaced by the kit (16 samples
 // of a RhythmDrumGM or RhythmLatinGM kit), plus the projects. trim: keep only the samples the
 // projects use (the others keep a blank name and no file, as Components stores an empty slot).
-export async function buildRhythmPack(inst, drums, kitIndex, projects, { name, color = 'blue', trim = false, used = null }) {
+// replace: Map(slot -> { name, bytes }), a song pack's own samples (engine.js ownSamples).
+export async function buildRhythmPack(inst, drums, kitIndex, projects, { name, color = 'blue', trim = false, used = null, replace = null }) {
   const index = JSON.parse(JSON.stringify(inst.index));
   index.name = shortName(name) || 'MIDI2Rhythm';
   index.color = color;
@@ -109,6 +110,11 @@ export async function buildRhythmPack(inst, drums, kitIndex, projects, { name, c
     s.name = src?.name ?? '';
     const get = src?.url ? drums.zip.get(src.url) : null;
     if (get) files.set(s.url, new Uint8Array(await get()));
+  }
+  for (const [slot, r] of replace ?? []) {
+    const s = index.samples[slot];
+    s.name = r.name || `Sample ${slot + 1}`;
+    files.set(s.url, r.bytes);
   }
   if (trim && used) {
     index.samples.forEach((s, i) => { if (!used.has(i)) { s.name = ''; files.delete(s.url); } });

@@ -10,7 +10,7 @@ General MIDI for the Novation Circuit Tracks and Circuit Rhythm: sound packs, an
 | **PatchWorker** | Synth patch editor for the Circuit Tracks: edit any patch in a pack, hear it in the browser or live on a linked Circuit Tracks, save `.syx` patches and whole packs | For testing | [Open](https://guinanno1.github.io/CircuitGM/patchworker/) · [Help](https://guinanno1.github.io/CircuitGM/patchworker/help.html) · [Code](patchworker/) |
 | **PackTrim** | Trims a Circuit Tracks or Circuit Rhythm pack to the samples and patches its projects use | Alpha 0.1 | [Open](https://guinanno1.github.io/CircuitGM/packtrim/) · [Code](packtrim/) |
 | **MIDI2Circuit** | MIDI files, or Circuit Tracks and Circuit Rhythm projects, to Circuit Tracks packs | Alpha 0.1 | [Open](https://guinanno1.github.io/CircuitGM/midi2circuit/) · [Help](https://guinanno1.github.io/CircuitGM/midi2circuit/help.html) · [Code](midi2circuit/) |
-| **MIDI2Rhythm** | MIDI files to Circuit Rhythm packs (RhythmInstGM + a RhythmDrumGM kit) | For testing | [Open](https://guinanno1.github.io/CircuitGM/midi2rhythm/) · [Help](https://guinanno1.github.io/CircuitGM/midi2rhythm/help.html) · [Code](midi2rhythm/) |
+| **MIDI2Rhythm** | MIDI files or Circuit pack projects to Circuit Rhythm packs (RhythmInstGM + a RhythmDrumGM kit, or the pack's own samples) | For testing | [Open](https://guinanno1.github.io/CircuitGM/midi2rhythm/) · [Help](https://guinanno1.github.io/CircuitGM/midi2rhythm/help.html) · [Code](midi2rhythm/) |
 | **Circuit2MIDI** | A project from a Circuit Tracks or Circuit Rhythm pack to a Standard MIDI file | Alpha 0.1 | [Open](https://guinanno1.github.io/CircuitGM/circuit2midi/) · [Help](https://guinanno1.github.io/CircuitGM/circuit2midi/help.html) · [Code](circuit2midi/) |
 
 Everything runs in the browser: nothing is uploaded, and there is no server. Each folder has its own README with the details. The alpha tools are for testing: please report problems in [Issues](https://github.com/GuinanNo1/CircuitGM/issues).
@@ -67,7 +67,7 @@ node tests/build_test.mjs "path/to/song.mid" out     # build a pack, read every 
 node tests/validate.mjs out/project_*.ncs            # range checks
 node tests/roundtrip.mjs                             # MIDI -> MIDI2Circuit -> Circuit2MIDI -> MIDI, every note compared
 node tests/pack2pack.mjs [out-dir]                   # Circuit Tracks / Rhythm pack -> MIDI2Circuit -> pack, every hit compared
-node tests/m2r_build.mjs <file.mid>... [--out dir]  # MIDI2Rhythm: MIDI -> Rhythm pack, every step read back
+node tests/m2r_build.mjs <file.mid | pack[@n]>... [--out dir]  # MIDI2Rhythm: MIDI or pack project -> Rhythm pack, every step read back
 node tests/pack_compare.mjs <pack> [track|auto|16|8|4] # any pack: convert each project, play it back, account for every hit
 node tests/compact_only.mjs [save-two-project-pack]  # PackTrim: Keep only project N
 ```

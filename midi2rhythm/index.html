@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CircuitGM MIDI to Circuit Rhythm Converter (MIDI2Rhythm)</title>
-<meta name="description" content="Turn a General MIDI file into a Novation Circuit Rhythm pack built on RhythmInstGM and a RhythmDrumGM kit.">
+<meta name="description" content="Turn a General MIDI file or a Circuit pack project into a Novation Circuit Rhythm pack built on RhythmInstGM and a RhythmDrumGM kit.">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/app.css?v=20261114m2r7">
-<link rel="stylesheet" href="../css/m2r.css?v=20261114m2r7">
+<link rel="stylesheet" href="../css/app.css?v=20261115m2r8">
+<link rel="stylesheet" href="../css/m2r.css?v=20261115m2r8">
 <script>(function(){var r=document.documentElement;try{if(localStorage.getItem('circuitgm-advanced-m2r')!=='1')r.classList.add('simple')}catch(e){r.classList.add('simple')}})();</script>
 </head>
 <body>
@@ -32,14 +32,14 @@
   <div class="wrap">
     <h1>MIDI2Rhythm <span>MIDI to Circuit Rhythm converter</span> <em class="badge" title="Version of the MIDI2Rhythm code running in this page">For testing · <span id="version">v0.6</span></em></h1>
     <p class="helplinks"><a href="help.html">How it works</a></p>
-    <p class="lede">Turn a General MIDI file into a Novation Circuit Rhythm pack. Every Rhythm track plays one note at a time, so MIDI2Rhythm picks the parts that matter most (drums, bass, melody, then the busiest), turns chords into a single line, keeps each line near its sample's own pitch, and builds a <code>.circuitrhythmpack</code> on <a href="../rhythmgm/">RhythmInstGM</a> with a RhythmDrumGM kit in slots 113–128.</p>
+    <p class="lede">Turn a General MIDI file, or a project from a Circuit Tracks or Circuit Rhythm pack, into a Novation Circuit Rhythm pack. Every Rhythm track plays one note at a time, so MIDI2Rhythm picks the parts that matter most (drums, bass, melody, then the busiest), turns chords into a single line, and builds a <code>.circuitrhythmpack</code> on <a href="../rhythmgm/">RhythmInstGM</a> with a RhythmDrumGM kit in slots 113–128.</p>
     <p class="alpha">For testing: not yet tried on a Circuit Rhythm. The project format is reverse-engineered, so keep a backup of your packs, and please report anything odd on <a href="https://github.com/GuinanNo1/CircuitGM/issues">GitHub</a>.</p>
   </div>
 </header>
 
 <main class="wrap">
   <section class="panel" id="step-load">
-    <h2><span class="num">1</span> Load a MIDI file</h2>
+    <h2><span class="num">1</span> Load a song</h2>
     <div class="modebar">
       <label class="modeswitch big" title="Simple shows the main choices; Advanced shows every setting">
         <span class="ms-simple">Simple</span>
@@ -58,11 +58,15 @@
       </div>
     </div>
     <label class="drop" id="drop">
-      <input type="file" id="file" accept=".mid,.midi,.rmi,.kar,audio/midi">
-      <span class="drop-main">Drop a MIDI file here, or <u>choose one</u></span>
-      <span class="drop-sub">A Standard MIDI file (type 0 or 1). Nothing is uploaded; everything runs in your browser.</span>
+      <input type="file" id="file" accept=".mid,.midi,.rmi,.kar,audio/midi,.circuittrackspack,.circuitrhythmpack">
+      <span class="drop-main">Drop a song here, or <u>choose one</u></span>
+      <span class="drop-sub">A Standard MIDI file (type 0 or 1), or a Circuit Tracks or Circuit Rhythm pack (<code>.circuittrackspack</code>, <code>.circuitrhythmpack</code>) to convert one of its projects. Nothing is uploaded; everything runs in your browser.</span>
     </label>
     <div class="fileinfo" id="fileinfo" hidden></div>
+    <div class="projpick" id="projpick" hidden>
+      <div class="field"><label for="project">Project</label><select id="project"></select></div>
+      <p class="hint small" id="project-hint"></p>
+    </div>
   </section>
 
   <section class="panel" id="step-parts" hidden>
@@ -91,11 +95,11 @@
     <div class="options">
       <div class="field"><label for="kit">Drum kit (slots 113–128)</label><select id="kit"></select></div>
       <div class="field adv"><label for="range">Keep lines near the sample's note</label>
-        <select id="range"><option value="7">Within ±7 semitones</option><option value="12" selected>Within ±12 semitones</option><option value="18">Within ±18 semitones</option><option value="0">Off (play at written pitch)</option></select></div>
+        <select id="range"><option value="7">Within ±7 semitones</option><option value="12">Within ±12 semitones</option><option value="18">Within ±18 semitones</option><option value="0" selected>Off (play at written pitch)</option></select></div>
       <div class="field adv"><label for="arp-rate">Arpeggio speed</label>
         <select id="arp-rate"><option value="0.125">1/32</option><option value="0.25" selected>1/16</option><option value="0.5">1/8</option></select></div>
     </div>
-    <p class="hint small">Each RhythmInstGM sample is one recording at one pitch (its note is in its name, e.g. "001 Grand Piano C4"). Played far from that note it speeds up or slows down and stops sounding like the instrument, so each part is moved by whole octaves towards it, and any stray notes are folded an octave towards it. RhythmInstGM's GM programs 113–128 make way for the drum kit: Tinkle Bell, Agogo, Steel Drums, Woodblock, Taiko, Melodic Tom and Synth Drum play on a similar instrument; the sound effects are left out.</p>
+    <p class="hint small">Each RhythmInstGM sample is one recording at one pitch (its note is in its name, e.g. "001 Grand Piano C4"). Played far from that note it speeds up or slows down and can stop sounding like the instrument. Notes play at their written pitch by default; in Advanced, <b>Keep lines near the sample's note</b> moves each part by whole octaves towards it and folds stray notes an octave towards it, for songs that need it. RhythmInstGM's GM programs 113–128 make way for the drum kit: Tinkle Bell, Agogo, Steel Drums, Woodblock, Taiko, Melodic Tom and Synth Drum play on a similar instrument; the sound effects are left out.</p>
   </section>
 
   <section class="panel" id="step-arrange" hidden>
@@ -144,6 +148,6 @@
   <p>Samples: <a href="https://github.com/mrbumpy409/GeneralUser-GS">GeneralUser GS</a> by S. Christian Collins (<a href="../rhythmgm/LICENSE-GeneralUser-GS.txt">licence</a>). Not affiliated with Novation or Focusrite; "Circuit Rhythm" and "Components" are their trademarks.</p>
 </footer>
 
-<script type="module" src="../js/m2r/app.js?v=20261114m2r7"></script>
+<script type="module" src="../js/m2r/app.js?v=20261115m2r8"></script>
 </body>
 </html>
