@@ -9,8 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/app.css?v=20261115m2r14">
-<link rel="stylesheet" href="../css/m2r.css?v=20261115m2r14">
+<link rel="stylesheet" href="../css/app.css?v=20261115m2r15">
+<link rel="stylesheet" href="../css/m2r.css?v=20261115m2r15">
 <script>(function(){var r=document.documentElement;try{if(localStorage.getItem('circuitgm-advanced-m2r')!=='1')r.classList.add('simple')}catch(e){r.classList.add('simple')}})();</script>
 </head>
 <body>
@@ -143,6 +143,16 @@
         <select id="projcolors"><option value="source" selected class="lay-only">As in the pack</option><option value="rainbow">Repeating rainbow</option><optgroup label="One colour"><option value="0">Red</option><option value="1">Rose</option><option value="2">Peach</option><option value="3">Orange</option><option value="4">Sand</option><option value="5">Yellow</option><option value="6">Khaki</option><option value="7">Lime</option><option value="8">Green</option><option value="9">Teal</option><option value="10">Cyan</option><option value="11">Blue</option><option value="12">Purple</option><option value="13">Pink</option></optgroup></select></div>
       <div class="field check adv"><label><input type="checkbox" id="trim"> Trim the pack: keep only the samples the song uses</label></div>
     </div>
+    <div class="m2r-fx adv">
+      <h3>Effects</h3>
+      <div class="options">
+        <div class="field"><label for="fx-reverb">Reverb preset</label><select id="fx-reverb"><option value="" selected>None</option><option value="0">1</option><option value="1">2</option><option value="2">3</option><option value="3">4</option><option value="4">5</option><option value="5">6</option><option value="6">7</option><option value="7">8</option></select></div>
+        <div class="field"><label for="fx-delay">Delay preset</label><select id="fx-delay"><option value="" selected>None</option><option value="0">1</option><option value="1">2</option><option value="2">3</option><option value="3">4</option><option value="4">5</option><option value="5">6</option><option value="6">7</option><option value="7">8</option><option value="8">9</option><option value="9">10</option><option value="10">11</option><option value="11">12</option><option value="12">13</option><option value="13">14</option><option value="14">15</option><option value="15">16</option></select></div>
+      </div>
+      <table class="fxsends"><thead><tr><th>Track</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr></thead>
+        <tbody><tr><th>Reverb send</th><td><input type="number" min="0" max="127" value="0" data-rsend="0" aria-label="Track 1"></td><td><input type="number" min="0" max="127" value="0" data-rsend="1" aria-label="Track 2"></td><td><input type="number" min="0" max="127" value="0" data-rsend="2" aria-label="Track 3"></td><td><input type="number" min="0" max="127" value="0" data-rsend="3" aria-label="Track 4"></td><td><input type="number" min="0" max="127" value="0" data-rsend="4" aria-label="Track 5"></td><td><input type="number" min="0" max="127" value="0" data-rsend="5" aria-label="Track 6"></td><td><input type="number" min="0" max="127" value="0" data-rsend="6" aria-label="Track 7"></td><td><input type="number" min="0" max="127" value="0" data-rsend="7" aria-label="Track 8"></td></tr><tr><th>Delay send</th><td><input type="number" min="0" max="127" value="0" data-dsend="0" aria-label="Track 1"></td><td><input type="number" min="0" max="127" value="0" data-dsend="1" aria-label="Track 2"></td><td><input type="number" min="0" max="127" value="0" data-dsend="2" aria-label="Track 3"></td><td><input type="number" min="0" max="127" value="0" data-dsend="3" aria-label="Track 4"></td><td><input type="number" min="0" max="127" value="0" data-dsend="4" aria-label="Track 5"></td><td><input type="number" min="0" max="127" value="0" data-dsend="5" aria-label="Track 6"></td><td><input type="number" min="0" max="127" value="0" data-dsend="6" aria-label="Track 7"></td><td><input type="number" min="0" max="127" value="0" data-dsend="7" aria-label="Track 8"></td></tr></tbody></table>
+      <p class="hint small">Set once here for every project in the pack, instead of on the Rhythm for each one. Presets are numbered as on the Rhythm's grid (reverb 1–8, delay 1–16); None leaves the project's own. Sends are 0–127 (0 = off, 127 = full).</p>
+    </div>
     <div class="buildrow">
       <button class="btn primary big" id="build" type="button">Download pack</button>
       <span class="status" id="build-status"></span>
@@ -155,6 +165,6 @@
   <p>Samples: <a href="https://github.com/mrbumpy409/GeneralUser-GS">GeneralUser GS</a> by S. Christian Collins (<a href="../rhythmgm/LICENSE-GeneralUser-GS.txt">licence</a>). Not affiliated with Novation or Focusrite; "Circuit Rhythm" and "Components" are their trademarks.</p>
 </footer>
 
-<script type="module" src="../js/m2r/app.js?v=20261115m2r14"></script>
+<script type="module" src="../js/m2r/app.js?v=20261115m2r15"></script>
 </body>
 </html>

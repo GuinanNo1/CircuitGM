@@ -35,6 +35,35 @@ export async function openPack(buf) {
 
 // plan: from arrangeRhythm; tracks: from planTracks (default samples); template: ArrayBuffer.
 // settings: { title, colors: [0-13 per project] }
+// Effects, found 2026-11-15 from Ian's hardware saves (one change per save; see
+// docs/circuit-rhythm-format.md). The Rhythm plays the values stored with a preset, not the
+// preset number, so picking a preset writes both. Values: tail +386 (delay, 6 bytes) and +378
+// (reverb, 3 bytes), as the Rhythm writes them for Delay 1-16 and Reverb 1-8.
+export const DELAY_PRESETS = [
+  [3, 0, 100, 115, 5, 115], [6, 0, 45, 104, 6, 26], [0, 2, 63, 62, 5, 40], [0, 4, 25, 10, 5, 75],
+  [0, 5, 59, 15, 5, 39], [0, 7, 15, 34, 6, 56], [0, 7, 75, 115, 5, 98], [0, 7, 75, 75, 3, 23],
+  [0, 8, 80, 10, 6, 68], [0, 9, 50, 100, 5, 33], [0, 10, 82, 23, 5, 56], [0, 10, 78, 88, 6, 47],
+  [0, 10, 33, 127, 3, 33], [0, 11, 50, 60, 6, 86], [0, 12, 24, 90, 3, 106], [0, 12, 50, 115, 5, 111],
+];
+export const REVERB_PRESETS = [
+  [0, 80, 120], [1, 90, 100], [2, 80, 80], [2, 100, 110], [3, 90, 100], [4, 105, 105], [5, 90, 80], [5, 120, 115],
+];
+const T_DELAY_PRESET = 32, T_REVERB_PRESET = 33, T_REVERB_VALUES = 378, T_DELAY_VALUES = 386, T_FX_OFF = 393;
+const ROW_REVERB_SEND = 34, ROW_DELAY_SEND = 35;   // per-track row bytes (35: delay send, very likely)
+
+// fx: { reverb: 0-7 | null, delay: 0-15 | null (null leaves the project's own),
+//       reverbSends: [8 x 0-127] | null, delaySends: [8 x 0-127] | null, off: bool }
+export function applyFx(d, fx) {
+  if (!fx) return;
+  if (fx.delay != null) { d[TAIL + T_DELAY_PRESET] = fx.delay; d.set(DELAY_PRESETS[fx.delay], TAIL + T_DELAY_VALUES); }
+  if (fx.reverb != null) { d[TAIL + T_REVERB_PRESET] = fx.reverb; d.set(REVERB_PRESETS[fx.reverb], TAIL + T_REVERB_VALUES); }
+  for (let t = 0; t < 8; t++) {
+    if (fx.reverbSends) d[TAIL + T_TRACK_ROWS + t * 41 + ROW_REVERB_SEND] = Math.max(0, Math.min(127, fx.reverbSends[t] | 0));
+    if (fx.delaySends) d[TAIL + T_TRACK_ROWS + t * 41 + ROW_DELAY_SEND] = Math.max(0, Math.min(127, fx.delaySends[t] | 0));
+  }
+  if (fx.off != null) d[TAIL + T_FX_OFF] = fx.off ? 1 : 0;
+}
+
 export function buildRhythmProjects(plan, tracks, template, settings) {
   const n = plan.projects.length;
   return plan.projects.map((p) => {
@@ -88,6 +117,7 @@ export function buildRhythmProjects(plan, tracks, template, settings) {
       // template's source project had track 4 tuned down 9 steps, about 1.8 semitones).
       d[TAIL + T_TRACK_ROWS + t * 41 + ROW_TUNE] = TUNE_CENTRE;
     }
+    applyFx(d, settings.fx);
     return { name, bytes: d };
   });
 }
@@ -138,6 +168,7 @@ export function buildLayoutProject(plan, template, settings) {
     d[TAIL + T_TRACK_ROWS + t * 41 + ROW_TUNE] = tr?.tune ?? TUNE_CENTRE;
   }
   d[TAIL + T_MUTE_RECALL] = plan.muteRecall ?? 0;
+  applyFx(d, settings.fx);
   return { name, bytes: d };
 }
 
