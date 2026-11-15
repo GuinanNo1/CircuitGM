@@ -9,20 +9,40 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/app.css?v=20261110c">
+<link rel="stylesheet" href="../css/app.css?v=20261116nav">
 </head>
 <body>
 <nav class="sitenav" aria-label="CircuitGM">
   <div class="wrap">
     <a class="brand" href="../" title="CircuitGM home: all packs and tools">Circuit<b>GM</b></a>
-    <ul>
-      <li><a href="../tracksgm/">TracksGM</a></li>
-      <li><a href="./" aria-current="page">RhythmGM</a></li>
-      <li><a href="../patchworker/">PatchWorker</a></li>
-      <li><a href="../packtrim/">PackTrim</a></li>
-      <li><a href="../midi2circuit/">MIDI2Circuit</a></li>
-      <li><a href="../midi2rhythm/">MIDI2Rhythm</a></li>
-      <li><a href="../circuit2midi/">Circuit2MIDI</a></li>
+    <ul class="navgroups">
+      <li class="navgroup current">
+        <button type="button" aria-haspopup="true">General MIDI Packs</button>
+        <ul>
+          <li><a href="../tracksgm/">TracksGM</a></li>
+          <li><a href="./" aria-current="page">RhythmGM</a></li>
+        </ul>
+      </li>
+      <li class="navgroup">
+        <button type="button" aria-haspopup="true">Circuit MIDI Converters</button>
+        <ul>
+          <li><a href="../midi2circuit/">MIDI2Circuit</a></li>
+          <li><a href="../midi2rhythm/">MIDI2Rhythm</a></li>
+          <li><a href="../circuit2midi/">Circuit2MIDI</a></li>
+        </ul>
+      </li>
+      <li class="navgroup">
+        <button type="button" aria-haspopup="true">Patch Editors</button>
+        <ul>
+          <li><a href="../patchworker/">PatchWorker</a></li>
+        </ul>
+      </li>
+      <li class="navgroup">
+        <button type="button" aria-haspopup="true">Pack Trimming</button>
+        <ul>
+          <li><a href="../packtrim/">PackTrim</a></li>
+        </ul>
+      </li>
     </ul>
   </div>
 </nav>
