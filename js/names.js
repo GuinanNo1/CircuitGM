@@ -58,11 +58,12 @@ export function numbered(name, n, max = NAME_MAX) {
   return tight.length > spaced.length ? `${tight}${num}` : `${spaced} ${num}`;
 }
 
-// Pack colour as Components stores it in index.json. Its names differ from the menu's: Blue
-// (the default) is stored as no "color" at all, and Green (6th in the menu) as "teal" (found
-// 2026-11-15 from packs Ian saved in Components). Other colours aren't mapped yet.
-const PACK_COLOURS = { blue: null, green: 'teal' };
+// Pack colour in index.json: Components' names are red, rose, peach, orange, sand, yellow,
+// khaki, lime, green, teal, cyan, blue, purple, pink (indexes 0-13, the same palette as project
+// colours; blue is the default and is left out). Read from Components' own code on 2026-11-15.
+// Note: Components seems to ignore this when it imports a pack file; the colour that reaches
+// the device is the one set in Components (a pack with none arrives as 0, red).
+export const PACK_COLOUR_NAMES = ['red', 'rose', 'peach', 'orange', 'sand', 'yellow', 'khaki', 'lime', 'green', 'teal', 'cyan', 'blue', 'purple', 'pink'];
 export function setPackColour(index, colour) {
-  const v = colour in PACK_COLOURS ? PACK_COLOURS[colour] : colour;
-  if (v == null) delete index.color; else index.color = v;
+  if (!PACK_COLOUR_NAMES.includes(colour) || colour === 'blue') delete index.color; else index.color = colour;
 }
