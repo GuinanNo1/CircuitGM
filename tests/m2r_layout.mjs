@@ -45,6 +45,7 @@ for (const arg of files) {
     ok(back.projects.filter((p) => !p.empty).length === 1, `${label}: one project`);
     ok(song.tempo === plan.tempo, `${label}: tempo`);
     ok(back.projects[0].project.color === entry.project.color, `${label}: colour ${back.projects[0].project.color} vs ${entry.project.color}`);
+    ok(back.projects[0].project.muteRecall === (entry.project.muteRecall ? 1 : 0), `${label}: mute recall`);
     // each Rhythm drum track's Tune carries its Tracks drum track's Pitch (Rhythm: its Tune)
     const tunes = back.projects[0].project.trackTunes;
     plan.tracks.forEach((tr, t) => {

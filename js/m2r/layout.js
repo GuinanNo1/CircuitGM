@@ -282,6 +282,7 @@ export function layoutPlan(song, sources, opts) {
     kind: 'layout',
     product: song.product,
     color: o.project?.color ?? null,
+    muteRecall: o.project?.muteRecall ? 1 : 0,
     tempo: clamp(song.tempo, 40, 240),
     tempoClamped: song.tempo < 40 || song.tempo > 240,
     swing: song.swing, swingRate: song.swingRate,

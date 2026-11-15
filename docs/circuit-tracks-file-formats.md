@@ -27,7 +27,7 @@ Tracks/0<N> <Pack name>/{meta (empty), Patches (8 "hexbanks" = 128 patches, undo
 ### Added 2026-11-06 (while building the converter)
 - Byte 0x38 is the timing section's spare byte as far as Components' validator is concerned, and must be 0. Every hardware-saved project has 0 there; scene "used" flags (1) appear from the second scene block onwards.
 - Validator ranges for active synth/MIDI notes: note number 1-139, gate 1-224 (so a tied gate tops out at 0x80 | 96), delay 0-5, velocity 0-127. A drum step's velocity and rhythm mask must be both zero or both non-zero.
-- Scale type 15 = Chromatic; stored note = MIDI note + 12 when the scale is chromatic with root C.
+- Scale type 15 = Chromatic; stored note = MIDI note + 12 when the scale is chromatic with root C. **More generally, stored note = MIDI note + 12 - scale root** (any scale type): Blue Monday (root D = 2, type 2) stores its F-C-D bassline as 39/34/36, i.e. D#-A#-C read with root C. Found 2026-11-15 when its converted melodies were a whole tone flat against its sampled stabs; js/song.js now adds the root.
 
 ## Patch (official, Programmer's Reference Guide v3)
 340 bytes 7-bit; SysEx F0 00 20 29 01 64 00 <loc> 00 <340> F7 (current) / 01 <slot> 00 (flash). Bank file = 64 Replace Patch msgs. OG Circuit = product byte 0x60.

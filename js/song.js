@@ -9,7 +9,7 @@ export const PPQ = 1440;
 export const STEP_TICKS = [120, 180, 240, 360, 480, 720, 960, 1440];
 export const RATE_LABELS = ['1/32T', '1/32', '1/16T', '1/16', '1/8T', '1/8', '1/4T', '1/4'];
 const stepTicks = (rate) => STEP_TICKS[rate] ?? 360;
-const STORED_NOTE_OFFSET = 12;        // stored note = MIDI note + 12
+const STORED_NOTE_OFFSET = 12;        // stored note = MIDI note + 12 (Circuit Tracks: above the scale root)
 const UNPITCHED = 60;                 // a sample step that hasn't been transposed (stored 72)
 export const DIRECTIONS = ['forward', 'reverse', 'ping-pong', 'random'];
 
@@ -18,6 +18,10 @@ export const DIRECTIONS = ['forward', 'reverse', 'ping-pong', 'random'];
 export function songOf(pack, entry) {
   const p = entry.project;
   const rhythm = pack.product === 'circuit-rhythm';
+  // Circuit Tracks synth and MIDI notes are stored relative to the project's scale root: with
+  // root D (2) a stored 41 is F2 (MIDI 41 - 12 + 2), not D#2. Found 2026-11-15 on Blue Monday
+  // (root D), whose converted melodies came out a whole tone flat against its tuned samples.
+  const root = rhythm ? 0 : (p.scaleRoot ?? 0) % 12;
   const sampleName = (slot) => pack.samples[slot]?.name || `Sample ${slot + 1}`;
   const tracks = [];
   for (let t = 0; t < 8; t++) {
@@ -29,7 +33,7 @@ export function songOf(pack, entry) {
       end: Math.max(pat.settings.playbackStart, pat.settings.playbackEnd),
       rate: pat.settings.syncRate,
       dir: pat.settings.direction,
-      steps: pat.steps.map((s) => ({ prob: s.probability, hits: hitsOf(kind, s, defaultSample) })),
+      steps: pat.steps.map((s) => ({ prob: s.probability, hits: hitsOf(kind, s, defaultSample, root) })),
     }));
     const label = rhythm ? `Track ${t + 1}` : TRACKS[t];
     // The track's sound: its patch, or its default sample; if that slot is empty, the
@@ -88,12 +92,12 @@ function microTicks(mask) {
   return out;
 }
 
-function hitsOf(kind, s, defaultSample) {
+function hitsOf(kind, s, defaultSample, root = 0) {
   if (kind === 'synth' || kind === 'midi') {
     const out = [];
     s.notes.forEach((n, j) => {
       if (!((s.mask >> j) & 1)) return;
-      out.push({ micro: n.delay % 6, note: n.note - STORED_NOTE_OFFSET, vel: n.velocity, gate: n.gate & 0x7f, tie: (n.gate & 0x80) !== 0, sample: null });
+      out.push({ micro: n.delay % 6, note: n.note - STORED_NOTE_OFFSET + root, vel: n.velocity, gate: n.gate & 0x7f, tie: (n.gate & 0x80) !== 0, sample: null });
     });
     return out;
   }

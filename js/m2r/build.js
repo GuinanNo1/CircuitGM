@@ -14,6 +14,7 @@ const BLOCK_SIZE = 2600;
 const TAIL = BLOCK_BASE + 64 * BLOCK_SIZE;   // 0x28ce4
 const T_DEFAULT_SAMPLES = 8;
 const T_TRACK_ROWS = 44;                       // 8 x 41 bytes; byte 6 = the track's sample again
+const T_MUTE_RECALL = 950;                     // tail +950: scene mute recall, 1 = on (found 2026-11-15)
 const ROW_TUNE = 16;                           // row byte 16: the track's Tune (macro 1), 64 = no change
 const TUNE_CENTRE = 64;
 const NO_SAMPLE = 0xff;
@@ -136,6 +137,7 @@ export function buildLayoutProject(plan, template, settings) {
     d[TAIL + T_TRACK_ROWS + t * 41 + 6] = def;
     d[TAIL + T_TRACK_ROWS + t * 41 + ROW_TUNE] = tr?.tune ?? TUNE_CENTRE;
   }
+  d[TAIL + T_MUTE_RECALL] = plan.muteRecall ?? 0;
   return { name, bytes: d };
 }
 

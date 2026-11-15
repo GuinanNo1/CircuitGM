@@ -71,6 +71,7 @@ Sync rates seen: 3 (1/16), 5 (1/8), 7 (1/4), with the same meaning as on the Tra
 | +16 | 8 bytes, mostly 72 (0x48): probably the last note played per track | unknown |
 | +44 | 8 × 41 bytes: per-track settings (levels 0x7F, pans 0x40 and similar). Byte 6 = the track's default sample again. Byte 16 = **Tune** (macro 1), 64 = centre: it is 64 in nearly every hardware-saved project, with odd values where a track was retuned (CHILDREN project 0 has track 4 at 55, TEARDROP tracks 1-2 at 65). Bytes 16-23 look like the eight macros in order (64, 0, 127, 64, 0, 0, 127, 0 = Tune, Start, Length, Slope, Distortion, HP, LP, Resonance), not yet confirmed. | byte 16 likely (2026-11-14: track 4's 55 made MIDI2Rhythm packs play its notes about 1.8 semitones flat) |
 | +440 | 128 × 4 bytes `[0xFF, 3, 0, n]`: probably per-sample settings | not decoded |
+| +950 | **Scene mute recall**, 1 = on (found 2026-11-15: the only byte that changed when Ian switched it on and saved). | yes |
 
 Everything after that (FX and mixer) is not decoded.
 
