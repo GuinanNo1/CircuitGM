@@ -68,6 +68,7 @@ node tests/validate.mjs out/project_*.ncs            # range checks
 node tests/roundtrip.mjs                             # MIDI -> MIDI2Circuit -> Circuit2MIDI -> MIDI, every note compared
 node tests/pack2pack.mjs [out-dir]                   # Circuit Tracks / Rhythm pack -> MIDI2Circuit -> pack, every hit compared
 node tests/m2r_build.mjs <file.mid | pack[@n]>... [--out dir]  # MIDI2Rhythm: MIDI or pack project -> Rhythm pack, every step read back
+node tests/m2r_layout.mjs <pack[@n]>... [--combine]       # MIDI2Rhythm: a pack project with its layout kept, checked against the source
 node tests/pack_compare.mjs <pack> [track|auto|16|8|4] # any pack: convert each project, play it back, account for every hit
 node tests/compact_only.mjs [save-two-project-pack]  # PackTrim: Keep only project N
 ```

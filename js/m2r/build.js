@@ -91,6 +91,54 @@ export function buildRhythmProjects(plan, tracks, template, settings) {
   });
 }
 
+// A layout plan (js/m2r/layout.js) as one project: scenes, scene chain and patterns as the
+// source project had them, each pattern with its own length, rate and direction.
+export function buildLayoutProject(plan, template, settings) {
+  const d = new Uint8Array(template.slice(0));
+  const name = shortName(settings.title);
+  d.set(new TextEncoder().encode(name.padEnd(32, ' ').slice(0, 32)), 0x10);
+  new DataView(d.buffer).setUint32(0x0c, (settings.color ?? 8) % 14, true);
+  d[0x34] = plan.tempo;
+  d[0x35] = plan.swing >= 20 && plan.swing <= 80 ? plan.swing : 50;
+  d[0x36] = plan.swingRate ?? d[0x36];
+  d.fill(0, SC_BASE + 1, SC_BASE + 684);
+  plan.scenes.forEach((sc, s) => {
+    if (!sc.used) return;
+    const base = SC_BASE + s * 40;
+    for (let t = 0; t < 8; t++) { d[base + 8 + t * 4] = sc.chains[t].start; d[base + 9 + t * 4] = sc.chains[t].end; }
+    d[base + 40] = 1;
+    d[base + 41] = sc.mask;
+  });
+  d[SC_BASE + 648] = plan.sceneChain.start;
+  d[SC_BASE + 649] = plan.sceneChain.end;
+  const first = plan.scenes[plan.sceneChain.start] ?? plan.scenes[0];
+  for (let t = 0; t < 8; t++) { d[SC_BASE + 652 + t * 4] = first.chains[t].start; d[SC_BASE + 653 + t * 4] = first.chains[t].end; }
+  for (let t = 0; t < 8; t++) {
+    const tr = plan.tracks[t];
+    const def = tr?.defaultSample ?? 0;
+    for (let i = 0; i < 8; i++) {
+      const o = BLOCK_BASE + (t * 8 + i) * BLOCK_SIZE;
+      for (let s = 0; s < 32; s++) d.set([0, 6, 0, 0, 7, NO_SAMPLE, 0, 0], o + s * 8);
+      d.fill(0, o + 256, o + 296);
+      const pat = tr?.patterns[i];
+      d[o + 256] = pat ? pat.end : 15;
+      d[o + 257] = pat ? pat.start : 0;
+      d[o + 258] = pat ? pat.rate : 3;
+      d[o + 259] = pat ? pat.dir : 0;
+      d.fill(0xff, o + 296, o + BLOCK_SIZE);
+      if (!pat || !plan.active[t]) continue;
+      pat.steps.forEach((st, s) => {
+        if (!st) return;
+        d.set([st.byte, st.gate, st.mask, st.vel, st.prob ?? 7, st.sample === def ? NO_SAMPLE : st.sample], o + s * 8);
+      });
+    }
+    d[TAIL + T_DEFAULT_SAMPLES + t] = def;
+    d[TAIL + T_TRACK_ROWS + t * 41 + 6] = def;
+    d[TAIL + T_TRACK_ROWS + t * 41 + ROW_TUNE] = TUNE_CENTRE;
+  }
+  return { name, bytes: d };
+}
+
 // The pack: RhythmInstGM's 128 samples, with slots 113-128 replaced by the kit (16 samples
 // of a RhythmDrumGM or RhythmLatinGM kit), plus the projects. trim: keep only the samples the
 // projects use (the others keep a blank name and no file, as Components stores an empty slot).

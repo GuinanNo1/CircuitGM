@@ -9,8 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/app.css?v=20261115m2r8">
-<link rel="stylesheet" href="../css/m2r.css?v=20261115m2r8">
+<link rel="stylesheet" href="../css/app.css?v=20261115m2r9">
+<link rel="stylesheet" href="../css/m2r.css?v=20261115m2r9">
 <script>(function(){var r=document.documentElement;try{if(localStorage.getItem('circuitgm-advanced-m2r')!=='1')r.classList.add('simple')}catch(e){r.classList.add('simple')}})();</script>
 </head>
 <body>
@@ -65,22 +65,27 @@
     <div class="fileinfo" id="fileinfo" hidden></div>
     <div class="projpick" id="projpick" hidden>
       <div class="field"><label for="project">Project</label><select id="project"></select></div>
+      <div class="field"><label for="layout">Layout</label><select id="layout"><option value="keep" selected>Keep the project's layout (one project)</option><option value="arrange">Re-arrange it, as a MIDI file</option></select></div>
       <p class="hint small" id="project-hint"></p>
     </div>
   </section>
 
   <section class="panel" id="step-parts" hidden>
     <h2><span class="num">2</span> Choose the parts</h2>
-    <p class="hint">Each part is labelled by how many notes it plays at once. <b>Mono</b> and <b>mostly mono</b> parts (only overlapping note tails) go across as they are. <b>Chords</b> are split into separate voices on free tracks, or turned into one line when there's no room. Untick a part to leave it out and free its track for another.</p>
-    <p class="hint adv">"Chords become" sets how each chord part is handled. <b>Auto</b> splits it into its separate voices, one track each with the same sound, when there are free tracks, and otherwise turns it into one line with Smart line.</p>
+    <p class="hint lay-only">The project's scenes, chains and patterns are copied as they are. Drum 1–4 go to tracks 5–8 with their samples; the synths (then MIDI 1 and 2, if there's room) take the other tracks from track 1, one track per voice. <b>Voices</b> sets how many notes per step a synth keeps: Auto gives it as many as it plays at once, while the tracks last.</p>
+    <p class="hint arr-only">Each part is labelled by how many notes it plays at once. <b>Mono</b> and <b>mostly mono</b> parts (only overlapping note tails) go across as they are. <b>Chords</b> are split into separate voices on free tracks, or turned into one line when there's no room. Untick a part to leave it out and free its track for another.</p>
+    <p class="hint adv arr-only">"Chords become" sets how each chord part is handled. <b>Auto</b> splits it into its separate voices, one track each with the same sound, when there are free tracks, and otherwise turns it into one line with Smart line.</p>
     <div class="tablewrap">
       <table class="tracks m2r-parts" id="parts">
-        <thead><tr><th class="c-play"></th><th class="c-on">Use</th><th>Part</th><th class="c-num">Notes</th><th class="c-roll">Activity</th><th>Type</th><th>Chords become</th><th>Sound</th><th class="adv">Range</th><th>Track</th></tr></thead>
+        <thead><tr><th class="c-play"></th><th class="c-on">Use</th><th>Part</th><th class="c-num">Notes</th><th class="c-roll">Activity</th><th>Type</th><th><span class="arr-only">Chords become</span><span class="lay-only">Voices</span></th><th>Sound</th><th class="adv">Range</th><th>Track</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
     <h3 class="m2r-sub">The eight tracks</h3>
-    <div class="options adv m2r-trackopts">
+    <div class="options adv m2r-trackopts lay-only">
+      <div class="field check"><label><input type="checkbox" id="combine"> Combine drum tracks that play the same chains and never on the same step (frees tracks for the synths)</label></div>
+    </div>
+    <div class="options adv m2r-trackopts arr-only">
       <div class="field"><label for="drum-tracks">Tracks for drums, at most</label>
         <select id="drum-tracks"><option>1</option><option>2</option><option selected>3</option><option>4</option></select></div>
       <div class="field check"><label><input type="checkbox" id="autosplit" checked> Split chord parts set to Auto into voices on free tracks</label></div>
@@ -96,7 +101,7 @@
       <div class="field"><label for="kit">Drum kit (slots 113–128)</label><select id="kit"></select></div>
       <div class="field adv"><label for="range">Keep lines near the sample's note</label>
         <select id="range"><option value="7">Within ±7 semitones</option><option value="12">Within ±12 semitones</option><option value="18">Within ±18 semitones</option><option value="0" selected>Off (play at written pitch)</option></select></div>
-      <div class="field adv"><label for="arp-rate">Arpeggio speed</label>
+      <div class="field adv arr-only"><label for="arp-rate">Arpeggio speed</label>
         <select id="arp-rate"><option value="0.125">1/32</option><option value="0.25" selected>1/16</option><option value="0.5">1/8</option></select></div>
     </div>
     <p class="hint small">Each RhythmInstGM sample is one recording at one pitch (its note is in its name, e.g. "001 Grand Piano C4"). Played far from that note it speeds up or slows down and can stop sounding like the instrument. Notes play at their written pitch by default; in Advanced, <b>Keep lines near the sample's note</b> moves each part by whole octaves towards it and folds stray notes an octave towards it, for songs that need it. RhythmInstGM's GM programs 113–128 make way for the drum kit: Tinkle Bell, Agogo, Steel Drums, Woodblock, Taiko, Melodic Tom and Synth Drum play on a similar instrument; the sound effects are left out.</p>
@@ -104,7 +109,7 @@
 
   <section class="panel" id="step-arrange" hidden>
     <h2><span class="num">4</span> Check the arrangement</h2>
-    <div class="options adv">
+    <div class="options adv arr-only">
       <div class="field"><label for="rate">Pattern length</label>
         <select id="rate"><option value="track" selected>Per track: keep notes (each track its own step rate)</option><option value="auto">Auto: fewest projects (can lose notes)</option><option value="16">1/16 steps</option><option value="8">1/8 steps</option><option value="4">1/4 steps</option></select></div>
       <div class="field"><label for="section-bars">Section length</label>
@@ -122,7 +127,8 @@
       <span class="time" id="time">0:00</span>
       <span class="hint inline">The preview plays the RhythmGM samples as the Rhythm will: one note per step per track, each new note cutting off the last.</span>
     </div>
-    <p class="hint">Click a coloured dot to mute or unmute a whole track, or a box to mute or unmute those bars; mutes change the preview and the pack. The numbers are the pattern each Rhythm track plays; the rows under it are the MIDI parts feeding it (their dot leaves the part out, so its track goes to another part). S solos a track in the preview only.</p>
+    <p class="hint lay-only">Each column is a scene, in the order the project plays them; the numbers are the patterns each Rhythm track chains in it, as in the project. Click a coloured dot to mute or unmute a track (preview and pack). S solos a track in the preview only.</p>
+    <p class="hint arr-only">Click a coloured dot to mute or unmute a whole track, or a box to mute or unmute those bars; mutes change the preview and the pack. The numbers are the pattern each Rhythm track plays; the rows under it are the MIDI parts feeding it (their dot leaves the part out, so its track goes to another part). S solos a track in the preview only.</p>
     <div class="gridwrap" id="gridwrap"><div class="grid" id="grid"></div></div>
     <ul class="warnings errors" id="errors"></ul>
     <ul class="warnings adv" id="warnings"></ul>
@@ -148,6 +154,6 @@
   <p>Samples: <a href="https://github.com/mrbumpy409/GeneralUser-GS">GeneralUser GS</a> by S. Christian Collins (<a href="../rhythmgm/LICENSE-GeneralUser-GS.txt">licence</a>). Not affiliated with Novation or Focusrite; "Circuit Rhythm" and "Components" are their trademarks.</p>
 </footer>
 
-<script type="module" src="../js/m2r/app.js?v=20261115m2r8"></script>
+<script type="module" src="../js/m2r/app.js?v=20261115m2r9"></script>
 </body>
 </html>

@@ -5,15 +5,17 @@ import { parseMidi } from '../midifile.js';
 import { setupMode } from '../mode.js';
 import { projectColours, PROJECT_COLOURS } from '../convert.js';
 import { Player } from '../player.js';
-import { planTracks, METHODS, ADV_ONLY_METHODS, INST_SLOTS, KIT_FIRST, isUnpitched, rootFromName, drumMap, ownSamples, MAX_OWN } from './engine.js?v=20261115m2r8';
+import { planTracks, METHODS, ADV_ONLY_METHODS, INST_SLOTS, KIT_FIRST, isUnpitched, rootFromName, drumMap, ownSamples, MAX_OWN } from './engine.js?v=20261115m2r9';
 import { loadPack, PRODUCTS } from '../pack.js';
 import { packSong, projectChoices } from '../packsong.js';
-import { arrangeRhythm, playOrder, MAX_PROJECTS } from './arrange.js?v=20261115m2r8';
-import { buildRhythmProjects, buildRhythmPack, openPack, fetchBuf, usedSamples, shortName } from './build.js?v=20261115m2r8';
+import { arrangeRhythm, playOrder, MAX_PROJECTS } from './arrange.js?v=20261115m2r9';
+import { buildRhythmProjects, buildRhythmPack, buildLayoutProject, openPack, fetchBuf, usedSamples, shortName } from './build.js?v=20261115m2r9';
+import { layoutPlan, layoutSamples, renderLayout } from './layout.js?v=20261115m2r9';
+import { sceneOrder, defaultOrderKind, PPQ } from '../song.js';
 
 // Shown next to "For testing" (from the code actually running, so a stale cached page shows
 // its own version). Bump it, with a line in help.html's version list, on every change.
-export const VERSION = '0.7';
+export const VERSION = '0.8';
 export const VERSION_DATE = '15 Nov 2026';
 
 const $ = (s) => document.querySelector(s);
@@ -59,7 +61,7 @@ async function init() {
     const [inst, drum, tpl, dmeta, lmeta] = await Promise.all([
       fetchBuf('../rhythmgm/RhythmInstGM.circuitrhythmpack').then(openPack),
       fetchBuf('../rhythmgm/RhythmDrumGM.circuitrhythmpack').then(openPack),
-      fetchBuf('../data/RhythmEmpty.ncs?v=20261115m2r8'),
+      fetchBuf('../data/RhythmEmpty.ncs?v=20261115m2r9'),
       fetch('../rhythmgm/rhythmdrumgm_samples.json').then((r) => r.json()),
       fetch('../rhythmgm/rhythmlatingm_samples.json').then((r) => r.json()),
     ]);
@@ -91,6 +93,8 @@ function fillKitSelect() {
 
 const OWN = 'own';
 const fromPack = () => state.midi?.format === 'pack';
+// A pack project with "Keep the project's layout" (js/m2r/layout.js), rather than re-arranged.
+const layoutMode = () => fromPack() && $('#layout').value === 'keep';
 function kitChoice() {
   if ($('#kit').value === OWN) return { pack: 'drum', index: 1 };   // fills the kit slots the pack's samples leave
   const [pack, i] = $('#kit').value.split(':');
@@ -146,6 +150,8 @@ function wireLoad() {
   const input = $('#file');
   input.addEventListener('change', () => { if (input.files[0]) routeFile(input.files[0]); input.value = ''; });
   $('#project').addEventListener('change', (e) => selectProject(Number(e.target.value)));
+  $('#layout').addEventListener('change', () => { state.mutes.clear(); recompute(); });
+  $('#combine').addEventListener('change', recompute);
   drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
   drop.addEventListener('dragleave', () => drop.classList.remove('over'));
   drop.addEventListener('drop', (e) => {
@@ -274,6 +280,13 @@ function recompute() {
     ? ownSamples(state.midi, state.parts, state.songPack.samples.map((s) => s.name))
     : null;
   const names = sampleNames();
+  document.documentElement.classList.toggle('m2r-layout', layoutMode());
+  if (layoutMode()) {
+    state.mutes.clear();
+    state.barMutes.clear();
+    computeLayout();
+    return;
+  }
   state.mutes.clear();
   for (const k of [...state.barMutes.keys()]) if (k[0] === 't') state.barMutes.delete(k);   // track numbers change
   state.res = planTracks(state.midi, names, currentKit(), {
@@ -304,7 +317,7 @@ function renderParts() {
     const tr = document.createElement('tr');
     tr.className = r.on ? '' : 'off';
     const cfg = state.parts.get(r.id);
-    const type = r.kind === 'chords' ? `<span class="ptype chords">Chords</span><span class="small-note">up to ${r.maxPoly} at once</span>` : `<span class="ptype ${r.kind}">${TYPE_LABEL[r.kind]}</span>`;
+    let type = r.kind === 'chords' ? `<span class="ptype chords">Chords</span><span class="small-note">up to ${r.maxPoly} at once</span>` : `<span class="ptype ${r.kind}">${TYPE_LABEL[r.kind]}</span>`;
     let method = '<span class="psub">–</span>';
     if (r.kind === 'chords') {
       const opts = Object.entries(METHODS).map(([k, v]) => `<option value="${k}"${(cfg.method ?? 'auto') === k ? ' selected' : ''}${ADV_ONLY_METHODS.has(k) ? ' class="adv-opt"' : ''}>${k === 'splitall' ? `${v} (${r.voices})` : v}</option>`).join('');
@@ -313,6 +326,14 @@ function renderParts() {
       const result = !r.on ? '' : n > 1 ? `Split into ${n} voices (${n} tracks)` : METHODS[r.method] ?? '';
       const lost = r.chordDropped ? `, ${r.chordDropped} notes over` : '';
       method = `<span class="simple-only">${esc(result)}</span><select class="adv" data-method="${r.id}" aria-label="How ${esc(r.name)}'s chords are handled">${opts}</select>${r.on && (cfg.method ?? 'auto') === 'auto' ? `<span class="small-note adv">${esc(result)}${lost}</span>` : r.chordDropped ? `<span class="small-note">${r.chordDropped} notes over the voices</span>` : ''}`;
+    }
+    if (layoutMode()) {
+      type = r.isDrum ? '<span class="ptype drums">Drums</span>' : (r.need ?? 1) > 1 ? `<span class="ptype chords">Chords</span><span class="small-note">up to ${r.need} at once</span>` : '<span class="ptype mono">Mono</span>';
+      method = '<span class="psub">–</span>';
+      if (r.synth) {
+        const vopts = [`<option value="">Auto (${r.need ?? 1})</option>`].concat([1, 2, 3, 4, 5, 6].map((n) => `<option value="${n}"${cfg.voices === n ? ' selected' : ''}>${n}</option>`)).join('');
+        method = `<select data-voices="${r.id}" aria-label="Voices for ${esc(r.name)}">${vopts}</select>${r.on && r.tracks.length && r.voices !== (cfg.voices ?? r.need) ? `<span class="small-note">${r.voices} fit${r.voices === 1 ? 's' : ''}</span>` : ''}`;
+      }
     }
     let sound;
     if (r.isDrum) sound = `<span class="psub">${esc($('#kit').selectedOptions[0]?.textContent ?? '')}</span>`;
@@ -352,6 +373,7 @@ function renderParts() {
   tb.querySelectorAll('[data-play]').forEach((b) => b.addEventListener('click', () => togglePartPlay(b.dataset.play, b)));
   tb.querySelectorAll('[data-on]').forEach((el) => el.addEventListener('change', () => { state.parts.get(el.dataset.on).on = el.checked; recompute(); }));
   tb.querySelectorAll('[data-method]').forEach((el) => el.addEventListener('change', () => { state.parts.get(el.dataset.method).method = el.value; recompute(); }));
+  tb.querySelectorAll('[data-voices]').forEach((el) => el.addEventListener('change', () => { state.parts.get(el.dataset.voices).voices = el.value === '' ? undefined : Number(el.value); recompute(); }));
   tb.querySelectorAll('[data-sample]').forEach((el) => el.addEventListener('change', () => { state.parts.get(el.dataset.sample).sample = el.value === '' ? undefined : Number(el.value); recompute(); }));
   // Arpeggio only in Advanced mode.
   if (!mode.isAdvanced()) tb.querySelectorAll('option.adv-opt').forEach((o) => { if (!o.selected) o.disabled = true; });
@@ -381,7 +403,7 @@ function renderBudget() {
     const tr = t[i];
     if (!tr) return `<div class="slot empty"><div class="tn"><span>Track ${i + 1}</span></div><div class="tr">Free</div></div>`;
     const role = tr.kind === 'drum' ? 'Drums' : tr.roles.join(', ');
-    return `<div class="slot" style="border-left-color:var(--t${i})"><div class="tn"><span>Track ${i + 1}</span><span>${esc(role)}</span></div><div class="tl">${esc(tr.label)}</div><div class="tr">${tr.notes.length} notes${tr.drum?.dropped ? `, ${tr.drum.dropped} hits clash` : ''}</div></div>`;
+    return `<div class="slot" style="border-left-color:var(--t${i})"><div class="tn"><span>Track ${i + 1}</span><span>${esc(role)}</span></div><div class="tl">${esc(tr.label)}</div><div class="tr">${tr.kind === 'timing' ? 'Scene timing only' : `${tr.notes.length} ${layoutMode() ? 'steps' : 'notes'}`}${tr.drum?.dropped ? `, ${tr.drum.dropped} hits clash` : ''}</div></div>`;
   }).join('');
   const d = state.res.dropped;
   $('#dropped').innerHTML = d.length
@@ -390,8 +412,116 @@ function renderBudget() {
 }
 
 // ---------- arrangement ----------
+// ---------- keep the project's layout (js/m2r/layout.js) ----------
+const sceneOrderOf = () => sceneOrder(state.midi.song, defaultOrderKind(state.midi.song));
+
+function computeLayout() {
+  player.stop();
+  setPlayButton(false);
+  const m = state.midi;
+  const plan = layoutPlan(m.song, m.sources, {
+    parts: state.parts, names: sampleNames(), own: state.own, kit: kitEntries(),
+    range: Number($('#range').value), combine: $('#combine').checked, mutes: state.mutes,
+  });
+  state.lay = plan;
+  state.arr = plan;
+  // The shape the parts table and the track boxes read.
+  state.res = {
+    parts: plan.parts,
+    tracks: plan.tracks.map((t) => (t ? { ...t, roles: t.kind === 'timing' ? ['Timing'] : [], notes: { length: t.notes }, drum: null } : null)),
+    dropped: [],
+  };
+  state.layRender = renderLayout(plan, sceneOrderOf());
+  renderParts();
+  renderBudget();
+  const errors = plan.active.some(Boolean) ? [] : ['There is nothing to play: turn on at least one part.'];
+  $('#errors').innerHTML = errors.map((e) => `<li>${esc(e)}</li>`).join('');
+  $('#build').disabled = !!errors.length;
+  $('#play').disabled = !!errors.length;
+  renderLayoutSummary(plan);
+  renderLayoutGrid(plan);
+  renderLayoutWarnings(plan);
+}
+
+function renderLayoutSummary(plan) {
+  const secs = state.layRender.length / PPQ * 60 / plan.tempo;
+  const stat = (v, k) => `<div class="stat"><div class="v">${v}</div><div class="k">${k}</div></div>`;
+  $('#summary').innerHTML = [
+    stat(1, 'project'),
+    stat(plan.nScenes, 'scenes'),
+    stat(plan.active.filter(Boolean).length, 'tracks used'),
+    stat('As saved', 'step rates'),
+    stat(`${plan.tempo}`, 'BPM'),
+    stat(mmss(secs), 'length'),
+  ].join('');
+}
+
+// One column per scene in play order; a row per Rhythm track with the patterns it chains.
+function renderLayoutGrid(plan) {
+  const grid = $('#grid');
+  grid.className = 'grid';
+  grid.style.gridTemplateColumns = '';
+  grid.innerHTML = '';
+  const starts = state.layRender.sceneStarts;
+  state.chunkTimes = starts.map((x) => x.tick / PPQ * 60 / plan.tempo);
+  const rows = plan.tracks.map((tr, t) => (tr ? t : -1)).filter((t) => t >= 0);
+  const labels = document.createElement('div');
+  labels.className = 'labels';
+  labels.innerHTML = '<div class="row-label head">Scene</div><div class="row-label head">Bar</div>';
+  for (const t of rows) {
+    const tr = plan.tracks[t];
+    const off = state.mutes.has(t);
+    const d = document.createElement('div');
+    d.className = 'row-label';
+    d.innerHTML = `<button type="button" class="dot${off ? ' off' : ''}" style="--c:var(--t${t})" aria-pressed="${!off}" data-mute="${t}" title="${off ? 'Unmute' : 'Mute'} track ${t + 1} (preview and pack)"></button><span class="nm" title="${esc(tr.label)}">${t + 1} ${esc(tr.label)}</span><button type="button" class="solo adv${state.solo === t ? ' on' : ''}" data-solo="${t}" title="Solo track ${t + 1} in the preview">S</button>`;
+    labels.append(d);
+  }
+  grid.append(labels);
+  starts.forEach((st, k) => {
+    const sc = plan.scenes[st.scene];
+    const col = document.createElement('div');
+    col.className = `col${k ? ' sec-start' : ''}`;
+    let html = `<div class="hd">${st.scene + 1}</div><div class="hd">${Math.round(st.tick / (PPQ * 4)) + 1}</div>`;
+    for (const t of rows) {
+      const tr = plan.tracks[t];
+      const c = sc.chains[t];
+      const pats = Array.from({ length: c.end - c.start + 1 }, (_, i) => c.start + i);
+      const empty = !plan.active[t] || pats.every((p) => tr.patterns[p].steps.every((x) => !x));
+      const muted = state.mutes.has(t) || ((sc.mask >> t) & 1);
+      const txt = pats.length > 1 ? `${c.start + 1}–${c.end + 1}` : `${c.start + 1}`;
+      const mix = 100 - (c.start % 8) * 8;
+      html += `<span class="cell static ${muted ? 'muted' : empty ? 'empty' : ''}${txt.length > 2 ? ' multi' : ''}" style="${empty || muted ? '' : `background:color-mix(in srgb, var(--t${t}) ${mix}%, #000)`}" title="Track ${t + 1}, scene ${st.scene + 1}: pattern ${txt}${(sc.mask >> t) & 1 ? ' (muted in this scene)' : empty ? ' (empty)' : ''}">${muted || empty ? '' : txt}</span>`;
+    }
+    col.innerHTML = html;
+    grid.append(col);
+  });
+}
+
+function renderLayoutWarnings(plan) {
+  const w = plan.warnings, out = [];
+  const cut = plan.parts.filter((r) => r.synth && r.on && r.tracks.length && r.need > r.voices);
+  for (const r of cut) out.push(`${r.name} plays up to ${r.need} notes at once but has ${r.voices} track${r.voices > 1 ? 's' : ''}; on steps with more notes the outer ones are kept.`);
+  const left = plan.parts.filter((r) => r.on && !r.tracks.length);
+  if (left.length) out.push(`No track left for ${left.map((r) => r.name).join(', ')}. Give the synths fewer voices to make room.`);
+  if (w.folded) out.push(`${w.folded} note${w.folded > 1 ? 's were' : ' was'} folded an octave towards the sample's own pitch.`);
+  if (w.gatesCut) out.push(`${w.gatesCut} note${w.gatesCut > 1 ? 's are' : ' is'} held longer than the Rhythm's longest gate (16 steps) and ${w.gatesCut > 1 ? 'are' : 'is'} cut there.`);
+  if (w.shortScenes) out.push(`${w.shortScenes} scene${w.shortScenes > 1 ? 's are' : ' is'} shorter than in the project: the track that set ${w.shortScenes > 1 ? 'their' : 'its'} length has no Rhythm track left.`);
+  if (plan.tempoClamped) out.push(`The tempo is outside the Rhythm's 40–240 BPM, so it is set to ${plan.tempo}.`);
+  const lostOwn = state.own?.dropped.length ?? 0;
+  if (lostOwn) out.push(`The project plays more than ${MAX_OWN} samples; the ${lostOwn} least used ${lostOwn > 1 ? 'are' : 'is'} not in the pack.`);
+  $('#warnings').innerHTML = out.map((x) => `<li>${esc(x)}</li>`).join('');
+  $('#dropped').innerHTML = '';
+}
+
+function layoutEvents(trackSet = null) {
+  const sec = (tick) => tick / PPQ * 60 / state.lay.tempo;
+  return state.layRender.hits.filter((h) => !trackSet || trackSet.has(h.track))
+    .map((h) => ({ t: sec(h.tick), d: sec(h.dur), track: h.track, vel: h.vel, part: `#${h.sample}`, rate: 2 ** ((h.note - 72) / 12), choke: true }));
+}
+
 function rearrange() {
   if (!state.res) return;
+  if (layoutMode()) { computeLayout(); return; }
   player.stop();
   setPlayButton(false);
   // Bar mutes take those notes out before arranging, so they change the preview and the pack.
@@ -705,7 +835,10 @@ async function togglePartPlay(id, btn) {
   const m = state.midi;
   const sec = (tick) => (tick / m.ppq) * (60 / m.tempo);
   const ev = [];
-  state.res.tracks.forEach((t, i) => {
+  if (layoutMode()) {
+    const r = state.res.parts.find((x) => x.id === id);
+    if (r?.tracks.length) ev.push(...layoutEvents(new Set(r.tracks)));
+  } else state.res.tracks.forEach((t, i) => {
     for (const n of t.notes) if (n.part === id) ev.push({ t: sec(n.tick), d: sec(n.dur), track: i, vel: n.vel, part: `#${n.sample}`, rate: 2 ** ((n.byte - 72) / 12), choke: true });
   });
   if (!ev.length) {
@@ -752,11 +885,12 @@ async function togglePlay() {
   $('#play').disabled = true;
   $('#play').textContent = 'Loading sounds…';
   try {
-    await ensureSamples(usedSamples(a, state.res.tracks));
+    const lay = a.kind === 'layout';
+    await ensureSamples(lay ? layoutSamples(a) : usedSamples(a, state.res.tracks));
     setPartButton(null);
     player.onPosition = (t) => { $('#time').textContent = mmss(t); markNow(t); };
     player.onEnd = () => setPlayButton(false);
-    await player.play(previewEvents(a));
+    await player.play(lay ? layoutEvents() : previewEvents(a));
     setPlayButton(true);
   } catch (e) {
     setPlayButton(false);
@@ -776,13 +910,16 @@ function setPlayButton(on) {
 async function build() {
   const a = state.arr;
   if (!a || a.error || a.tooLong) return;
+  const lay = a.kind === 'layout';
   const status = $('#build-status');
   status.classList.remove('error');
   status.textContent = 'Building…';
   try {
     const title = ascii($('#title').value).trim() || 'MIDI2Rhythm';
     const packName = ascii($('#packname').value).trim() || title;
-    const projects = buildRhythmProjects(a, state.res.tracks, state.template, { title, colors: projectColours(a.projects.length, 'rainbow') });
+    const projects = lay
+      ? [buildLayoutProject(a, state.template, { title, color: projectColours(1, 'rainbow')[0] })]
+      : buildRhythmProjects(a, state.res.tracks, state.template, { title, colors: projectColours(a.projects.length, 'rainbow') });
     let replace = null;
     if (state.own) {
       replace = new Map();
@@ -793,7 +930,7 @@ async function build() {
       }
     }
     const blob = await buildRhythmPack(state.inst, await kitPack(), kitChoice().index, projects, {
-      name: packName, color: $('#packcolor').value, trim: $('#trim').checked, used: usedSamples(a, state.res.tracks), replace,
+      name: packName, color: $('#packcolor').value, trim: $('#trim').checked, used: lay ? layoutSamples(a) : usedSamples(a, state.res.tracks), replace,
     });
     const el = document.createElement('a');
     el.href = URL.createObjectURL(blob);

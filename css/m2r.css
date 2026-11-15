@@ -29,3 +29,7 @@
 .hint.small { font-size: 0.85rem; margin-top: 12px; }
 .m2r-trackopts { margin: 0 0 12px; align-items: center; }
 .m2r-parts .c-play { width: 40px; }
+
+/* "Keep the project's layout" (a Circuit pack as the song) vs re-arranging. */
+html.m2r-layout .arr-only, html:not(.m2r-layout) .lay-only { display: none !important; }
+.cell.static { cursor: default; }

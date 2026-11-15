@@ -1,7 +1,9 @@
 // MIDI2Rhythm in a browser: load a MIDI file, check the parts table and the eight tracks,
 // switch a chord part to Arpeggio in Advanced mode, play the preview, build the pack.
 // Needs `python3 -m http.server 8765` in the repo root.
-// NODE_PATH=/opt/npm-tools/node_modules node tests/ui_m2r.cjs <shots dir> <file.mid>
+// NODE_PATH=/opt/npm-tools/node_modules node tests/ui_m2r.cjs <shots dir> <file.mid | pack>
+// With a Circuit pack: checks "Keep the project's layout" first (one project, voices, preview,
+// download), then switches to re-arranging and runs the MIDI checks.
 const { chromium } = require('playwright');
 const fs = require('fs');
 (async () => {
@@ -19,6 +21,40 @@ const fs = require('fs');
     await page.waitForFunction(() => document.querySelector('#base-status').textContent.startsWith('Ready'), null, { timeout: 30000 });
     await page.setInputFiles('#file', mid);
     await page.waitForSelector('#step-arrange:not([hidden]) .grid .col');
+    if (name === 'desktop' && /pack$/.test(mid)) {
+      ok(await page.isVisible('#projpick'), 'project picker shown');
+      ok((await page.$eval('#layout', (s) => s.value)) === 'keep', 'layout kept by default');
+      const sum = (await page.textContent('#summary')).replace(/\s+/g, ' ');
+      ok(/^1\s?project/.test(sum.trim()), `one project: ${sum}`);
+      const cols = await page.$$eval('#grid .col', (c) => c.length);
+      ok(cols > 0, `${cols} scene columns`);
+      await page.screenshot({ path: `${shots}/m2r-layout.png`, fullPage: true });
+      const v = await page.$('#parts select[data-voices]');
+      if (v) {
+        const before = await page.$$eval('#budget .slot:not(.empty)', (r) => r.length);
+        await v.selectOption('1');
+        await page.waitForTimeout(300);
+        const after = await page.$$eval('#budget .slot:not(.empty)', (r) => r.length);
+        ok(after <= before, `voices set to 1: ${before} -> ${after} tracks`);
+        await page.selectOption('#parts select[data-voices]', '');
+      }
+      await page.click('#grid [data-mute]');
+      await page.waitForTimeout(300);
+      ok(await page.$eval('#grid [data-mute]', (b) => b.classList.contains('off')), 'layout: track muted by its dot');
+      await page.click('#grid [data-mute]');
+      await page.click('#play');
+      await page.waitForFunction(() => document.querySelector('#play').textContent === 'Stop', null, { timeout: 30000 });
+      await page.waitForTimeout(2500);
+      ok((await page.textContent('#time')) !== '0:00', `layout preview clock ${await page.textContent('#time')}, now column ${await page.$$eval('.col.now', (x) => x.length)}`);
+      await page.click('#play');
+      const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.click('#build')]);
+      const p = `${shots}/ui-m2r-layout.circuitrhythmpack`;
+      await dl.saveAs(p);
+      ok(fs.statSync(p).size > 1e6, `layout download ${fs.statSync(p).size} bytes; ${await page.textContent('#build-status')}`);
+      console.log('layout warnings:', (await page.textContent('#warnings')).slice(0, 400));
+      await page.selectOption('#layout', 'arrange');
+      await page.waitForTimeout(500);
+    }
     if (name === 'desktop') {
       const rows = await page.$$eval('#parts tbody tr', (r) => r.length);
       const slots = await page.$$eval('#budget .slot:not(.empty)', (r) => r.length);
