@@ -119,8 +119,8 @@ export function buildProjects(plan, base, settings) {
 // fx: { reverb: 0-7 | null, delay: 0-15 | null (null keeps the template's),
 //       reverbSends, delaySends: [6 x 0-127] for Synth 1, Synth 2, Drum 1-4 | null,
 //       sidechain: [{ preset: 0-7 (0 = off), source: 0-3 (Drum 1-4) }, same for Synth 2] | null }
-// The tail's 8 send bytes run Synth 1, Synth 2, Drum 1-4, then two that are never set in any
-// hardware save we have (most likely MIDI 1 and 2); those are left at 0.
+// The tail's 8 send bytes run Synth 1, Synth 2, Drum 1-4 (confirmed on the Tracks, 16 Nov 2026),
+// then two that are never set in any hardware save we have (most likely MIDI 1 and 2); left at 0.
 export function applyFx(proj, fx) {
   if (!fx) return;
   const f = proj.fx;

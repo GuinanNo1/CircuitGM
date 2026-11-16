@@ -37,7 +37,7 @@ Ian saved one project per preset on the Circuit Tracks: projects 1–16 = Delay 
 |---|---|
 | 0x26D0E (tail +18) | delay preset, 0–15 |
 | 0x26D0F (tail +19) | reverb preset, 0–7 |
-| 0x26FE8 (tail +748) | reverb sends, 8 bytes: **Synth 1, Synth 2, Drum 1, Drum 2, Drum 3, Drum 4**, then 2 bytes never set in any save (most likely MIDI 1, 2). Order from 12 hardware-saved song projects: bytes 3–4 are often set although no song uses the MIDI tracks, and bytes 7–8 never are although Drum 3–4 play. The drum configs' bytes 8/9 (0x26FBC + 11·t) were 0 in every save. |
+| 0x26FE8 (tail +748) | reverb sends, 8 bytes: **Synth 1, Synth 2, Drum 1, Drum 2, Drum 3, Drum 4**, then 2 bytes never set in any save (most likely MIDI 1, 2). **Confirmed on the hardware 16 Nov 2026** (a MIDI2Circuit 0.11 pack with rising reverb and falling delay sends showed both in the right direction on the Tracks). First found from 12 hardware-saved song projects: bytes 3–4 are often set although no song uses the MIDI tracks, and bytes 7–8 never are although Drum 3–4 play. The drum configs' bytes 8/9 (0x26FBC + 11·t) were 0 in every save. |
 | 0x26FF0 (tail +756) | reverb values: type (0–5: Chamber, Small Room, Large Room, Small Hall, Large Hall, Great Hall), decay, damping |
 | 0x26FF8 (tail +764) | delay sends, 8 bytes, same order as the reverb sends |
 | 0x27000 (tail +772) | delay values: time, time sync (0–35), feedback, width, left-right ratio (0–12), slew rate |
