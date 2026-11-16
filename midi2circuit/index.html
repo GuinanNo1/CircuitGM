@@ -49,7 +49,7 @@
 </nav>
 <header class="masthead">
   <div class="wrap">
-    <h1>MIDI2Circuit <span>MIDI to Circuit Tracks converter</span> <em class="badge" title="Version of this page. If you expect a newer one, refresh with Shift-reload; GitHub Pages can take about 10 minutes to update.">alpha 0.11</em></h1>
+    <h1>MIDI2Circuit <span>MIDI to Circuit Tracks converter</span> <em class="badge" title="Version of this page. If you expect a newer one, refresh with Shift-reload; GitHub Pages can take about 10 minutes to update.">alpha 0.12</em></h1>
     <p class="helplinks"><a href="help.html#quickstart">Quickstart</a> · <a href="help.html">User guide</a></p>
     <p class="lede">Turn a General MIDI file, or a project from a Circuit Tracks or Circuit Rhythm pack, into a Novation Circuit Tracks pack. Pick the parts you want, hear how they'll play, and download a <code>.circuittrackspack</code> for Novation Components, built on the <a href="../tracksgm/">TracksGM pack</a> or a pack of your own.</p>
     <p class="alpha">Alpha 0.1, for testing. Packs load and play on the Circuit Tracks, but the project format is reverse-engineered: keep a backup of your packs, and please report anything odd on <a href="https://github.com/GuinanNo1/CircuitGM/issues">GitHub</a>.</p>
@@ -209,6 +209,12 @@
         <div class="scpair"><div class="field"><label for="sc2-preset">Synth 2 sidechain</label><select id="sc2-preset"><option value="0" selected>Off</option><option value="1">Preset 1</option><option value="2">Preset 2</option><option value="3">Preset 3</option><option value="4">Preset 4</option><option value="5">Preset 5</option><option value="6">Preset 6</option><option value="7">Preset 7</option></select></div><div class="field"><label for="sc2-source">Synth 2 triggered by</label><select id="sc2-source"><option value="0">Drum 1</option><option value="1">Drum 2</option><option value="2">Drum 3</option><option value="3">Drum 4</option></select></div></div>
       </div>
       <p class="hint small">Each hit of the chosen drum track ducks the synth, even with the drum turned down. The presets are the seven on the Tracks' Side Chain view, from gentle (1) to deep (7).</p>
+      <h3>MIDI templates</h3>
+      <div class="options">
+        <div class="field"><label for="midi1-template">MIDI 1 template</label><select id="midi1-template"><option value="0" selected>Template 1</option><option value="1">Template 2</option><option value="2">Template 3</option><option value="3">Template 4</option><option value="4">Template 5</option><option value="5">Template 6</option><option value="6">Template 7</option><option value="7">Template 8</option></select></div>
+        <div class="field"><label for="midi2-template">MIDI 2 template</label><select id="midi2-template"><option value="0" selected>Template 1</option><option value="1">Template 2</option><option value="2">Template 3</option><option value="3">Template 4</option><option value="4">Template 5</option><option value="5">Template 6</option><option value="6">Template 7</option><option value="7">Template 8</option></select></div>
+      </div>
+      <p class="hint small">Which of the Tracks' eight MIDI templates each MIDI track uses: it sets what the Macro knobs send to your external gear. The templates themselves are edited in Components and stay on the Tracks; the pack only picks one. Template 1 is a new project's default.</p>
     </div>
   </section>
 
@@ -233,6 +239,6 @@
   <p>Patches: TracksGM by Ian Guinan. Drum samples: <a href="https://github.com/mrbumpy409/GeneralUser-GS">GeneralUser GS</a> by S. Christian Collins (<a href="../tracksgm/LICENSE-GeneralUser-GS.txt">licence</a>). Project format code from <a href="https://github.com/namirsab/circuit-tracks-tools">circuit-tracks-tools</a> by Namir Sayed-Ahmad Baraza (MIT). Not affiliated with Novation or Focusrite; "Circuit Tracks" and "Components" are their trademarks.</p>
 </footer>
 
-<script type="module" src="../js/app.js?v=20261116fx2"></script>
+<script type="module" src="../js/app.js?v=20261116fx3"></script>
 </body>
 </html>

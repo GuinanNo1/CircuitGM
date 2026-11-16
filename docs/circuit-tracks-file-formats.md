@@ -35,6 +35,7 @@ Ian saved one project per preset on the Circuit Tracks: projects 1–16 = Delay 
 
 | Offset | Meaning |
 |---|---|
+| 0x26CFC, 0x26D04 (tail +0, +8) | **MIDI template** of MIDI 1, MIDI 2: 0–7 = template 1–8 (the first byte of each MIDI track's 8-byte info; found 2026-11-16, FX_test_0.11_2 save). Packs don't carry the templates themselves; they live on the device. |
 | 0x26D0E (tail +18) | delay preset, 0–15 |
 | 0x26D0F (tail +19) | reverb preset, 0–7 |
 | 0x26FE8 (tail +748) | reverb sends, 8 bytes: **Synth 1, Synth 2, Drum 1, Drum 2, Drum 3, Drum 4**, then 2 bytes never set in any save (most likely MIDI 1, 2). **Confirmed on the hardware 16 Nov 2026** (a MIDI2Circuit 0.11 pack with rising reverb and falling delay sends showed both in the right direction on the Tracks). First found from 12 hardware-saved song projects: bytes 3–4 are often set although no song uses the MIDI tracks, and bytes 7–8 never are although Drum 3–4 play. The drum configs' bytes 8/9 (0x26FBC + 11·t) were 0 in every save. |
@@ -45,11 +46,11 @@ Ian saved one project per preset on the Circuit Tracks: projects 1–16 = Delay 
 | 0x27008 (tail +780) | sidechain, 4 × 5 bytes for Synth 1, Synth 2, MIDI 1, MIDI 2: **source** (0–3 = Drum 1–4, 4 = off), **attack, hold, decay, depth**. Reset values 0, 0, 50, 70, 0 = the Programmer's Reference defaults. |
 | 0xCD67, 0xCD6F (synth info +3, +11) | sidechain preset of Synth 1, Synth 2: 0 = off, 1–7. MIDI 1/2's are at tail +3/+11 (per `ncs.js`; not in this save). |
 
-- **Every delay and reverb preset stores the same values as on the Circuit Rhythm** (delay 2–16, reverb 1–8 compared; Delay 1 wasn't captured because preset 1 was already selected, so the Rhythm's row is used). Tables: `js/fx.js`.
+- **Every delay and reverb preset stores the same values as on the Circuit Rhythm except Delay 1.** Re-saved on the Tracks (FX_test_0.11_2, project 17) Delay 1 stores a fresh project's values, 64,20,64,127,4,5 (time sync 20 = the shortest echo, as calibration set 7 found); the Rhythm's Delay 1 is 3,0,100,115,5,115. Tables: `js/fx.js` (`TRACKS_DELAY_PRESETS`).
 - A fresh project has delay preset 1 and reverb preset 1 selected, but values no preset uses (delay 64,20,64,127,4,5; reverb 2,64,64), as on the Rhythm.
 - Sidechain preset values (attack, hold, decay, depth): off 0,50,70,0; 1 = 5,50,80,80; 2 = 5,70,70,100; 3 = 5,85,70,115; 4 = 5,90,75,123; 5 = 5,90,85,127; 6 = 5,95,95,127; 7 = 5,102,95,127.
 - The Side Chain view's source pads change only the synth whose preset was pressed last (user guide p. 93; in the save only Synth 2's source varies).
-- Still to test: whether the Tracks plays the stored values rather than the preset number (the Rhythm does).
+- Hardware test passed 16 Nov 2026 (MIDI2Circuit 0.11 pack): presets selected, sends rising/falling as written. Still to test: whether the Tracks plays the stored values rather than the preset number (the Rhythm does).
 
 ## Patch (official, Programmer's Reference Guide v3)
 340 bytes 7-bit; SysEx F0 00 20 29 01 64 00 <loc> 00 <340> F7 (current) / 01 <slot> 00 (flash). Bank file = 64 Replace Patch msgs. OG Circuit = product byte 0x60.

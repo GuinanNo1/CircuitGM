@@ -23,6 +23,8 @@ const check = (label, fx, n) => {
   console.log(diffs.length ? `FAIL ${label}: ${diffs.join('; ')}` : `ok   ${label}`); bad += diffs.length > 0;
 };
 // Delay presets: project n = Delay n, reverb untouched (fresh = preset 0, 2/64/64)
+// Delay 1: the Tracks stores a fresh project's values (re-save, FX_test_0.11_2 project 17)
+{ const a = build({ delay: 0 }), f = build(null); console.log([...a.subarray(0x27000, 0x27006)].join() === [...f.subarray(0x27000, 0x27006)].join() && a[0x26D0E] === 0 ? 'ok   Delay 1 = fresh values' : 'FAIL Delay 1'); }
 for (let d = 2; d <= 16; d++) check(`Delay ${d} vs project ${d}`, d === 11 ? { delay: 10, reverb: 0 } : { delay: d - 1 }, d);  // project 11 also has Reverb 1
 // Reverb presets: project 16+r = Reverb r, delay 16 already set there
 for (let r = 1; r <= 8; r++) check(`Reverb ${r} vs project ${16 + r}`, { delay: 15, reverb: r - 1 }, 16 + r);

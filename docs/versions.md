@@ -6,7 +6,7 @@ Each tool page shows its version next to its status badge, so you can tell which
 
 | Tool | Current | Shown as |
 |---|---|---|
-| MIDI2Circuit | 0.11 | alpha 0.11 |
+| MIDI2Circuit | 0.12 | alpha 0.12 |
 | MIDI2Rhythm | 0.18 | For testing · v0.18 |
 | Circuit2MIDI | 0.4 | alpha 0.4 |
 | PackTrim | 0.2 | alpha 0.2 |
@@ -15,6 +15,7 @@ Each tool page shows its version next to its status badge, so you can tell which
 Numbering started on 14 Nov 2026. Earlier changes are grouped roughly:
 
 ## MIDI2Circuit
+- **0.12** (16 Nov 2026): MIDI 1 / MIDI 2 template choice in step 5 (Advanced). Delay 1 uses the Tracks' own values (a fresh project's), which differ from the Rhythm's. Effects passed on the hardware.
 - **0.11** (16 Nov 2026): Effects are their own step (5, Add effects; Build is now 6). Simple mode says no effects are added; Advanced shows the presets, send sliders (one row per track; stacked on phones) and sidechain.
 - **0.10** (16 Nov 2026): Effects in step 5 (Advanced): reverb and delay presets, reverb/delay sends for Synth 1, Synth 2 and Drum 1–4, and a sidechain preset and trigger drum for each synth, the same for every project. Values from Ian's save of every preset on the Tracks (`tests/m2c_fx.mjs`).
 - **0.9** (15 Nov 2026): Pack colour setting removed (Components ignores a pack file's colour on import; set it in Components).

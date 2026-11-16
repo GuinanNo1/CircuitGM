@@ -1,6 +1,6 @@
 import { parseMidi, GM_NAMES } from './midifile.js';
 import { arrange, playOrder, laneOf, partOf, patternBars, projectColours, PROJECT_COLOURS, RATES, TRACKS, KITS, KIT_PARTS, MELODIC_ROLES } from './convert.js';
-import { loadBase, loadBaseFromBuffers, buildProjects, buildPack, composePack, SAMPLE_CAP_S } from './build.js?v=20261116fx2';
+import { loadBase, loadBaseFromBuffers, buildProjects, buildPack, composePack, SAMPLE_CAP_S } from './build.js?v=20261116fx3';
 import { loadPack, PRODUCTS } from './pack.js';
 import { packSong, projectChoices, setLane } from './packsong.js';
 import { takeHandoff, putHandoff } from './handoff.js';
@@ -990,7 +990,8 @@ function fxSettings() {
   const num = (sel) => ($(sel).value === '' ? null : Number($(sel).value));
   const sends = (k) => [...document.querySelectorAll(`[data-${k}]`)].sort((x, y) => x.dataset[k] - y.dataset[k]).map((el) => Number(el.value) || 0);
   const sc = (n) => ({ preset: Number($(`#sc${n}-preset`).value), source: Number($(`#sc${n}-source`).value) });
-  return { reverb: num('#fx-reverb'), delay: num('#fx-delay'), reverbSends: sends('rsend'), delaySends: sends('dsend'), sidechain: [sc(1), sc(2)] };
+  const midiTemplates = [Number($('#midi1-template').value), Number($('#midi2-template').value)];
+  return { reverb: num('#fx-reverb'), delay: num('#fx-delay'), reverbSends: sends('rsend'), delaySends: sends('dsend'), sidechain: [sc(1), sc(2)], midiTemplates };
 }
 
 // ---------- step 6: build ----------

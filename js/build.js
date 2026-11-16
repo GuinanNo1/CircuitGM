@@ -4,7 +4,7 @@ import { fitName, numbered, setPackColour } from './names.js';
 import { parseNCS, serializeNCS } from './vendor/ncs.js';
 import { readZip, writeZip } from './vendor/zip.js';
 import { KIT_PARTS, MAX_NOTES, MICRO } from './convert.js';
-import { DELAY_PRESETS, REVERB_PRESETS, SIDECHAIN_PRESETS } from './fx.js';
+import { TRACKS_DELAY_PRESETS as DELAY_PRESETS, REVERB_PRESETS, SIDECHAIN_PRESETS } from './fx.js';
 
 const STEPS = 32;
 const MAX_GATE = 96;                 // 16 steps; longer notes continue with a tied note
@@ -107,6 +107,7 @@ export function buildProjects(plan, base, settings) {
     const bytes = serializeNCS(proj, base.template, { freshScenes: true });
     bytes[DRUM0_HEADER] = s1;
     bytes[DRUM0_HEADER + 8] = s2;
+    applyMidiTemplates(bytes, settings.fx);
     if (plan.active[4]) for (let i = 0; i < 4; i++) bytes[DEFAULT_DRUM_CHOICES + i] = drumDefault[i];
     out.push({ name: proj.name.trim(), bytes });
   }
@@ -118,7 +119,8 @@ export function buildProjects(plan, base, settings) {
 // picking a preset writes both (values in js/fx.js, from Ian's save of every preset).
 // fx: { reverb: 0-7 | null, delay: 0-15 | null (null keeps the template's),
 //       reverbSends, delaySends: [6 x 0-127] for Synth 1, Synth 2, Drum 1-4 | null,
-//       sidechain: [{ preset: 0-7 (0 = off), source: 0-3 (Drum 1-4) }, same for Synth 2] | null }
+//       sidechain: [{ preset: 0-7 (0 = off), source: 0-3 (Drum 1-4) }, same for Synth 2] | null,
+//       midiTemplates: [MIDI 1, MIDI 2] 0-7 | null (applyMidiTemplates) }
 // The tail's 8 send bytes run Synth 1, Synth 2, Drum 1-4 (confirmed on the Tracks, 16 Nov 2026),
 // then two that are never set in any hardware save we have (most likely MIDI 1 and 2); left at 0.
 export function applyFx(proj, fx) {
@@ -142,6 +144,14 @@ export function applyFx(proj, fx) {
     const [attack, hold, decay, depth] = SIDECHAIN_PRESETS[sc.preset];
     proj.sidechain[i] = { ...proj.sidechain[i], preset: sc.preset, source: sc.source ?? 0, attack, hold, decay, depth };
   });
+}
+
+// MIDI templates (which of the Tracks' 8 templates the MIDI 1 / MIDI 2 Macro knobs use): the
+// first byte of each MIDI track's 8-byte info at 0x26CFC / 0x26D04, 0-7 = template 1-8 (found
+// 16 Nov 2026, Ian's FX_test_0.11_2 save). The templates themselves live on the device.
+const MIDI_TEMPLATE = [0x26CFC, 0x26D04];
+export function applyMidiTemplates(bytes, fx) {
+  (fx?.midiTemplates || []).forEach((t, i) => { if (t != null && i < 2) bytes[MIDI_TEMPLATE[i]] = t & 7; });
 }
 
 function synthSteps(content) {

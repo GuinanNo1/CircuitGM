@@ -4,8 +4,8 @@
 // stored values (tested on the Rhythm, 2026-11-15), so choosing a preset means writing both.
 // The values come from Ian's saves of every preset on the hardware: Rhythm FX_test1 pack
 // (2026-11-15) and Circuit Tracks Circuit_FX_test pack (2026-11-16). The two devices store
-// identical values for every preset saved on both (delay 2-16, reverb 1-8). Delay 1 was not
-// captured on the Tracks (its save kept a fresh project's values), so its row is the Rhythm's.
+// identical values for every preset saved on both (delay 2-16, reverb 1-8), except Delay 1:
+// see TRACKS_DELAY_PRESETS.
 // Value names and ranges: Circuit Tracks Programmer's Reference v3 (see docs).
 
 // Delay values: time, time sync, feedback, width, left-right ratio, slew rate.
@@ -15,6 +15,10 @@ export const DELAY_PRESETS = [
   [0, 8, 80, 10, 6, 68], [0, 9, 50, 100, 5, 33], [0, 10, 82, 23, 5, 56], [0, 10, 78, 88, 6, 47],
   [0, 10, 33, 127, 3, 33], [0, 11, 50, 60, 6, 86], [0, 12, 24, 90, 3, 106], [0, 12, 50, 115, 5, 111],
 ];
+// The Circuit Tracks' Delay 1 differs: re-saved on the Tracks (FX_test_0.11_2 pack, project 17,
+// 16 Nov) it stores the values a fresh project has. Calibration set 7 also found the first
+// preset's time sync = 20, the shortest echo.
+export const TRACKS_DELAY_PRESETS = [[64, 20, 64, 127, 4, 5], ...DELAY_PRESETS.slice(1)];
 // Reverb values: type (0-5), decay, damping.
 export const REVERB_PRESETS = [
   [0, 80, 120], [1, 90, 100], [2, 80, 80], [2, 100, 110], [3, 90, 100], [4, 105, 105], [5, 90, 80], [5, 120, 115],
