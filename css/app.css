@@ -403,3 +403,20 @@ html.simple .modeswitch .ms-simple, html:not(.simple) .modeswitch .ms-adv { colo
 .fxsends tbody th { text-align: left; white-space: nowrap; color: var(--muted); }
 .fxsends input { width: 4.2em; }
 .fxblock .options { margin-top: 6px; }
+
+/* Send sliders (MIDI2Circuit step 5): one row per track; on narrow screens the track name
+   sits above its two sliders. */
+.fxblock h3 { margin-top: 16px; }
+.sendgrid { display: grid; gap: 6px; max-width: 720px; margin: 6px 0 2px; }
+.sendrow { display: grid; grid-template-columns: 5.5em 1fr 1fr; align-items: center; gap: 4px 16px; }
+.sendrow .trk { font: 600 0.92rem var(--head); }
+.snd { display: grid; grid-template-columns: 3.6em 1fr 2.4em; align-items: center; gap: 8px; margin: 0; }
+.snd > span { font-size: 0.82rem; color: var(--muted); }
+.snd input[type="range"] { width: 100%; min-width: 0; margin: 0; height: 28px; accent-color: var(--accent); }
+.snd.dly input[type="range"] { accent-color: color-mix(in srgb, var(--accent) 55%, var(--ink)); }
+.snd output { font: 500 0.85rem var(--mono, monospace); text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 600px) {
+  .sendrow { grid-template-columns: 1fr; padding: 6px 0; border-top: 1px solid var(--line); }
+  .sendrow:first-child { border-top: 0; }
+}
+.scpair { display: flex; flex-wrap: wrap; gap: 0 14px; margin: 0 18px 8px 0; }

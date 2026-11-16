@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/app.css?v=20261116fx">
+<link rel="stylesheet" href="../css/app.css?v=20261116fx2">
 <script>(function(){var r=document.documentElement;try{if(localStorage.getItem('circuitgm-advanced-m2c')!=='1')r.classList.add('simple')}catch(e){r.classList.add('simple')}})();</script>
 </head>
 <body>
@@ -49,7 +49,7 @@
 </nav>
 <header class="masthead">
   <div class="wrap">
-    <h1>MIDI2Circuit <span>MIDI to Circuit Tracks converter</span> <em class="badge" title="Version of this page. If you expect a newer one, refresh with Shift-reload; GitHub Pages can take about 10 minutes to update.">alpha 0.10</em></h1>
+    <h1>MIDI2Circuit <span>MIDI to Circuit Tracks converter</span> <em class="badge" title="Version of this page. If you expect a newer one, refresh with Shift-reload; GitHub Pages can take about 10 minutes to update.">alpha 0.11</em></h1>
     <p class="helplinks"><a href="help.html#quickstart">Quickstart</a> · <a href="help.html">User guide</a></p>
     <p class="lede">Turn a General MIDI file, or a project from a Circuit Tracks or Circuit Rhythm pack, into a Novation Circuit Tracks pack. Pick the parts you want, hear how they'll play, and download a <code>.circuittrackspack</code> for Novation Components, built on the <a href="../tracksgm/">TracksGM pack</a> or a pack of your own.</p>
     <p class="alpha">Alpha 0.1, for testing. Packs load and play on the Circuit Tracks, but the project format is reverse-engineered: keep a backup of your packs, and please report anything odd on <a href="https://github.com/GuinanNo1/CircuitGM/issues">GitHub</a>.</p>
@@ -164,28 +164,62 @@
     <ul class="warnings adv" id="warnings"></ul>
   </section>
 
+  <section class="panel" id="step-fx" hidden>
+    <h2><span class="num">5</span> Add effects</h2>
+    <p class="simple-only">No effects are added by default. Open <b>Advanced</b> mode to add preset effects to all projects.</p>
+    <div class="fxblock adv">
+      <p class="hint">Set here once for every project in the pack, instead of on the Circuit Tracks for each one.</p>
+      <h3>Reverb and delay</h3>
+      <div class="options">
+        <div class="field"><label for="fx-reverb">Reverb preset</label><select id="fx-reverb"><option value="" selected>None</option><option value="0">1. Small Chamber</option><option value="1">2. Small Room 1</option><option value="2">3. Small Room 2</option><option value="3">4. Large Room</option><option value="4">5. Hall</option><option value="5">6. Large Hall</option><option value="6">7. Hall – long reflection</option><option value="7">8. Large Hall – long reflection</option></select></div>
+        <div class="field"><label for="fx-delay">Delay preset</label><select id="fx-delay"><option value="" selected>None</option><option value="0">1. Slapback Fast</option><option value="1">2. Slapback Slow</option><option value="2">3. 32nd Triplets</option><option value="3">4. 32nd</option><option value="4">5. 16th Triplets</option><option value="5">6. 16th</option><option value="6">7. 16th Ping Pong</option><option value="7">8. 16th Ping Pong Swung</option><option value="8">9. 8th Triplets</option><option value="9">10. 8th dotted Ping Pong</option><option value="10">11. 8th</option><option value="11">12. 8th Ping Pong</option><option value="12">13. 8th Ping Pong Swung</option><option value="13">14. 4th Triplets</option><option value="14">15. 4th dotted Ping Pong Swung</option><option value="15">16. 4th Triplets Ping Pong Wide</option></select></div>
+      </div>
+      <p class="hint small">Numbered and named as on the Tracks' FX grid and in its user guide (reverb pads 17–24 are listed as 1–8). None leaves the effect as a new project has it.</p>
+      <h3>Sends</h3>
+      <div class="sendgrid" id="sendgrid">
+        <div class="sendrow"><span class="trk">Synth 1</span>
+          <label class="snd rev"><span>Reverb</span><input type="range" min="0" max="127" value="0" data-rsend="0" aria-label="Synth 1 reverb send"><output>0</output></label>
+          <label class="snd dly"><span>Delay</span><input type="range" min="0" max="127" value="0" data-dsend="0" aria-label="Synth 1 delay send"><output>0</output></label>
+        </div>
+        <div class="sendrow"><span class="trk">Synth 2</span>
+          <label class="snd rev"><span>Reverb</span><input type="range" min="0" max="127" value="0" data-rsend="1" aria-label="Synth 2 reverb send"><output>0</output></label>
+          <label class="snd dly"><span>Delay</span><input type="range" min="0" max="127" value="0" data-dsend="1" aria-label="Synth 2 delay send"><output>0</output></label>
+        </div>
+        <div class="sendrow"><span class="trk">Drum 1</span>
+          <label class="snd rev"><span>Reverb</span><input type="range" min="0" max="127" value="0" data-rsend="2" aria-label="Drum 1 reverb send"><output>0</output></label>
+          <label class="snd dly"><span>Delay</span><input type="range" min="0" max="127" value="0" data-dsend="2" aria-label="Drum 1 delay send"><output>0</output></label>
+        </div>
+        <div class="sendrow"><span class="trk">Drum 2</span>
+          <label class="snd rev"><span>Reverb</span><input type="range" min="0" max="127" value="0" data-rsend="3" aria-label="Drum 2 reverb send"><output>0</output></label>
+          <label class="snd dly"><span>Delay</span><input type="range" min="0" max="127" value="0" data-dsend="3" aria-label="Drum 2 delay send"><output>0</output></label>
+        </div>
+        <div class="sendrow"><span class="trk">Drum 3</span>
+          <label class="snd rev"><span>Reverb</span><input type="range" min="0" max="127" value="0" data-rsend="4" aria-label="Drum 3 reverb send"><output>0</output></label>
+          <label class="snd dly"><span>Delay</span><input type="range" min="0" max="127" value="0" data-dsend="4" aria-label="Drum 3 delay send"><output>0</output></label>
+        </div>
+        <div class="sendrow"><span class="trk">Drum 4</span>
+          <label class="snd rev"><span>Reverb</span><input type="range" min="0" max="127" value="0" data-rsend="5" aria-label="Drum 4 reverb send"><output>0</output></label>
+          <label class="snd dly"><span>Delay</span><input type="range" min="0" max="127" value="0" data-dsend="5" aria-label="Drum 4 delay send"><output>0</output></label>
+        </div>
+      </div>
+      <p class="hint small">How much of each track goes to the reverb and the delay: 0 (off) to 127 (full).</p>
+      <h3>Sidechain</h3>
+      <div class="options">
+        <div class="scpair"><div class="field"><label for="sc1-preset">Synth 1 sidechain</label><select id="sc1-preset"><option value="0" selected>Off</option><option value="1">Preset 1</option><option value="2">Preset 2</option><option value="3">Preset 3</option><option value="4">Preset 4</option><option value="5">Preset 5</option><option value="6">Preset 6</option><option value="7">Preset 7</option></select></div><div class="field"><label for="sc1-source">Synth 1 triggered by</label><select id="sc1-source"><option value="0">Drum 1</option><option value="1">Drum 2</option><option value="2">Drum 3</option><option value="3">Drum 4</option></select></div></div>
+        <div class="scpair"><div class="field"><label for="sc2-preset">Synth 2 sidechain</label><select id="sc2-preset"><option value="0" selected>Off</option><option value="1">Preset 1</option><option value="2">Preset 2</option><option value="3">Preset 3</option><option value="4">Preset 4</option><option value="5">Preset 5</option><option value="6">Preset 6</option><option value="7">Preset 7</option></select></div><div class="field"><label for="sc2-source">Synth 2 triggered by</label><select id="sc2-source"><option value="0">Drum 1</option><option value="1">Drum 2</option><option value="2">Drum 3</option><option value="3">Drum 4</option></select></div></div>
+      </div>
+      <p class="hint small">Each hit of the chosen drum track ducks the synth, even with the drum turned down. The presets are the seven on the Tracks' Side Chain view, from gentle (1) to deep (7).</p>
+    </div>
+  </section>
+
   <section class="panel" id="step-build" hidden>
-    <h2><span class="num">5</span> Build the pack</h2>
+    <h2><span class="num">6</span> Build the pack</h2>
     <div class="options">
       <div class="field grow"><label for="title">Project name</label><input id="title" maxlength="16" autocomplete="off" title="Up to 16 characters, as Components allows"><span class="sub count" id="title-count"></span></div>
       <div class="field grow"><label for="packname">Pack name</label><input id="packname" maxlength="16" autocomplete="off" title="Up to 16 characters, as Components allows"><span class="sub count" id="packname-count"></span></div>
       <div class="field adv"><label for="projcolors">Project colours</label>
         <select id="projcolors"><option value="rainbow" selected>Repeating rainbow</option><optgroup label="One colour"><option value="0">Red</option><option value="1">Rose</option><option value="2">Peach</option><option value="3">Orange</option><option value="4">Sand</option><option value="5">Yellow</option><option value="6">Khaki</option><option value="7">Lime</option><option value="8">Green</option><option value="9">Teal</option><option value="10">Cyan</option><option value="11">Blue</option><option value="12">Purple</option><option value="13">Pink</option></optgroup></select></div>
 
-    </div>
-    <div class="fxblock adv">
-      <h3>Effects</h3>
-      <div class="options">
-        <div class="field"><label for="fx-reverb">Reverb preset</label><select id="fx-reverb"><option value="" selected>None</option><option value="0">1. Small Chamber</option><option value="1">2. Small Room 1</option><option value="2">3. Small Room 2</option><option value="3">4. Large Room</option><option value="4">5. Hall</option><option value="5">6. Large Hall</option><option value="6">7. Hall – long reflection</option><option value="7">8. Large Hall – long reflection</option></select></div>
-        <div class="field"><label for="fx-delay">Delay preset</label><select id="fx-delay"><option value="" selected>None</option><option value="0">1. Slapback Fast</option><option value="1">2. Slapback Slow</option><option value="2">3. 32nd Triplets</option><option value="3">4. 32nd</option><option value="4">5. 16th Triplets</option><option value="5">6. 16th</option><option value="6">7. 16th Ping Pong</option><option value="7">8. 16th Ping Pong Swung</option><option value="8">9. 8th Triplets</option><option value="9">10. 8th dotted Ping Pong</option><option value="10">11. 8th</option><option value="11">12. 8th Ping Pong</option><option value="12">13. 8th Ping Pong Swung</option><option value="13">14. 4th Triplets</option><option value="14">15. 4th dotted Ping Pong Swung</option><option value="15">16. 4th Triplets Ping Pong Wide</option></select></div>
-      </div>
-      <table class="fxsends"><thead><tr><th></th><th>Synth 1</th><th>Synth 2</th><th>Drum 1</th><th>Drum 2</th><th>Drum 3</th><th>Drum 4</th></tr></thead>
-        <tbody><tr><th>Reverb send</th><td><input type="number" min="0" max="127" value="0" data-rsend="0" aria-label="Reverb send, Synth 1"></td><td><input type="number" min="0" max="127" value="0" data-rsend="1" aria-label="Reverb send, Synth 2"></td><td><input type="number" min="0" max="127" value="0" data-rsend="2" aria-label="Reverb send, Drum 1"></td><td><input type="number" min="0" max="127" value="0" data-rsend="3" aria-label="Reverb send, Drum 2"></td><td><input type="number" min="0" max="127" value="0" data-rsend="4" aria-label="Reverb send, Drum 3"></td><td><input type="number" min="0" max="127" value="0" data-rsend="5" aria-label="Reverb send, Drum 4"></td></tr><tr><th>Delay send</th><td><input type="number" min="0" max="127" value="0" data-dsend="0" aria-label="Delay send, Synth 1"></td><td><input type="number" min="0" max="127" value="0" data-dsend="1" aria-label="Delay send, Synth 2"></td><td><input type="number" min="0" max="127" value="0" data-dsend="2" aria-label="Delay send, Drum 1"></td><td><input type="number" min="0" max="127" value="0" data-dsend="3" aria-label="Delay send, Drum 2"></td><td><input type="number" min="0" max="127" value="0" data-dsend="4" aria-label="Delay send, Drum 3"></td><td><input type="number" min="0" max="127" value="0" data-dsend="5" aria-label="Delay send, Drum 4"></td></tr></tbody></table>
-      <div class="options">
-        <div class="field"><label for="sc1-preset">Synth 1 sidechain</label><select id="sc1-preset"><option value="0" selected>Off</option><option value="1">Preset 1</option><option value="2">Preset 2</option><option value="3">Preset 3</option><option value="4">Preset 4</option><option value="5">Preset 5</option><option value="6">Preset 6</option><option value="7">Preset 7</option></select></div><div class="field"><label for="sc1-source">Synth 1 triggered by</label><select id="sc1-source"><option value="0">Drum 1</option><option value="1">Drum 2</option><option value="2">Drum 3</option><option value="3">Drum 4</option></select></div>
-        <div class="field"><label for="sc2-preset">Synth 2 sidechain</label><select id="sc2-preset"><option value="0" selected>Off</option><option value="1">Preset 1</option><option value="2">Preset 2</option><option value="3">Preset 3</option><option value="4">Preset 4</option><option value="5">Preset 5</option><option value="6">Preset 6</option><option value="7">Preset 7</option></select></div><div class="field"><label for="sc2-source">Synth 2 triggered by</label><select id="sc2-source"><option value="0">Drum 1</option><option value="1">Drum 2</option><option value="2">Drum 3</option><option value="3">Drum 4</option></select></div>
-      </div>
-      <p class="hint small">Set once here for every project in the pack, instead of on the Circuit Tracks for each one. Presets are numbered and named as on the Tracks' FX grid and in its user guide (delay pads 1–16, reverb pads 17–24 shown here as 1–8); None leaves the effect as a new project has it. Sends are 0–127 (0 = off). Sidechain lets a drum track duck a synth on each hit; the presets are the seven on the Tracks' Side Chain view, from gentle (1) to deep (7).</p>
     </div>
     <div class="buildrow">
       <button class="btn primary big" id="build" type="button">Download pack</button>
@@ -199,6 +233,6 @@
   <p>Patches: TracksGM by Ian Guinan. Drum samples: <a href="https://github.com/mrbumpy409/GeneralUser-GS">GeneralUser GS</a> by S. Christian Collins (<a href="../tracksgm/LICENSE-GeneralUser-GS.txt">licence</a>). Project format code from <a href="https://github.com/namirsab/circuit-tracks-tools">circuit-tracks-tools</a> by Namir Sayed-Ahmad Baraza (MIT). Not affiliated with Novation or Focusrite; "Circuit Tracks" and "Components" are their trademarks.</p>
 </footer>
 
-<script type="module" src="../js/app.js?v=20261116fx"></script>
+<script type="module" src="../js/app.js?v=20261116fx2"></script>
 </body>
 </html>

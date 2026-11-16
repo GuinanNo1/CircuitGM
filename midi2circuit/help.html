@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/app.css?v=20261116fx">
+<link rel="stylesheet" href="../css/app.css?v=20261116fx2">
 </head>
 <body>
 <nav class="sitenav" aria-label="CircuitGM">
@@ -49,7 +49,7 @@
 <header class="masthead">
   <div class="wrap">
     <p class="crumbs"><a href="./">← Back to MIDI2Circuit</a></p>
-    <h1>MIDI2Circuit help <span>CircuitGM MIDI to Circuit Converter</span> <em class="badge" title="Version of this page. If you expect a newer one, refresh with Shift-reload; GitHub Pages can take about 10 minutes to update.">alpha 0.10</em></h1>
+    <h1>MIDI2Circuit help <span>CircuitGM MIDI to Circuit Converter</span> <em class="badge" title="Version of this page. If you expect a newer one, refresh with Shift-reload; GitHub Pages can take about 10 minutes to update.">alpha 0.11</em></h1>
     <p class="lede">A Quickstart to get a song onto your Circuit Tracks in a few minutes, then a guide to every control.</p>
   </div>
 </header>
@@ -61,7 +61,7 @@
       <li><a href="#quickstart">Quickstart</a></li>
       <li><a href="#modes">Simple and Advanced mode</a></li>
       <li><a href="#need">What you need</a></li>
-      <li><a href="#steps">The five steps in detail</a></li>
+      <li><a href="#steps">The six steps in detail</a></li>
       <li><a href="#fewer">Getting a song into fewer projects</a></li>
       <li><a href="#tracks">On the Circuit Tracks</a></li>
       <li><a href="#notes">The notes under the grid</a></li>
@@ -81,7 +81,8 @@
       <li>the <b>base pack</b> box (step 1);</li>
       <li>octave shifts and the drum track for each Circuit pack drum part (steps 2 and 3);</li>
       <li><b>Trim the pack</b>, Section length, Pattern length, Tempo, Repeats, Quantise, Line up sections and Skip empty bars, the solo buttons, and the notes about what the arrangement changed (step 4);</li>
-      <li>project and pack colours (step 5).</li>
+      <li>the effects: reverb and delay presets, sends and sidechain (step 5);</li>
+      <li>project colours (step 6).</li>
     </ul>
     <p>Hidden settings keep their values, so switching modes never changes the pack. If you changed a setting and then switch back to simple mode, a line under the header says so. Problems that change what the pack can hold (a song longer than 64 projects, samples over the 196.6 s limit) show in both modes. The page remembers your choice in this browser.</p>
   </section>
@@ -93,7 +94,7 @@
       <li><b>Check the parts.</b> The converter has already put the two busiest parts on Synth 1 and Synth 2, the next two on MIDI 1 and MIDI 2, and the drum part on Drums. Press ▶ next to a part to hear it, and click the S1, S2, M1, M2 or Drums buttons to change where it goes.</li>
       <li><b>Pick the sounds.</b> Each synth gets the patch for its General MIDI instrument from the TracksGM pack; change it if you like, and pick a drum kit. (To use your own pack instead of the TracksGM pack, drop it on the <b>Base pack</b> box first: see <a href="#base-pack">using a different base pack</a>.)</li>
       <li><b>Preview.</b> Press <b>Play preview</b> in step 4. Click a coloured dot to mute a part, or a box to mute some bars. If the summary says the song needs several projects, see <a href="#fewer">getting a song into fewer projects</a>.</li>
-      <li><b>Download.</b> Press <b>Download pack</b> in step 5.</li>
+      <li><b>Download.</b> Press <b>Download pack</b> in step 6.</li>
       <li><b>Play it.</b> In Novation Components, open the pack and send it to a <b>spare</b> pack slot on your Circuit Tracks (it replaces whatever is in that slot). Load the pack on the Tracks and open project 1. The song's sections are its scenes, in order; if there is more than one project, carry on with project 2, 3 and so on.</li>
     </ol>
   </section>
@@ -108,7 +109,7 @@
   </section>
 
   <section class="panel" id="steps">
-    <h2>The five steps in detail</h2>
+    <h2>The six steps in detail</h2>
 
     <h3>1. Load a MIDI file or Circuit pack</h3>
     <p><b>Base pack.</b> The box at the top of step 1 shows the pack the converter builds on: <i>TracksGM_v1</i>, the TracksGM pack, unless you change it. Click <b>Use another pack…</b>, or drop a <code>.circuittrackspack</code> on the box, to use a different one; <b>Back to TracksGM_v1</b> switches back. See <a href="#base-pack">using a different base pack</a>.</p>
@@ -164,17 +165,19 @@
       </tbody>
     </table>
 
-    <h3>5. Build the pack</h3>
+    <h3>5. Add effects</h3>
+    <p>In simple mode no effects are added. In Advanced mode they are set once for every project, instead of on the Circuit Tracks for each one:</p>
+    <ul>
+      <li><b>Reverb preset</b> and <b>Delay preset</b>, numbered and named as on the Tracks' FX grid and in its user guide (reverb pads 17–24 are listed as 1–8). <i>None</i> leaves the effect as a new project has it. Choosing a preset stores its settings exactly as the Tracks does.</li>
+      <li><b>Sends:</b> a reverb and a delay slider for Synth 1, Synth 2 and Drum 1–4, from 0 (off, the default) to 127 (full).</li>
+      <li><b>Sidechain</b> for each synth: <i>Off</i> (the default) or one of the seven presets on the Tracks' Side Chain view, from gentle (1) to deep (7), and which drum track triggers it. Each hit of that drum ducks the synth, even if the drum's level is turned down.</li>
+    </ul>
+
+    <h3>6. Build the pack</h3>
     <ul>
       <li><b>Project name</b> is given to every project, numbered if there are several (<i>Song 1</i>, <i>Song 2</i>…).</li>
       <li><b>Pack name</b> is how the pack appears in Components. Components doesn't read a pack's colour from the file, so set the colour there after importing.</li>
       <li><b>Project colours:</b> <i>Repeating rainbow</i> (the default) colours the projects Red, Orange, Yellow, Green, Cyan, Blue, Purple, then repeats; or pick one colour from the list for all of them.</li>
-      <li><b>Effects</b> (Advanced) are set once for every project, instead of on the Circuit Tracks for each one:
-        <ul>
-          <li><b>Reverb preset</b> and <b>Delay preset</b>, numbered and named as on the Tracks' FX grid and in its user guide (reverb pads 17–24 are listed as 1–8). <i>None</i> leaves the effect as a new project has it. Choosing a preset stores its settings exactly as the Tracks does.</li>
-          <li><b>Reverb send</b> and <b>Delay send</b> for Synth 1, Synth 2 and Drum 1–4, 0–127 (0 = off, the default).</li>
-          <li><b>Sidechain</b> for each synth: <i>Off</i> (the default) or one of the seven presets on the Tracks' Side Chain view, from gentle (1) to deep (7), and which drum track triggers it. Each hit of that drum ducks the synth, even if the drum's level is turned down.</li>
-        </ul></li>
     </ul>
     <p>The pack holds the whole base pack (the TracksGM pack, 128 patches and 64 drum samples, unless you chose another) plus your projects in project slots 1 onwards.</p>
   </section>
