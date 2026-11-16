@@ -51,7 +51,7 @@ export function parseRhythm(buffer) {
     patterns: [],
     defaultSamples: Array.from(d.subarray(TAIL + T_DEFAULT_SAMPLES, TAIL + T_DEFAULT_SAMPLES + 8)),
     // Each track's Tune (tail row byte 16, 64 = centre); see docs/circuit-rhythm-format.md.
-    trackTunes: Array.from({ length: 8 }, (_, t) => d[TAIL + 44 + t * 41 + 16]),
+    trackTunes: Array.from({ length: 8 }, (_, t) => d[TAIL + 50 + t * 41 + 10]),
     // Scene mute recall (tail +950, 1 = on): found 2026-11-15 by diffing a project before and
     // after switching it on on the hardware.
     muteRecall: d[TAIL + 950],

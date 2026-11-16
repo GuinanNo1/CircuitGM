@@ -14,9 +14,13 @@ const BLOCK_BASE = 0x2e4;
 const BLOCK_SIZE = 2600;
 const TAIL = BLOCK_BASE + 64 * BLOCK_SIZE;   // 0x28ce4
 const T_DEFAULT_SAMPLES = 8;
-const T_TRACK_ROWS = 44;                       // 8 x 41 bytes; byte 6 = the track's sample again
+// Each track's settings: 8 x 41 bytes from tail +50 to +377 (pinned 16 Nov 2026 by Ian's
+// level/pan/tune save): byte 0 = the track's sample again, 10 Tune, 26 level, 27 pan,
+// 28 reverb send, 29 delay send, 32-36 sidechain (source, attack, hold, decay, depth).
+const T_TRACK_ROWS = 50;
+const ROW_SAMPLE = 0;
 const T_MUTE_RECALL = 950;                     // tail +950: scene mute recall, 1 = on (found 2026-11-15)
-const ROW_TUNE = 16;                           // row byte 16: the track's Tune (macro 1), 64 = no change
+const ROW_TUNE = 10;                           // the track's Tune (macro 1), 64 = no change
 const TUNE_CENTRE = 64;
 const NO_SAMPLE = 0xff;
 
@@ -43,12 +47,12 @@ export async function openPack(buf) {
 // Preset values and names (as in the user guides) are shared with MIDI2Circuit: js/fx.js.
 export { DELAY_PRESETS, REVERB_PRESETS, DELAY_NAMES, REVERB_NAMES };
 const T_DELAY_PRESET = 32, T_REVERB_PRESET = 33, T_REVERB_VALUES = 378, T_DELAY_VALUES = 386, T_FX_OFF = 393;
-const ROW_REVERB_SEND = 34, ROW_DELAY_SEND = 35;   // per-track row bytes (35: delay send, very likely)
+const ROW_REVERB_SEND = 28, ROW_DELAY_SEND = 29;   // delay send confirmed on the Rhythm, 16 Nov 2026
 // Sidechain (found 2026-11-16, Ian's Ian_SC_test save): tail +42..+49 = each track's preset
-// (0 = off, 1-7); tail +82 + 41 x track = 5 bytes: source (0-7 = track 1-8), attack, hold,
+// (0 = off, 1-7); tail +82 + 41 x track (row bytes 32-36) = 5 bytes: source (0-7 = track 1-8), attack, hold,
 // decay, depth. Presets 1-7 store the same values as on the Circuit Tracks (js/fx.js); an off
 // track stores 0,0,0,0 (the Tracks keeps 0,50,70,0).
-const T_SC_PRESETS = 42, T_SC_BLOCKS = 82, SC_STRIDE = 41;
+const T_SC_PRESETS = 42, T_SC_BLOCKS = T_TRACK_ROWS + 32, SC_STRIDE = 41;   // blocks = row bytes 32-36
 
 // fx: { reverb: 0-7 | null, delay: 0-15 | null (null leaves the project's own),
 //       reverbSends: [8 x 0-127] | null, delaySends: [8 x 0-127] | null, off: bool,
@@ -120,7 +124,7 @@ export function buildRhythmProjects(plan, tracks, template, settings) {
         }
       }
       d[TAIL + T_DEFAULT_SAMPLES + t] = def;
-      d[TAIL + T_TRACK_ROWS + t * 41 + 6] = def;
+      d[TAIL + T_TRACK_ROWS + t * 41 + ROW_SAMPLE] = def;
       // Tune at centre, so every track plays its notes at the pitch the step bytes say (the
       // template's source project had track 4 tuned down 9 steps, about 1.8 semitones).
       d[TAIL + T_TRACK_ROWS + t * 41 + ROW_TUNE] = TUNE_CENTRE;
@@ -172,7 +176,7 @@ export function buildLayoutProject(plan, template, settings) {
       });
     }
     d[TAIL + T_DEFAULT_SAMPLES + t] = def;
-    d[TAIL + T_TRACK_ROWS + t * 41 + 6] = def;
+    d[TAIL + T_TRACK_ROWS + t * 41 + ROW_SAMPLE] = def;
     d[TAIL + T_TRACK_ROWS + t * 41 + ROW_TUNE] = tr?.tune ?? TUNE_CENTRE;
   }
   d[TAIL + T_MUTE_RECALL] = plan.muteRecall ?? 0;
