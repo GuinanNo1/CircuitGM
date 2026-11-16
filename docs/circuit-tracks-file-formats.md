@@ -50,7 +50,7 @@ Ian saved one project per preset on the Circuit Tracks: projects 1–16 = Delay 
 - A fresh project has delay preset 1 and reverb preset 1 selected, but values no preset uses (delay 64,20,64,127,4,5; reverb 2,64,64), as on the Rhythm.
 - Sidechain preset values (attack, hold, decay, depth): off 0,50,70,0; 1 = 5,50,80,80; 2 = 5,70,70,100; 3 = 5,85,70,115; 4 = 5,90,75,123; 5 = 5,90,85,127; 6 = 5,95,95,127; 7 = 5,102,95,127.
 - The Side Chain view's source pads change only the synth whose preset was pressed last (user guide p. 93; in the save only Synth 2's source varies).
-- Hardware test passed 16 Nov 2026 (MIDI2Circuit 0.11 pack): presets selected, sends rising/falling as written. Still to test: whether the Tracks plays the stored values rather than the preset number (the Rhythm does).
+- Hardware test passed 16 Nov 2026 (MIDI2Circuit 0.11 pack): presets selected, sends rising/falling as written, sidechain shown as written for both synths (Synth 1 preset 4 from Drum 1, Synth 2 preset 7 from Drum 3), so Synth 2's preset byte (synth info +11) is confirmed too. Still to test: whether the Tracks plays the stored values rather than the preset number (the Rhythm does).
 
 ## Patch (official, Programmer's Reference Guide v3)
 340 bytes 7-bit; SysEx F0 00 20 29 01 64 00 <loc> 00 <340> F7 (current) / 01 <slot> 00 (flash). Bank file = 64 Replace Patch msgs. OG Circuit = product byte 0x60.
