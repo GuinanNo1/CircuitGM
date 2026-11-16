@@ -5,17 +5,17 @@ import { parseMidi } from '../midifile.js';
 import { setupMode } from '../mode.js';
 import { projectColours, PROJECT_COLOURS } from '../convert.js';
 import { Player } from '../player.js';
-import { planTracks, METHODS, ADV_ONLY_METHODS, INST_SLOTS, KIT_FIRST, isUnpitched, rootFromName, drumMap, ownSamples, MAX_OWN } from './engine.js?v=20261116m2r18';
+import { planTracks, METHODS, ADV_ONLY_METHODS, INST_SLOTS, KIT_FIRST, isUnpitched, rootFromName, drumMap, ownSamples, MAX_OWN } from './engine.js?v=20261116m2r19';
 import { loadPack, PRODUCTS } from '../pack.js';
 import { packSong, projectChoices } from '../packsong.js';
-import { arrangeRhythm, playOrder, MAX_PROJECTS } from './arrange.js?v=20261116m2r18';
-import { buildRhythmProjects, buildRhythmPack, buildLayoutProject, openPack, fetchBuf, usedSamples, shortName } from './build.js?v=20261116m2r18';
-import { layoutPlan, layoutSamples, renderLayout } from './layout.js?v=20261116m2r18';
+import { arrangeRhythm, playOrder, MAX_PROJECTS } from './arrange.js?v=20261116m2r19';
+import { buildRhythmProjects, buildRhythmPack, buildLayoutProject, openPack, fetchBuf, usedSamples, shortName } from './build.js?v=20261116m2r19';
+import { layoutPlan, layoutSamples, renderLayout } from './layout.js?v=20261116m2r19';
 import { sceneOrder, defaultOrderKind, PPQ } from '../song.js';
 
 // Shown next to "For testing" (from the code actually running, so a stale cached page shows
 // its own version). Bump it, with a line in help.html's version list, on every change.
-export const VERSION = '0.17';
+export const VERSION = '0.18';
 export const VERSION_DATE = '16 Nov 2026';
 
 const $ = (s) => document.querySelector(s);
@@ -61,7 +61,7 @@ async function init() {
     const [inst, drum, tpl, dmeta, lmeta] = await Promise.all([
       fetchBuf('../rhythmgm/RhythmInstGM.circuitrhythmpack').then(openPack),
       fetchBuf('../rhythmgm/RhythmDrumGM.circuitrhythmpack').then(openPack),
-      fetchBuf('../data/RhythmEmpty.ncs?v=20261116m2r18'),
+      fetchBuf('../data/RhythmEmpty.ncs?v=20261116m2r19'),
       fetch('../rhythmgm/rhythmdrumgm_samples.json').then((r) => r.json()),
       fetch('../rhythmgm/rhythmlatingm_samples.json').then((r) => r.json()),
     ]);
@@ -102,7 +102,11 @@ document.getElementById('sendgrid')?.addEventListener('input', (e) => {
 function fxSettings() {
   const num = (sel) => ($(sel).value === '' ? null : Number($(sel).value));
   const sends = (k) => [...document.querySelectorAll(`[data-${k}]`)].sort((x, y) => x.dataset[k] - y.dataset[k]).map((el) => Number(el.value) || 0);
-  return { reverb: num('#fx-reverb'), delay: num('#fx-delay'), reverbSends: sends('rsend'), delaySends: sends('dsend') };
+  const sidechain = Array.from({ length: 8 }, (_, i) => ({
+    preset: Number(document.querySelector(`[data-scpreset="${i}"]`)?.value || 0),
+    source: Number(document.querySelector(`[data-scsource="${i}"]`)?.value || 0),
+  }));
+  return { reverb: num('#fx-reverb'), delay: num('#fx-delay'), reverbSends: sends('rsend'), delaySends: sends('dsend'), sidechain };
 }
 const fromPack = () => state.midi?.format === 'pack';
 // A pack project with "Keep the project's layout" (js/m2r/layout.js), rather than re-arranged.

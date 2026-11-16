@@ -7,7 +7,7 @@
 import { readZip, writeZipDeflate } from '../vendor/zip.js';
 import { cleanName, setPackColour } from '../names.js';
 import { KIT_FIRST } from './engine.js';
-import { DELAY_PRESETS, REVERB_PRESETS, DELAY_NAMES, REVERB_NAMES } from '../fx.js';
+import { DELAY_PRESETS, REVERB_PRESETS, DELAY_NAMES, REVERB_NAMES, SIDECHAIN_PRESETS } from '../fx.js';
 
 const SC_BASE = 0x38;
 const BLOCK_BASE = 0x2e4;
@@ -44,9 +44,15 @@ export async function openPack(buf) {
 export { DELAY_PRESETS, REVERB_PRESETS, DELAY_NAMES, REVERB_NAMES };
 const T_DELAY_PRESET = 32, T_REVERB_PRESET = 33, T_REVERB_VALUES = 378, T_DELAY_VALUES = 386, T_FX_OFF = 393;
 const ROW_REVERB_SEND = 34, ROW_DELAY_SEND = 35;   // per-track row bytes (35: delay send, very likely)
+// Sidechain (found 2026-11-16, Ian's Ian_SC_test save): tail +42..+49 = each track's preset
+// (0 = off, 1-7); tail +82 + 41 x track = 5 bytes: source (0-7 = track 1-8), attack, hold,
+// decay, depth. Presets 1-7 store the same values as on the Circuit Tracks (js/fx.js); an off
+// track stores 0,0,0,0 (the Tracks keeps 0,50,70,0).
+const T_SC_PRESETS = 42, T_SC_BLOCKS = 82, SC_STRIDE = 41;
 
 // fx: { reverb: 0-7 | null, delay: 0-15 | null (null leaves the project's own),
-//       reverbSends: [8 x 0-127] | null, delaySends: [8 x 0-127] | null, off: bool }
+//       reverbSends: [8 x 0-127] | null, delaySends: [8 x 0-127] | null, off: bool,
+//       sidechain: [8 x { preset: 0-7, source: 0-7 }] | null }
 export function applyFx(d, fx) {
   if (!fx) return;
   if (fx.delay != null) { d[TAIL + T_DELAY_PRESET] = fx.delay; d.set(DELAY_PRESETS[fx.delay], TAIL + T_DELAY_VALUES); }
@@ -56,6 +62,14 @@ export function applyFx(d, fx) {
     if (fx.delaySends) d[TAIL + T_TRACK_ROWS + t * 41 + ROW_DELAY_SEND] = Math.max(0, Math.min(127, fx.delaySends[t] | 0));
   }
   if (fx.off != null) d[TAIL + T_FX_OFF] = fx.off ? 1 : 0;
+  (fx.sidechain || []).forEach((sc, t) => {
+    if (!sc || t > 7) return;
+    const o = TAIL + T_SC_BLOCKS + t * SC_STRIDE;
+    d[TAIL + T_SC_PRESETS + t] = sc.preset;
+    if (sc.preset === 0) { d.fill(0, o + 1, o + 5); return; }   // off: as the Rhythm stores it, source left as it was
+    d[o] = sc.source & 7;
+    d.set(SIDECHAIN_PRESETS[sc.preset], o + 1);
+  });
 }
 
 export function buildRhythmProjects(plan, tracks, template, settings) {

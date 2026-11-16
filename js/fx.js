@@ -28,7 +28,8 @@ export const REVERB_NAMES = ['Small Chamber', 'Small Room 1', 'Small Room 2', 'L
 
 // Circuit Tracks sidechain (Synth 1, Synth 2, MIDI 1, MIDI 2): preset 0 = Off, 1-7 = the grid's
 // presets. Values: attack, hold, decay, depth. Off keeps the reset values with depth 0.
-// From the Circuit_FX_test save, projects 25-32.
+// From the Circuit_FX_test save, projects 25-32. The Circuit Rhythm stores the same values for
+// presets 1-7 (Ian_SC_test save, 16 Nov), but an off track stores 0,0,0,0.
 export const SIDECHAIN_PRESETS = [
   [0, 50, 70, 0], [5, 50, 80, 80], [5, 70, 70, 100], [5, 85, 70, 115],
   [5, 90, 75, 123], [5, 90, 85, 127], [5, 95, 95, 127], [5, 102, 95, 127],
