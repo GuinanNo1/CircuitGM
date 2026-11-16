@@ -397,11 +397,6 @@ html.simple .modeswitch .ms-simple, html:not(.simple) .modeswitch .ms-adv { colo
 /* Effects block (MIDI2Circuit, MIDI2Rhythm) */
 .fxblock { margin: 14px 0 8px; }
 .fxblock h3 { font-size: 0.95rem; margin: 0 0 6px; }
-.fxsends { border-collapse: collapse; margin: 8px 0 4px; }
-.fxsends th, .fxsends td { padding: 2px 4px; text-align: center; font-weight: normal; }
-.fxsends thead th { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
-.fxsends tbody th { text-align: left; white-space: nowrap; color: var(--muted); }
-.fxsends input { width: 4.2em; }
 .fxblock .options { margin-top: 6px; }
 
 /* Send sliders (MIDI2Circuit step 5): one row per track; on narrow screens the track name

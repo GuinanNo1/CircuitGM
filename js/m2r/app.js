@@ -5,17 +5,17 @@ import { parseMidi } from '../midifile.js';
 import { setupMode } from '../mode.js';
 import { projectColours, PROJECT_COLOURS } from '../convert.js';
 import { Player } from '../player.js';
-import { planTracks, METHODS, ADV_ONLY_METHODS, INST_SLOTS, KIT_FIRST, isUnpitched, rootFromName, drumMap, ownSamples, MAX_OWN } from './engine.js?v=20261116m2r17';
+import { planTracks, METHODS, ADV_ONLY_METHODS, INST_SLOTS, KIT_FIRST, isUnpitched, rootFromName, drumMap, ownSamples, MAX_OWN } from './engine.js?v=20261116m2r18';
 import { loadPack, PRODUCTS } from '../pack.js';
 import { packSong, projectChoices } from '../packsong.js';
-import { arrangeRhythm, playOrder, MAX_PROJECTS } from './arrange.js?v=20261116m2r17';
-import { buildRhythmProjects, buildRhythmPack, buildLayoutProject, openPack, fetchBuf, usedSamples, shortName } from './build.js?v=20261116m2r17';
-import { layoutPlan, layoutSamples, renderLayout } from './layout.js?v=20261116m2r17';
+import { arrangeRhythm, playOrder, MAX_PROJECTS } from './arrange.js?v=20261116m2r18';
+import { buildRhythmProjects, buildRhythmPack, buildLayoutProject, openPack, fetchBuf, usedSamples, shortName } from './build.js?v=20261116m2r18';
+import { layoutPlan, layoutSamples, renderLayout } from './layout.js?v=20261116m2r18';
 import { sceneOrder, defaultOrderKind, PPQ } from '../song.js';
 
 // Shown next to "For testing" (from the code actually running, so a stale cached page shows
 // its own version). Bump it, with a line in help.html's version list, on every change.
-export const VERSION = '0.16';
+export const VERSION = '0.17';
 export const VERSION_DATE = '16 Nov 2026';
 
 const $ = (s) => document.querySelector(s);
@@ -61,7 +61,7 @@ async function init() {
     const [inst, drum, tpl, dmeta, lmeta] = await Promise.all([
       fetchBuf('../rhythmgm/RhythmInstGM.circuitrhythmpack').then(openPack),
       fetchBuf('../rhythmgm/RhythmDrumGM.circuitrhythmpack').then(openPack),
-      fetchBuf('../data/RhythmEmpty.ncs?v=20261116m2r17'),
+      fetchBuf('../data/RhythmEmpty.ncs?v=20261116m2r18'),
       fetch('../rhythmgm/rhythmdrumgm_samples.json').then((r) => r.json()),
       fetch('../rhythmgm/rhythmlatingm_samples.json').then((r) => r.json()),
     ]);
@@ -94,6 +94,11 @@ function fillKitSelect() {
 const OWN = 'own';
 
 // Effects (step 5, Advanced): presets (None = the project's own) and sends for tracks 1-8.
+// Step 5 (Advanced): each send slider shows its value.
+document.getElementById('sendgrid')?.addEventListener('input', (e) => {
+  const out = e.target.nextElementSibling;
+  if (out?.tagName === 'OUTPUT') out.value = e.target.value;
+});
 function fxSettings() {
   const num = (sel) => ($(sel).value === '' ? null : Number($(sel).value));
   const sends = (k) => [...document.querySelectorAll(`[data-${k}]`)].sort((x, y) => x.dataset[k] - y.dataset[k]).map((el) => Number(el.value) || 0);
@@ -168,7 +173,7 @@ function wireLoad() {
   });
 }
 
-const STEPS = ['#step-parts', '#step-sounds', '#step-arrange', '#step-build'];
+const STEPS = ['#step-parts', '#step-sounds', '#step-arrange', '#step-fx', '#step-build'];
 const isPack = (f) => /\.(circuittrackspack|circuitrhythmpack|zip)$/i.test(f.name);
 function routeFile(f) { if (isPack(f)) loadSongPack(f); else loadFile(f); }
 
