@@ -1,6 +1,7 @@
 import { parseMidi, GM_NAMES } from './midifile.js';
 import { arrange, playOrder, laneOf, partOf, patternBars, projectColours, PROJECT_COLOURS, RATES, TRACKS, KITS, KIT_PARTS, MELODIC_ROLES } from './convert.js';
-import { loadBase, loadBaseFromBuffers, buildProjects, buildPack, composePack, SAMPLE_CAP_S } from './build.js?v=20261116fx3';
+import { loadBase, loadBaseFromBuffers, buildProjects, buildPack, composePack, SAMPLE_CAP_S, mixControls } from './build.js?v=20261116mix1';
+import { sourceMix } from './m2r/mix.js?v=20261116mix1';
 import { loadPack, PRODUCTS } from './pack.js';
 import { packSong, projectChoices, setLane } from './packsong.js';
 import { takeHandoff, putHandoff } from './handoff.js';
@@ -28,6 +29,9 @@ const state = {
   songPack: null,           // the loaded Circuit pack when the song comes from one
   songPackName: '',
   roleOf: new Map(),        // source id -> role
+  mix: null, mixSources: null, mixFill: null, // a Circuit Tracks pack song: its mix, where it goes, step 5's values from it
+  mixFor: null,             // the song (state.midi) the mix was read from
+  fxTouched: false,         // step 5 changed by hand since it was filled in
   patchTouched: [false, false],
   transpose: { S1: 0, S2: 0, M1: 0, M2: 0 },
   plan: null,
@@ -547,6 +551,7 @@ function rolesChanged() {
   const m = ['M1', 'M2'].map((r) => `${ROLE_LABEL[r]}: ${sourcesFor(r).map((s) => s.name).join(' + ') || 'empty'}`).join(' · ');
   $('#sub-midi').textContent = `${m}. These send notes on the MIDI channels set on your Circuit Tracks, to play external gear.`;
   renderTranspose();
+  updateMix();
   rearrange();
   updateShrinkInfo();
 }
@@ -986,10 +991,61 @@ document.getElementById('sendgrid')?.addEventListener('input', (e) => {
   const out = e.target.nextElementSibling;
   if (out?.tagName === 'OUTPUT') out.value = e.target.value;
 });
+document.getElementById('step-fx')?.addEventListener('input', () => { state.fxTouched = true; });
+document.getElementById('step-fx')?.addEventListener('change', () => { state.fxTouched = true; });
+
+// A Circuit Tracks pack project as the song: its mix (FX, levels, pans, sends, sidechain) goes
+// to the new projects, each source track's settings to the track its part now plays on (the
+// first part of each synth/MIDI track; for each drum track, the part with most hits on it).
+function updateMix() {
+  const m = state.midi;
+  const tracksSong = fromPack() && state.songPack?.product === 'circuit-tracks';
+  if (state.mixFor !== m) { state.mixFor = m; state.fxTouched = false; }
+  if (!tracksSong) {
+    if (state.mixFill && !state.fxTouched) setFxControls(null);
+    state.mix = state.mixSources = state.mixFill = null;
+    return;
+  }
+  state.mix = sourceMix(m.entry.project, 'circuit-tracks');
+  const srcs = ['S1', 'S2', 'M1', 'M2'].map((r) => sourcesFor(r)[0]?.track ?? null);
+  for (let lane = 0; lane < 4; lane++) {
+    let best = null, most = 0;
+    for (const s of sourcesFor('DR')) {
+      const n = s.notes.filter((x) => laneOf(x) === lane).length;
+      if (n > most) { most = n; best = s.track; }
+    }
+    srcs.push(best);
+  }
+  state.mixSources = srcs;
+  state.mixFill = mixControls(state.mix, srcs);
+  if (!state.fxTouched) setFxControls(state.mixFill);
+}
+// Set step 5's sends and sidechain (c: build.js mixControls shape; null = all off).
+function setFxControls(c) {
+  for (const [k, list] of [['rsend', c?.reverbSends], ['dsend', c?.delaySends]]) {
+    document.querySelectorAll(`[data-${k}]`).forEach((el) => {
+      el.value = list?.[el.dataset[k]] ?? 0;
+      if (el.nextElementSibling?.tagName === 'OUTPUT') el.nextElementSibling.value = el.value;
+    });
+  }
+  [1, 2].forEach((n) => {
+    $(`#sc${n}-preset`).value = String(c?.sidechain[n - 1].preset ?? 0);
+    $(`#sc${n}-source`).value = String(c?.sidechain[n - 1].source ?? 0);
+  });
+  const note = $('#mixnote');
+  if (note) note.hidden = !c;
+  const none = $('#nofxnote');
+  if (none) none.hidden = !!c;
+}
 function fxSettings() {
   const num = (sel) => ($(sel).value === '' ? null : Number($(sel).value));
   const sends = (k) => [...document.querySelectorAll(`[data-${k}]`)].sort((x, y) => x.dataset[k] - y.dataset[k]).map((el) => Number(el.value) || 0);
-  const sc = (n) => ({ preset: Number($(`#sc${n}-preset`).value), source: Number($(`#sc${n}-source`).value) });
+  // A sidechain left as the song pack's mix set it: null, so its own attack/hold/decay/depth stay.
+  const sc = (n) => {
+    const v = { preset: Number($(`#sc${n}-preset`).value), source: Number($(`#sc${n}-source`).value) };
+    const f = state.mixFill?.sidechain[n - 1];
+    return f && f.preset === v.preset && f.source === v.source ? null : v;
+  };
   const midiTemplates = [Number($('#midi1-template').value), Number($('#midi2-template').value)];
   return { reverb: num('#fx-reverb'), delay: num('#fx-delay'), reverbSends: sends('rsend'), delaySends: sends('dsend'), sidechain: [sc(1), sc(2)], midiTemplates };
 }
@@ -1018,6 +1074,8 @@ async function build() {
       sampleMap,
       colors: projectColours(state.plan.projects.length, $('#projcolors').value),
       fx: fxSettings(),
+      mix: state.mix,
+      mixSources: state.mixSources,
     });
     const blob = await buildPack(base, projects.slice(0, 64), { name: packName });
     const a = document.createElement('a');

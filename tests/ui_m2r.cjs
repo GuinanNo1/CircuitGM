@@ -52,8 +52,14 @@ const fs = require('fs');
       await dl.saveAs(p);
       ok(fs.statSync(p).size > 1e6, `layout download ${fs.statSync(p).size} bytes; ${await page.textContent('#build-status')}`);
       console.log('layout warnings:', (await page.textContent('#warnings')).slice(0, 400));
+      // the source project's mix fills step 5's sends; re-arranging clears them again
+      const sendSum = () => page.$$eval('[data-rsend],[data-dsend]', (r) => r.reduce((x, el) => x + Number(el.value), 0));
+      const kept = await sendSum();
+      console.log(`layout: step 5 sends from the source total ${kept}`);
+      ok(await page.isVisible('#step-fx p.lay-only'), 'layout: mix note shown in step 5');
       await page.selectOption('#layout', 'arrange');
       await page.waitForTimeout(500);
+      ok((await sendSum()) === 0, 're-arranged: step 5 sends back to 0');
     }
     if (name === 'desktop') {
       const rows = await page.$$eval('#parts tbody tr', (r) => r.length);

@@ -72,12 +72,18 @@ const ok = (cond, msg) => { console.log(`${cond ? 'ok  ' : 'FAIL'} ${msg}`); if 
     ok((await page.inputValue('#patch-s1')) === '80' && (await page.inputValue('#patch-s2')) === '38', `${label}: synths keep their own patches`);
     const tparts = await page.$$eval('#tracks tbody tr', (rows) => rows.map((r) => r.querySelector('.role[aria-pressed="true"]')?.dataset.role ?? '-'));
     ok(tparts.join() === 'S1,S2,DR,DR,DR', `${label}: Tracks parts on their own tracks (${tparts.join()})`);
+    // the Tracks project's mix: step 5 says so, and its sends fill the sliders
+    const sendsNow = () => page.$$eval('[data-rsend],[data-dsend]', (r) => r.map((el) => Number(el.value)));
+    const want = await page.evaluate(() => window.tracksgm.state.mixFill && [...window.tracksgm.state.mixFill.reverbSends, ...window.tracksgm.state.mixFill.delaySends]);
+    ok(!(await page.$eval('#mixnote', (e) => e.hidden)) && (await page.$eval('#nofxnote', (e) => e.hidden)), `${label}: step 5 says the project's mix is kept`);
+    ok(want && (await sendsNow()).join() === want.join(), `${label}: step 5 sends from the project (${want})`);
     if (label === 'desktop') { await page.$eval('#step-arrange', (e) => e.scrollIntoView()); await page.screenshot({ path: `${shots}/p2p-tracks-arrange.png` }); }
 
     // A MIDI file again: back to TracksGM, pack-only controls hidden
     await page.setInputFiles('#file', mid);
     await page.waitForFunction(() => /File/.test(document.querySelector('#fileinfo').textContent));
     ok((await text('#base-name')) === 'TracksGM_v1', `${label}: MIDI file puts the base pack back to TracksGM`);
+    ok((await page.$eval('#mixnote', (e) => e.hidden)) && (await sendsNow()).every((v) => v === 0), `${label}: MIDI file: no carried mix, sends back to 0`);
     ok(!(await visible('#projpick')) && !(await visible('#shrink')) && await visible('#kit'), `${label}: picker and shrink hidden for MIDI, kit list back`);
     ok((await page.inputValue('#rate')) === 'track', `${label}: MIDI file: Per track is the default too`);
     ok(errors.length === 0, `${label}: no page errors ${errors.join(' | ')}`);

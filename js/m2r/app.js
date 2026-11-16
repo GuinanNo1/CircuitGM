@@ -5,17 +5,18 @@ import { parseMidi } from '../midifile.js';
 import { setupMode } from '../mode.js';
 import { projectColours, PROJECT_COLOURS } from '../convert.js';
 import { Player } from '../player.js';
-import { planTracks, METHODS, ADV_ONLY_METHODS, INST_SLOTS, KIT_FIRST, isUnpitched, rootFromName, drumMap, ownSamples, MAX_OWN } from './engine.js?v=20261116m2r19';
+import { planTracks, METHODS, ADV_ONLY_METHODS, INST_SLOTS, KIT_FIRST, isUnpitched, rootFromName, drumMap, ownSamples, MAX_OWN } from './engine.js?v=20261116m2r20';
 import { loadPack, PRODUCTS } from '../pack.js';
 import { packSong, projectChoices } from '../packsong.js';
-import { arrangeRhythm, playOrder, MAX_PROJECTS } from './arrange.js?v=20261116m2r19';
-import { buildRhythmProjects, buildRhythmPack, buildLayoutProject, openPack, fetchBuf, usedSamples, shortName } from './build.js?v=20261116m2r19';
-import { layoutPlan, layoutSamples, renderLayout } from './layout.js?v=20261116m2r19';
+import { arrangeRhythm, playOrder, MAX_PROJECTS } from './arrange.js?v=20261116m2r20';
+import { buildRhythmProjects, buildRhythmPack, buildLayoutProject, openPack, fetchBuf, usedSamples, shortName } from './build.js?v=20261116m2r20';
+import { layoutPlan, layoutSamples, renderLayout } from './layout.js?v=20261116m2r20';
+import { sourceMix, mixControls } from './mix.js?v=20261116m2r20';
 import { sceneOrder, defaultOrderKind, PPQ } from '../song.js';
 
 // Shown next to "For testing" (from the code actually running, so a stale cached page shows
 // its own version). Bump it, with a line in help.html's version list, on every change.
-export const VERSION = '0.18';
+export const VERSION = '0.19';
 export const VERSION_DATE = '16 Nov 2026';
 
 const $ = (s) => document.querySelector(s);
@@ -35,6 +36,9 @@ const state = {
   playingPart: null,
   songPack: null, songPackName: '', // a Circuit Tracks or Rhythm pack loaded as the song (one project of it)
   own: null,                 // the song pack's own samples (engine.js ownSamples), when the kit is 'own'
+  mix: null, mixFill: null,  // kept layout: the source project's mix (mix.js) and the step-5 values it sets
+  mixFor: null,              // the song (state.midi) the mix was read from
+  fxTouched: false,          // step 5 changed by hand since it was filled in
 };
 const player = new Player();
 const mode = setupMode('m2r');
@@ -61,7 +65,7 @@ async function init() {
     const [inst, drum, tpl, dmeta, lmeta] = await Promise.all([
       fetchBuf('../rhythmgm/RhythmInstGM.circuitrhythmpack').then(openPack),
       fetchBuf('../rhythmgm/RhythmDrumGM.circuitrhythmpack').then(openPack),
-      fetchBuf('../data/RhythmEmpty.ncs?v=20261116m2r19'),
+      fetchBuf('../data/RhythmEmpty.ncs?v=20261116m2r20'),
       fetch('../rhythmgm/rhythmdrumgm_samples.json').then((r) => r.json()),
       fetch('../rhythmgm/rhythmlatingm_samples.json').then((r) => r.json()),
     ]);
@@ -99,13 +103,34 @@ document.getElementById('sendgrid')?.addEventListener('input', (e) => {
   const out = e.target.nextElementSibling;
   if (out?.tagName === 'OUTPUT') out.value = e.target.value;
 });
+document.getElementById('step-fx')?.addEventListener('input', () => { state.fxTouched = true; });
+document.getElementById('step-fx')?.addEventListener('change', () => { state.fxTouched = true; });
+// Set step 5's sends and sidechain (c: mix.js mixControls shape; null = all off).
+function setFxControls(c) {
+  for (const [k, list] of [['rsend', c?.reverbSends], ['dsend', c?.delaySends]]) {
+    document.querySelectorAll(`[data-${k}]`).forEach((el) => {
+      el.value = list?.[el.dataset[k]] ?? 0;
+      if (el.nextElementSibling?.tagName === 'OUTPUT') el.nextElementSibling.value = el.value;
+    });
+  }
+  for (let i = 0; i < 8; i++) {
+    const p = document.querySelector(`[data-scpreset="${i}"]`), s = document.querySelector(`[data-scsource="${i}"]`);
+    if (p) p.value = String(c?.sidechain[i].preset ?? 0);
+    if (s) s.value = String(c?.sidechain[i].source ?? 0);
+  }
+}
 function fxSettings() {
   const num = (sel) => ($(sel).value === '' ? null : Number($(sel).value));
   const sends = (k) => [...document.querySelectorAll(`[data-${k}]`)].sort((x, y) => x.dataset[k] - y.dataset[k]).map((el) => Number(el.value) || 0);
-  const sidechain = Array.from({ length: 8 }, (_, i) => ({
-    preset: Number(document.querySelector(`[data-scpreset="${i}"]`)?.value || 0),
-    source: Number(document.querySelector(`[data-scsource="${i}"]`)?.value || 0),
-  }));
+  const sidechain = Array.from({ length: 8 }, (_, i) => {
+    const sc = {
+      preset: Number(document.querySelector(`[data-scpreset="${i}"]`)?.value || 0),
+      source: Number(document.querySelector(`[data-scsource="${i}"]`)?.value || 0),
+    };
+    // As the source project's mix set it: null, so its own attack/hold/decay/depth stay.
+    const f = layoutMode() && state.mixFill?.sidechain[i];
+    return f && f.preset === sc.preset && f.source === sc.source ? null : sc;
+  });
   return { reverb: num('#fx-reverb'), delay: num('#fx-delay'), reverbSends: sends('rsend'), delaySends: sends('dsend'), sidechain };
 }
 const fromPack = () => state.midi?.format === 'pack';
@@ -303,6 +328,9 @@ function recompute() {
     computeLayout();
     return;
   }
+  // Leaving a kept layout: step 5 back to no sends or sidechain, unless changed by hand.
+  if (state.mixFill && !state.fxTouched) setFxControls(null);
+  state.mix = state.mixFill = state.mixFor = null;
   state.mutes.clear();
   for (const k of [...state.barMutes.keys()]) if (k[0] === 't') state.barMutes.delete(k);   // track numbers change
   state.res = planTracks(state.midi, names, currentKit(), {
@@ -442,6 +470,12 @@ function computeLayout() {
   });
   state.lay = plan;
   state.arr = plan;
+  // The source project's mix: carried into the project, and shown in step 5 (unless changed
+  // there by hand for this project), following the tracks as the plan places them.
+  if (state.mixFor !== m) { state.mixFor = m; state.fxTouched = false; }
+  state.mix = sourceMix(m.entry.project, m.song.product);
+  state.mixFill = mixControls(plan, state.mix);
+  if (!state.fxTouched) setFxControls(state.mixFill);
   // The shape the parts table and the track boxes read.
   state.res = {
     parts: plan.parts,
@@ -939,7 +973,7 @@ async function build() {
     // (MIDI2Circuit's default), or one colour.
     const scheme = $('#projcolors').value;
     const projects = lay
-      ? [buildLayoutProject(a, state.template, { title, color: scheme === 'source' ? (a.color ?? 0) : projectColours(1, scheme)[0], fx })]
+      ? [buildLayoutProject(a, state.template, { title, color: scheme === 'source' ? (a.color ?? 0) : projectColours(1, scheme)[0], fx, mix: state.mix })]
       : buildRhythmProjects(a, state.res.tracks, state.template, { title, colors: projectColours(a.projects.length, scheme === 'source' ? 'rainbow' : scheme), fx });
     let replace = null;
     if (state.own) {

@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="../css/app.css?v=20261116fx4">
-<link rel="stylesheet" href="../css/m2r.css?v=20261116m2r19">
+<link rel="stylesheet" href="../css/m2r.css?v=20261116m2r20">
 <script>(function(){var r=document.documentElement;try{if(localStorage.getItem('circuitgm-advanced-m2r')!=='1')r.classList.add('simple')}catch(e){r.classList.add('simple')}})();</script>
 </head>
 <body>
@@ -156,7 +156,8 @@
 
   <section class="panel" id="step-fx" hidden>
     <h2><span class="num">5</span> Add effects</h2>
-    <p class="simple-only">No effects are added by default. Open <b>Advanced</b> mode to add preset effects to all projects.</p>
+    <p class="simple-only arr-only">No effects are added by default. Open <b>Advanced</b> mode to add preset effects to all projects.</p>
+    <p class="lay-only">The project keeps the source project's mix: its reverb and delay, and each track's level, pan, sends and sidechain, following the tracks to where they now play. <span class="simple-only">Open <b>Advanced</b> mode to change the effects.</span><span class="adv">The sends and sidechain below start as the source had them; change any of them here.</span></p>
     <div class="fxblock adv">
       <p class="hint">Set here once for every project in the pack, instead of on the Circuit Rhythm for each one.</p>
       <h3>Reverb and delay</h3>
@@ -164,7 +165,7 @@
         <div class="field"><label for="fx-reverb">Reverb preset</label><select id="fx-reverb"><option value="" selected>None</option><option value="0">1. Small Chamber</option><option value="1">2. Small Room 1</option><option value="2">3. Small Room 2</option><option value="3">4. Large Room</option><option value="4">5. Hall</option><option value="5">6. Large Hall</option><option value="6">7. Hall – long reflection</option><option value="7">8. Large Hall – long reflection</option></select></div>
         <div class="field"><label for="fx-delay">Delay preset</label><select id="fx-delay"><option value="" selected>None</option><option value="0">1. Slapback Fast</option><option value="1">2. Slapback Slow</option><option value="2">3. 32nd Triplets</option><option value="3">4. 32nd</option><option value="4">5. 16th Triplets</option><option value="5">6. 16th</option><option value="6">7. 16th Ping Pong</option><option value="7">8. 16th Ping Pong Swung</option><option value="8">9. 8th Triplets</option><option value="9">10. 8th dotted Ping Pong</option><option value="10">11. 8th</option><option value="11">12. 8th Ping Pong</option><option value="12">13. 8th Ping Pong Swung</option><option value="13">14. 4th Triplets</option><option value="14">15. 4th dotted Ping Pong Swung</option><option value="15">16. 4th Triplets Ping Pong Wide</option></select></div>
       </div>
-      <p class="hint small">Numbered and named as on the Rhythm's FX grid and in its user guide (reverb pads 17–24 are listed as 1–8). None leaves the project's own.</p>
+      <p class="hint small">Numbered and named as on the Rhythm's FX grid and in its user guide (reverb pads 17–24 are listed as 1–8). None leaves the project's own<span class="lay-only"> (here, the source project's)</span>.</p>
       <h3>Sends</h3>
       <div class="sendgrid" id="sendgrid">
         <div class="sendrow"><span class="trk">Track 1</span>
@@ -261,6 +262,6 @@
   <p>Samples: <a href="https://github.com/mrbumpy409/GeneralUser-GS">GeneralUser GS</a> by S. Christian Collins (<a href="../rhythmgm/LICENSE-GeneralUser-GS.txt">licence</a>). Not affiliated with Novation or Focusrite; "Circuit Rhythm" and "Components" are their trademarks.</p>
 </footer>
 
-<script type="module" src="../js/m2r/app.js?v=20261116m2r19"></script>
+<script type="module" src="../js/m2r/app.js?v=20261116m2r20"></script>
 </body>
 </html>

@@ -7,6 +7,7 @@
 import { readZip, writeZipDeflate } from '../vendor/zip.js';
 import { cleanName, setPackColour } from '../names.js';
 import { KIT_FIRST } from './engine.js';
+import { applyMix } from './mix.js';
 import { DELAY_PRESETS, REVERB_PRESETS, DELAY_NAMES, REVERB_NAMES, SIDECHAIN_PRESETS } from '../fx.js';
 
 const SC_BASE = 0x38;
@@ -135,7 +136,8 @@ export function buildRhythmProjects(plan, tracks, template, settings) {
 }
 
 // A layout plan (js/m2r/layout.js) as one project: scenes, scene chain and patterns as the
-// source project had them, each pattern with its own length, rate and direction.
+// source project had them, each pattern with its own length, rate and direction, and the
+// source's mix (settings.mix).
 export function buildLayoutProject(plan, template, settings) {
   const d = new Uint8Array(template.slice(0));
   const name = shortName(settings.title);
@@ -154,6 +156,9 @@ export function buildLayoutProject(plan, template, settings) {
   });
   d[SC_BASE + 648] = plan.sceneChain.start;
   d[SC_BASE + 649] = plan.sceneChain.end;
+  // The source project's mix (settings.mix: js/m2r/mix.js sourceMix), before each track's
+  // sample and Tune and before the step-5 effects.
+  applyMix(d, plan, settings.mix);
   const first = plan.scenes[plan.sceneChain.start] ?? plan.scenes[0];
   for (let t = 0; t < 8; t++) { d[SC_BASE + 652 + t * 4] = first.chains[t].start; d[SC_BASE + 653 + t * 4] = first.chains[t].end; }
   for (let t = 0; t < 8; t++) {

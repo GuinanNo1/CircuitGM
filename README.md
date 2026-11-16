@@ -41,7 +41,7 @@ Then open <http://localhost:8765/>.
 | `patchworker/`, `css/patchworker.css`, `js/patchworker.js`, `js/pw/` | PatchWorker: page, help, styles, and its patch table, browser synth, MIDI link and pack code (see [`patchworker/README.md`](patchworker/README.md)). |
 | `packtrim/`, `js/packtrim.js`, `css/packtrim.css` | PackTrim's page, logic and styles. |
 | `midi2circuit/index.html`, `midi2circuit/help.html` | MIDI2Circuit's page and help. |
-| `midi2rhythm/index.html`, `midi2rhythm/help.html`, `js/m2r/` | MIDI2Rhythm: `engine.js` (part types, chord reduction, range fitting, drum packing, track allocation), `arrange.js` (patterns, scenes, projects), `build.js` (Rhythm projects and pack), `app.js` (page). `data/RhythmEmpty.ncs` is a project saved empty on a Circuit Rhythm, used as the template. |
+| `midi2rhythm/index.html`, `midi2rhythm/help.html`, `js/m2r/` | MIDI2Rhythm: `engine.js` (part types, chord reduction, range fitting, drum packing, track allocation), `arrange.js` (patterns, scenes, projects), `layout.js` (keep a pack project's layout), `mix.js` (the source project's mix, also used by MIDI2Circuit), `build.js` (Rhythm projects and pack), `app.js` (page). `data/RhythmEmpty.ncs` is a project saved empty on a Circuit Rhythm, used as the template. |
 | `circuit2midi/index.html`, `circuit2midi/help.html`, `css/c2m.css` | Circuit2MIDI's page and help. |
 | `js/app.js` | The page logic: loading, part picker, sounds, arrangement view, build. |
 | `js/midifile.js` | MIDI file reader. |
@@ -68,9 +68,10 @@ node tests/validate.mjs out/project_*.ncs            # range checks
 node tests/roundtrip.mjs                             # MIDI -> MIDI2Circuit -> Circuit2MIDI -> MIDI, every note compared
 node tests/pack2pack.mjs [out-dir]                   # Circuit Tracks / Rhythm pack -> MIDI2Circuit -> pack, every hit compared
 node tests/m2r_build.mjs <file.mid | pack[@n]>... [--out dir]  # MIDI2Rhythm: MIDI or pack project -> Rhythm pack, every step read back
-node tests/m2r_layout.mjs <pack[@n]>... [--combine]       # MIDI2Rhythm: a pack project with its layout kept, checked against the source
+node tests/m2r_layout.mjs <pack[@n]>... [--combine]       # MIDI2Rhythm: a pack project with its layout (and mix) kept, checked against the source
 node tests/m2r_sidechain.mjs <Ian_SC_test.circuitrhythmpack>   # MIDI2Rhythm sidechain vs Ian's save, byte for byte
 node tests/m2c_fx.mjs <Circuit_FX_test.circuittrackspack>   # MIDI2Circuit effects vs Ian's save of every preset, byte for byte
+node tests/m2c_mix.mjs <tracks pack[@n]>...          # MIDI2Circuit: a Tracks pack song keeps its mix (FX, levels, pans, sends, sidechain)
 node tests/pack_compare.mjs <pack> [track|auto|16|8|4] # any pack: convert each project, play it back, account for every hit
 node tests/compact_only.mjs [save-two-project-pack]  # PackTrim: Keep only project N
 ```

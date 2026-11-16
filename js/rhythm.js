@@ -15,7 +15,7 @@
 //         32 steps x 8 bytes [note, gate, micro mask, velocity, probability, sample, 0, 0],
 //         then 40 bytes of settings [end, start, sync rate, direction, ...],
 //         then 2304 bytes of automation (0xFF = no lock).
-//   0x28CE4 tail: +8..15 default sample slot per track; the rest (mixer, FX) is not used here.
+//   0x28CE4 tail: +8..15 default sample slot per track; mixer and FX read into proj.mix.
 
 export const RHYTHM_FILE_SIZE = 169092;
 const SC_BASE = 0x38;
@@ -55,6 +55,17 @@ export function parseRhythm(buffer) {
     // Scene mute recall (tail +950, 1 = on): found 2026-11-15 by diffing a project before and
     // after switching it on on the hardware.
     muteRecall: d[TAIL + 950],
+    // The mix (docs/circuit-rhythm-format.md, tail): FX presets and values, FX off, each
+    // track's 41 settings bytes (level +26, pan +27, sends +28/+29, sidechain +32..+36) and
+    // sidechain presets. Read for MIDI2Rhythm's kept layout (js/m2r/mix.js).
+    mix: {
+      delayPreset: d[TAIL + 32], reverbPreset: d[TAIL + 33],
+      scPresets: Array.from(d.subarray(TAIL + 42, TAIL + 50)),
+      rows: Array.from({ length: 8 }, (_, t) => d.slice(TAIL + 50 + t * 41, TAIL + 91 + t * 41)),
+      reverbValues: Array.from(d.subarray(TAIL + 378, TAIL + 381)),
+      delayValues: Array.from(d.subarray(TAIL + 386, TAIL + 392)),
+      fxOff: d[TAIL + 393] !== 0,
+    },
   };
   for (let s = 0; s < 16; s++) {
     const base = SC_BASE + s * 40;

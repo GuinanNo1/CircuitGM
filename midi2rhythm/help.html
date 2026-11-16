@@ -49,7 +49,7 @@
 <header class="masthead">
   <div class="wrap">
     <p class="crumbs"><a href="./">← Back to MIDI2Rhythm</a></p>
-    <h1>MIDI2Rhythm help <span>CircuitGM MIDI to Circuit Rhythm Converter</span> <em class="badge">For testing · v0.18</em></h1>
+    <h1>MIDI2Rhythm help <span>CircuitGM MIDI to Circuit Rhythm Converter</span> <em class="badge">For testing · v0.19</em></h1>
     <p class="lede">How MIDI2Rhythm fits a General MIDI song onto the Circuit Rhythm's eight tracks.</p>
   </div>
 </header>
@@ -124,6 +124,7 @@
     <h2>Versions</h2>
     <p>The version is shown next to "For testing" at the top of the page. If it's older than the newest one here, refresh the page (Shift-reload); GitHub Pages can take about 10 minutes to serve a new version.</p>
     <ul>
+      <li><b>v0.19</b> (16 Nov 2026): A kept layout keeps the source project's mix: reverb and delay (their stored values, so edited ones too), FX off, and each track's level, pan, reverb and delay sends and sidechain, following each source track to the Rhythm track(s) that play it. From a Circuit Rhythm project each track's other settings (its macros) come across too. Step 5 starts from these sends and sidechain.</li>
       <li><b>v0.18</b> (16 Nov 2026): Sidechain in step 5 (Advanced): for each of the 8 tracks, Off or one of the Rhythm's seven presets, and which track triggers it. Values as the Rhythm stores them (from Ian's test save).</li>
       <li><b>v0.17</b> (16 Nov 2026): Effects are their own step (5, Add effects; Build is now 6), as in MIDI2Circuit. Simple mode says no effects are added; Advanced shows the presets and a reverb and delay send slider for each track.</li>
       <li><b>v0.16</b> (16 Nov 2026): the effect presets now come from one table shared with MIDI2Circuit; the Circuit Tracks stores the same values for every preset. Packs are unchanged.</li>

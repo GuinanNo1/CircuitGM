@@ -1,5 +1,5 @@
 // MIDI2Rhythm "Keep the project's layout": a Circuit pack project -> one Rhythm project with the
-// same scenes, chains and patterns. Builds the pack, reads it back with js/pack.js and checks
+// same scenes, chains, patterns and mix. Builds the pack, reads it back with js/pack.js and checks
 // that every scene chain, pattern setting and hit matches the source project.
 // Run from the repo root: node tests/m2r_layout.mjs <pack>[@project]... [--combine] [--out dir]
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -10,6 +10,7 @@ import { songOf, sceneOrder, defaultOrderKind } from '../js/song.js';
 import { ownSamples } from '../js/m2r/engine.js';
 import { layoutPlan, layoutSamples, renderLayout } from '../js/m2r/layout.js';
 import { buildLayoutProject, buildRhythmPack, openPack } from '../js/m2r/build.js';
+import { sourceMix } from '../js/m2r/mix.js';
 
 const args = process.argv.slice(2);
 const combine = args.includes('--combine');
@@ -35,7 +36,8 @@ for (const arg of files) {
     const names = inst.index.samples.map((s) => s.name);
     for (const [from, to] of own.slotOf) names[to] = src.samples[from].name;
     const plan = layoutPlan(m.song, m.sources, { names, own, kit, combine, project: entry.project });
-    const project = buildLayoutProject(plan, template, { title: entry.name || 'Test', color: plan.color });
+    const mix = sourceMix(entry.project, m.song.product);
+    const project = buildLayoutProject(plan, template, { title: entry.name || 'Test', color: plan.color, mix });
     const replace = new Map([...own.slotOf].map(([from, to]) => [to, { name: src.samples[from].name, bytes: new Uint8Array(1) }]));
     const blob = await buildRhythmPack(inst, drums, 1, [project], { name: 'Test', used: layoutSamples(plan), replace });
     const zip = new Uint8Array(await blob.arrayBuffer());
@@ -46,6 +48,20 @@ for (const arg of files) {
     ok(song.tempo === plan.tempo, `${label}: tempo`);
     ok(back.projects[0].project.color === entry.project.color, `${label}: colour ${back.projects[0].project.color} vs ${entry.project.color}`);
     ok(back.projects[0].project.muteRecall === (entry.project.muteRecall ? 1 : 0), `${label}: mute recall`);
+    // the mix: FX as stored, and each track's level, pan, sends and sidechain from its source track
+    const bm = back.projects[0].project.mix;
+    ok(bm.reverbPreset === mix.reverb.preset && bm.delayPreset === mix.delay.preset, `${label}: FX presets`);
+    ok(bm.reverbValues.join() === mix.reverb.values.join() && bm.delayValues.join() === mix.delay.values.join(), `${label}: FX values ${bm.delayValues} vs ${mix.delay.values}`);
+    ok(bm.fxOff === !!mix.fxOff, `${label}: FX off`);
+    plan.tracks.forEach((tr, t) => {
+      if (!tr) return;
+      const w = mix.tracks[tr.src[0]], row = bm.rows[t];
+      ok(row[26] === w.level && row[27] === w.pan && row[28] === w.rsend && row[29] === w.dsend, `${label}: track ${t + 1} level/pan/sends ${[...row.subarray(26, 30)]} vs ${[w.level, w.pan, w.rsend, w.dsend]}`);
+      if (!w.sc) { ok(bm.scPresets[t] === 0, `${label}: track ${t + 1} sidechain off`); return; }
+      const trig = plan.tracks.findIndex((x) => x?.src.includes(w.sc.source));
+      if (trig < 0) { ok(bm.scPresets[t] === 0, `${label}: track ${t + 1} sidechain off (trigger left out)`); return; }
+      ok(bm.scPresets[t] === w.sc.preset && plan.tracks[row[32]]?.src.includes(w.sc.source) && [...row.subarray(33, 37)].join() === w.sc.values.join(), `${label}: track ${t + 1} sidechain`);
+    });
     // each Rhythm drum track's Tune carries its Tracks drum track's Pitch (Rhythm: its Tune)
     const tunes = back.projects[0].project.trackTunes;
     plan.tracks.forEach((tr, t) => {

@@ -49,7 +49,7 @@
 </nav>
 <header class="masthead">
   <div class="wrap">
-    <h1>MIDI2Circuit <span>MIDI to Circuit Tracks converter</span> <em class="badge" title="Version of this page. If you expect a newer one, refresh with Shift-reload; GitHub Pages can take about 10 minutes to update.">alpha 0.12</em></h1>
+    <h1>MIDI2Circuit <span>MIDI to Circuit Tracks converter</span> <em class="badge" title="Version of this page. If you expect a newer one, refresh with Shift-reload; GitHub Pages can take about 10 minutes to update.">alpha 0.13</em></h1>
     <p class="helplinks"><a href="help.html#quickstart">Quickstart</a> · <a href="help.html">User guide</a></p>
     <p class="lede">Turn a General MIDI file, or a project from a Circuit Tracks or Circuit Rhythm pack, into a Novation Circuit Tracks pack. Pick the parts you want, hear how they'll play, and download a <code>.circuittrackspack</code> for Novation Components, built on the <a href="../tracksgm/">TracksGM pack</a> or a pack of your own.</p>
     <p class="alpha">Alpha 0.1, for testing. Packs load and play on the Circuit Tracks, but the project format is reverse-engineered: keep a backup of your packs, and please report anything odd on <a href="https://github.com/GuinanNo1/CircuitGM/issues">GitHub</a>.</p>
@@ -166,7 +166,8 @@
 
   <section class="panel" id="step-fx" hidden>
     <h2><span class="num">5</span> Add effects</h2>
-    <p class="simple-only">No effects are added by default. Open <b>Advanced</b> mode to add preset effects to all projects.</p>
+    <p class="simple-only" id="nofxnote">No effects are added by default. Open <b>Advanced</b> mode to add preset effects to all projects.</p>
+    <p id="mixnote" hidden><b>From the Circuit Tracks project:</b> the new projects keep its mix: its reverb and delay, and each track's level, pan, sends and sidechain, moved with its part to the track it now plays on. <span class="adv">The sends and sidechain below start as the project had them; change any of them here.</span></p>
     <div class="fxblock adv">
       <p class="hint">Set here once for every project in the pack, instead of on the Circuit Tracks for each one.</p>
       <h3>Reverb and delay</h3>
@@ -174,7 +175,7 @@
         <div class="field"><label for="fx-reverb">Reverb preset</label><select id="fx-reverb"><option value="" selected>None</option><option value="0">1. Small Chamber</option><option value="1">2. Small Room 1</option><option value="2">3. Small Room 2</option><option value="3">4. Large Room</option><option value="4">5. Hall</option><option value="5">6. Large Hall</option><option value="6">7. Hall – long reflection</option><option value="7">8. Large Hall – long reflection</option></select></div>
         <div class="field"><label for="fx-delay">Delay preset</label><select id="fx-delay"><option value="" selected>None</option><option value="0">1. Slapback Fast</option><option value="1">2. Slapback Slow</option><option value="2">3. 32nd Triplets</option><option value="3">4. 32nd</option><option value="4">5. 16th Triplets</option><option value="5">6. 16th</option><option value="6">7. 16th Ping Pong</option><option value="7">8. 16th Ping Pong Swung</option><option value="8">9. 8th Triplets</option><option value="9">10. 8th dotted Ping Pong</option><option value="10">11. 8th</option><option value="11">12. 8th Ping Pong</option><option value="12">13. 8th Ping Pong Swung</option><option value="13">14. 4th Triplets</option><option value="14">15. 4th dotted Ping Pong Swung</option><option value="15">16. 4th Triplets Ping Pong Wide</option></select></div>
       </div>
-      <p class="hint small">Numbered and named as on the Tracks' FX grid and in its user guide (reverb pads 17–24 are listed as 1–8). None leaves the effect as a new project has it.</p>
+      <p class="hint small">Numbered and named as on the Tracks' FX grid and in its user guide (reverb pads 17–24 are listed as 1–8). None leaves the effect as a new project has it (or, with a Circuit Tracks project as the song, as that project has it).</p>
       <h3>Sends</h3>
       <div class="sendgrid" id="sendgrid">
         <div class="sendrow"><span class="trk">Synth 1</span>
@@ -239,6 +240,6 @@
   <p>Patches: TracksGM by Ian Guinan. Drum samples: <a href="https://github.com/mrbumpy409/GeneralUser-GS">GeneralUser GS</a> by S. Christian Collins (<a href="../tracksgm/LICENSE-GeneralUser-GS.txt">licence</a>). Project format code from <a href="https://github.com/namirsab/circuit-tracks-tools">circuit-tracks-tools</a> by Namir Sayed-Ahmad Baraza (MIT). Not affiliated with Novation or Focusrite; "Circuit Tracks" and "Components" are their trademarks.</p>
 </footer>
 
-<script type="module" src="../js/app.js?v=20261116fx3"></script>
+<script type="module" src="../js/app.js?v=20261116mix1"></script>
 </body>
 </html>

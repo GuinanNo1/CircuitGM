@@ -44,7 +44,8 @@ async function fetchBuf(url) {
   return r.arrayBuffer();
 }
 
-// settings: { title, synthPatch: [slot, slot], kit, colors: [0-13 per project] | color: 0-13 }
+// settings: { title, synthPatch: [slot, slot], kit, colors: [0-13 per project] | color: 0-13,
+//   fx (applyFx), mix + mixSources (applyMix: a Circuit Tracks song pack's mix) }
 export function buildProjects(plan, base, settings) {
   const out = [];
   const n = plan.projects.length;
@@ -103,6 +104,7 @@ export function buildProjects(plan, base, settings) {
       proj.drumConfigs = proj.drumConfigs.map((c, i) => ({ ...c, patchSelect: drumDefault[i] }));
     }
 
+    applyMix(proj, settings.mix, settings.mixSources);
     applyFx(proj, settings.fx);
     const bytes = serializeNCS(proj, base.template, { freshScenes: true });
     bytes[DRUM0_HEADER] = s1;
@@ -144,6 +146,58 @@ export function applyFx(proj, fx) {
     const [attack, hold, decay, depth] = SIDECHAIN_PRESETS[sc.preset];
     proj.sidechain[i] = { ...proj.sidechain[i], preset: sc.preset, source: sc.source ?? 0, attack, hold, decay, depth };
   });
+}
+
+// A Circuit Tracks pack project as the song: its mix carried to the new projects (the same in
+// each). mix: js/m2r/mix.js sourceMix (tracks in the source's order S1, S2, M1, M2, Drum 1-4);
+// sources: for each new track in the same order, the source track whose part plays there, or
+// null (that track keeps the template's settings). FX values are copied as stored (so edited
+// ones too, and the Tracks' Delay 1); the step-5 effects, filled in from this, apply after.
+const SEND_AT = [0, 1, 6, 7, 2, 3, 4, 5];   // tail send byte of S1, S2, M1, M2, Drum 1-4
+export function mixByTrack(mix, sources) {
+  if (!mix || !sources) return Array(8).fill(null);
+  return sources.map((src, t) => {
+    if (src == null) return null;
+    const m = mix.tracks[src];
+    let sc = null;
+    if (t < 4 && m.sc) {
+      const lane = sources.findIndex((x, k) => k >= 4 && x === m.sc.source);
+      if (lane >= 0) sc = { ...m.sc, source: lane - 4 };     // 0-3 = Drum 1-4
+    }
+    return { ...m, sc: t < 4 ? sc : null };
+  });
+}
+export function applyMix(proj, mix, sources) {
+  if (!mix || !sources) return;
+  const f = proj.fx;
+  proj.delayPreset = mix.delay.preset;
+  proj.reverbPreset = mix.reverb.preset;
+  [f.reverbType, f.reverbDecay, f.reverbDamping] = mix.reverb.values;
+  [f.delayTime, f.delaySync, f.delayFeedback, f.delayWidth, f.delayLrRatio, f.delaySlew] = mix.delay.values;
+  f.fxBypass = !!mix.fxOff;
+  mixByTrack(mix, sources).forEach((m, t) => {
+    if (!m) return;
+    if (t < 4) { proj.mixerLevels[t] = m.level; proj.mixerPans[t] = m.pan; }
+    else proj.drumConfigs[t - 4] = { ...proj.drumConfigs[t - 4], level: m.level, pan: m.pan };
+    f.reverbSends[SEND_AT[t]] = m.rsend;
+    f.delaySends[SEND_AT[t]] = m.dsend;
+    if (t < 4) {
+      proj.sidechain[t] = m.sc
+        ? { preset: m.sc.preset, source: m.sc.source, attack: m.sc.values[0], hold: m.sc.values[1], decay: m.sc.values[2], depth: m.sc.values[3] }
+        : { ...proj.sidechain[t], preset: 0, attack: 0, hold: 50, decay: 70, depth: 0 };
+    }
+  });
+}
+// Step 5's controls as the carried mix sets them: sends for S1, S2, Drum 1-4; sidechain for
+// Synth 1 and 2.
+export function mixControls(mix, sources) {
+  const by = mixByTrack(mix, sources);
+  const order = [0, 1, 4, 5, 6, 7];
+  return {
+    reverbSends: order.map((t) => by[t]?.rsend ?? 0),
+    delaySends: order.map((t) => by[t]?.dsend ?? 0),
+    sidechain: [0, 1].map((t) => ({ preset: by[t]?.sc?.preset ?? 0, source: by[t]?.sc?.source ?? 0 })),
+  };
 }
 
 // MIDI templates (which of the Tracks' 8 templates the MIDI 1 / MIDI 2 Macro knobs use): the
