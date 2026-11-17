@@ -6,7 +6,7 @@
 
 The reverse of MIDI2Circuit. A web page that opens a Novation Components pack for the **Circuit Tracks** (`.circuittrackspack`) or **Circuit Rhythm** (`.circuitrhythmpack`), and:
 
-1. **Hands the pack to PackTrim** for trimming: *Trim this pack in PackTrim* in step 1 (trimming used to be a step here; it now lives in [PackTrim](../packtrim/), including *Keep: only project N*).
+1. **Hands the pack to CircuitTrim** for trimming: *Trim this pack in CircuitTrim* in step 1 (trimming used to be a step here; it now lives in [CircuitTrim](../circuittrim/), including *Keep: only project N*).
 2. **Converts one project at a time** to a type 1 Standard MIDI file:
    - **Scenes:** the saved scene chain, every used scene in order, or a custom order (`1-4, 2, 5x2`). Each scene lasts as long as its longest pattern chain; shorter chains repeat.
    - **Patterns:** start and end steps, step length (1/32 to 1/4, triplets included), direction, micro-step timing, gates, velocities, ties, rolls and swing. Steps with a chance below 100% can be kept or left out.

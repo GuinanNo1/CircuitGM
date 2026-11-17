@@ -34,7 +34,7 @@ const fs = require('fs');
       console.log(`${tag}/${name}:`, JSON.stringify(info));
       if (info.overflow > 0) errors.push(`${tag}/${name}: page is ${info.overflow}px wider than the screen`);
       if (name === 'desktop') {
-        if (!info.trimLink) errors.push(`${tag}: no "Trim this pack in PackTrim" button`);
+        if (!info.trimLink) errors.push(`${tag}: no "Trim this pack in CircuitTrim" button`);
         // preview runs and the clock moves
         await page.click('#play');
         await page.waitForTimeout(2500);

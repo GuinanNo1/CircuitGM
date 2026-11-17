@@ -41,7 +41,7 @@
       <li class="navgroup">
         <button type="button" aria-haspopup="true">Pack Trimming</button>
         <ul>
-          <li><a href="../packtrim/">PackTrim</a></li>
+          <li><a href="../circuittrim/">CircuitTrim</a></li>
         </ul>
       </li>
     </ul>
@@ -49,7 +49,7 @@
 </nav>
 <header class="masthead">
   <div class="wrap">
-    <h1>MIDI2Circuit <span>MIDI to Circuit Tracks converter</span> <em class="badge" title="Version of this page. If you expect a newer one, refresh with Shift-reload; GitHub Pages can take about 10 minutes to update.">alpha 0.13</em></h1>
+    <h1>MIDI2Circuit <span>MIDI to Circuit Tracks converter</span> <em class="badge" title="Version of this page. If you expect a newer one, refresh with Shift-reload; GitHub Pages can take about 10 minutes to update.">alpha 0.14</em></h1>
     <p class="helplinks"><a href="help.html#quickstart">Quickstart</a> · <a href="help.html">User guide</a></p>
     <p class="lede">Turn a General MIDI file, or a project from a Circuit Tracks or Circuit Rhythm pack, into a Novation Circuit Tracks pack. Pick the parts you want, hear how they'll play, and download a <code>.circuittrackspack</code> for Novation Components, built on the <a href="../tracksgm/">TracksGM pack</a> or a pack of your own.</p>
     <p class="alpha">Alpha 0.1, for testing. Packs load and play on the Circuit Tracks, but the project format is reverse-engineered: keep a backup of your packs, and please report anything odd on <a href="https://github.com/GuinanNo1/CircuitGM/issues">GitHub</a>.</p>
@@ -122,10 +122,10 @@
       <p class="hint small" id="shrink-info"></p>
       <ul class="warnings" id="shrink-warn"></ul>
       <div class="buildrow">
-        <button class="btn" id="to-packtrim" type="button">Trim the loaded pack in PackTrim</button>
-        <span class="status" id="to-packtrim-status" role="status"></span>
+        <button class="btn" id="to-circuittrim" type="button">Trim the loaded pack in CircuitTrim</button>
+        <span class="status" id="to-circuittrim-status" role="status"></span>
       </div>
-      <p class="hint small">The box above trims the pack MIDI2Circuit builds. To trim the pack you loaded instead, keeping all its projects (or just one), <a href="../packtrim/">PackTrim</a> opens with it loaded. Nothing is uploaded.</p>
+      <p class="hint small">The box above trims the pack MIDI2Circuit builds. To trim the pack you loaded instead, keeping all its projects (or just one), <a href="../circuittrim/">CircuitTrim</a> opens with it loaded. Nothing is uploaded.</p>
     </div>
     <div class="options adv" id="arrange-options">
       <div class="field"><label for="section-bars">Section length</label>
@@ -240,6 +240,6 @@
   <p>Patches: TracksGM by Ian Guinan. Drum samples: <a href="https://github.com/mrbumpy409/GeneralUser-GS">GeneralUser GS</a> by S. Christian Collins (<a href="../tracksgm/LICENSE-GeneralUser-GS.txt">licence</a>). Project format code from <a href="https://github.com/namirsab/circuit-tracks-tools">circuit-tracks-tools</a> by Namir Sayed-Ahmad Baraza (MIT). Not affiliated with Novation or Focusrite; "Circuit Tracks" and "Components" are their trademarks.</p>
 </footer>
 
-<script type="module" src="../js/app.js?v=20261116mix1"></script>
+<script type="module" src="../js/app.js?v=20261117ct"></script>
 </body>
 </html>

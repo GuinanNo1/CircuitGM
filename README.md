@@ -8,10 +8,10 @@ General MIDI for the Novation Circuit Tracks and Circuit Rhythm: sound packs, an
 | **TracksGM** | General MIDI pack for the Circuit Tracks: 128 synth patches in GM order, 64 drum samples in 8 kits | Ready | [Page and patch list](https://guinanno1.github.io/CircuitGM/tracksgm/) · [Download](https://github.com/GuinanNo1/CircuitGM/raw/main/tracksgm/TracksGM_v1.circuittrackspack) · [Code](tracksgm/) |
 | **RhythmGM** | General MIDI sample packs for the Circuit Rhythm: RhythmInstGM (all 128 GM instruments, slot = GM program) and RhythmDrumGM (8 kits × 16 hits, same order in every kit) | Beta | [Page and sample lists](https://guinanno1.github.io/CircuitGM/rhythmgm/) · Download [RhythmInstGM](https://github.com/GuinanNo1/CircuitGM/raw/main/rhythmgm/RhythmInstGM.circuitrhythmpack), [RhythmDrumGM](https://github.com/GuinanNo1/CircuitGM/raw/main/rhythmgm/RhythmDrumGM.circuitrhythmpack) · [Code](rhythmgm/) |
 | **PatchWorker** | Synth patch editor for the Circuit Tracks: edit any patch in a pack, hear it in the browser or live on a linked Circuit Tracks, save `.syx` patches and whole packs | For testing (v0.6) | [Open](https://guinanno1.github.io/CircuitGM/patchworker/) · [Help](https://guinanno1.github.io/CircuitGM/patchworker/help.html) · [Code](patchworker/) |
-| **PackTrim** | Trims a Circuit Tracks or Circuit Rhythm pack to the samples and patches its projects use | Alpha 0.2 | [Open](https://guinanno1.github.io/CircuitGM/packtrim/) · [Code](packtrim/) |
-| **MIDI2Circuit** | MIDI files, or Circuit Tracks and Circuit Rhythm projects, to Circuit Tracks packs | Alpha 0.12 | [Open](https://guinanno1.github.io/CircuitGM/midi2circuit/) · [Help](https://guinanno1.github.io/CircuitGM/midi2circuit/help.html) · [Code](midi2circuit/) |
+| **CircuitTrim** | Trims a Circuit Tracks or Circuit Rhythm pack to the samples and patches its projects use | Alpha 0.3 | [Open](https://guinanno1.github.io/CircuitGM/circuittrim/) · [Code](circuittrim/) |
+| **MIDI2Circuit** | MIDI files, or Circuit Tracks and Circuit Rhythm projects, to Circuit Tracks packs | Alpha 0.14 | [Open](https://guinanno1.github.io/CircuitGM/midi2circuit/) · [Help](https://guinanno1.github.io/CircuitGM/midi2circuit/help.html) · [Code](midi2circuit/) |
 | **MIDI2Rhythm** | MIDI files or Circuit pack projects to Circuit Rhythm packs (RhythmInstGM + a RhythmDrumGM kit, or the pack's own samples) | For testing (v0.18) | [Open](https://guinanno1.github.io/CircuitGM/midi2rhythm/) · [Help](https://guinanno1.github.io/CircuitGM/midi2rhythm/help.html) · [Code](midi2rhythm/) |
-| **Circuit2MIDI** | A project from a Circuit Tracks or Circuit Rhythm pack to a Standard MIDI file | Alpha 0.4 | [Open](https://guinanno1.github.io/CircuitGM/circuit2midi/) · [Help](https://guinanno1.github.io/CircuitGM/circuit2midi/help.html) · [Code](circuit2midi/) |
+| **Circuit2MIDI** | A project from a Circuit Tracks or Circuit Rhythm pack to a Standard MIDI file | Alpha 0.5 | [Open](https://guinanno1.github.io/CircuitGM/circuit2midi/) · [Help](https://guinanno1.github.io/CircuitGM/circuit2midi/help.html) · [Code](circuit2midi/) |
 
 Everything runs in the browser: nothing is uploaded, and there is no server. Each folder has its own README with the details. The alpha tools are for testing: please report problems in [Issues](https://github.com/GuinanNo1/CircuitGM/issues).
 
@@ -39,7 +39,8 @@ Then open <http://localhost:8765/>.
 | `tracksgm/` | The TracksGM pack, its web page, drum samples, build tools and patch data (see [`tracksgm/PACK.md`](tracksgm/PACK.md)). |
 | `rhythmgm/` | The RhythmInstGM and RhythmDrumGM packs, their SD-card versions, web page, build scripts and sample data (see [`rhythmgm/README.md`](rhythmgm/README.md)). |
 | `patchworker/`, `css/patchworker.css`, `js/patchworker.js`, `js/pw/` | PatchWorker: page, help, styles, and its patch table, browser synth, MIDI link and pack code (see [`patchworker/README.md`](patchworker/README.md)). |
-| `packtrim/`, `js/packtrim.js`, `css/packtrim.css` | PackTrim's page, logic and styles. |
+| `circuittrim/`, `js/circuittrim.js`, `css/circuittrim.css` | CircuitTrim's page, logic and styles. |
+| `packtrim/` | Redirects the old PackTrim address to `circuittrim/`. |
 | `midi2circuit/index.html`, `midi2circuit/help.html` | MIDI2Circuit's page and help. |
 | `midi2rhythm/index.html`, `midi2rhythm/help.html`, `js/m2r/` | MIDI2Rhythm: `engine.js` (part types, chord reduction, range fitting, drum packing, track allocation), `arrange.js` (patterns, scenes, projects), `layout.js` (keep a pack project's layout), `mix.js` (the source project's mix, also used by MIDI2Circuit), `build.js` (Rhythm projects and pack), `app.js` (page). `data/RhythmEmpty.ncs` is a project saved empty on a Circuit Rhythm, used as the template. |
 | `circuit2midi/index.html`, `circuit2midi/help.html`, `css/c2m.css` | Circuit2MIDI's page and help. |
@@ -73,7 +74,7 @@ node tests/m2r_sidechain.mjs <Ian_SC_test.circuitrhythmpack>   # MIDI2Rhythm sid
 node tests/m2c_fx.mjs <Circuit_FX_test.circuittrackspack>   # MIDI2Circuit effects vs Ian's save of every preset, byte for byte
 node tests/m2c_mix.mjs <tracks pack[@n]>...          # MIDI2Circuit: a Tracks pack song keeps its mix (FX, levels, pans, sends, sidechain)
 node tests/pack_compare.mjs <pack> [track|auto|16|8|4] # any pack: convert each project, play it back, account for every hit
-node tests/compact_only.mjs [save-two-project-pack]  # PackTrim: Keep only project N
+node tests/compact_only.mjs [save-two-project-pack]  # CircuitTrim: Keep only project N
 ```
 
 The browser tests use Playwright with the page served on port 8765: `tests/ui_test.cjs` and `tests/ui_mutes.cjs` for MIDI2Circuit, `node tests/ui_p2p.cjs <screenshot dir> <rhythm pack> <tracks pack> <midi file>` for MIDI2Circuit with a Circuit pack (`tests/pack2pack.mjs <out-dir>` writes suitable packs), `node tests/ui_c2m.cjs <screenshot dir> <pack> [<pack> ...]` for Circuit2MIDI (single-project packs), `node tests/ui_m2r.cjs <screenshot dir> <file.mid>` for MIDI2Rhythm, and `node tests/ui_handoff.cjs <two-project tracks pack> <rhythm pack>` for Convert to Circuit Tracks.

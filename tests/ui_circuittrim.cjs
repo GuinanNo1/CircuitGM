@@ -1,7 +1,7 @@
-// PackTrim in a real browser: load a pack, read the summary, save the trimmed pack, and (for a
+// CircuitTrim in a real browser: load a pack, read the summary, save the trimmed pack, and (for a
 // pack with an unreadable project) check that trimming is refused.
 // Needs `python3 -m http.server 8765` running in the repo.
-// node tests/ui_packtrim.cjs <out dir> <pack> [<pack> ...]
+// node tests/ui_circuittrim.cjs <out dir> <pack> [<pack> ...]
 const { chromium } = require('playwright');
 const fs = require('fs');
 (async () => {
@@ -15,7 +15,7 @@ const fs = require('fs');
       const page = await ctx.newPage();
       page.on('console', (m) => { if (m.type() === 'error') errors.push(`${tag}/${view}: ${m.text()}`); });
       page.on('pageerror', (e) => errors.push(`${tag}/${view}: ${e.message}`));
-      await page.goto('http://localhost:8765/packtrim/index.html');
+      await page.goto('http://localhost:8765/circuittrim/index.html');
       await page.setInputFiles('#file', pack);
       await page.waitForSelector('#step-save:not([hidden])', { timeout: 30000 });
       const info = await page.evaluate(() => ({

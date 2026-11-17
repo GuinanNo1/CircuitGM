@@ -50,7 +50,7 @@ const shown = (p, sel) => p.$eval(sel, (e) => !!(e.offsetWidth || e.offsetHeight
   await p.click('.proj');
   await p.waitForFunction(() => !document.querySelector('#step-save').hidden, null, { timeout: 60000 });
   ok(!(await shown(p, '#step-map')) && !(await shown(p, '#scene-options')), 'C2M mapping and scene settings hidden');
-  ok(!(await p.$('#step-compact')) && await shown(p, '#to-packtrim'), 'C2M has no trim step, and the PackTrim button shows in simple mode');
+  ok(!(await p.$('#step-compact')) && await shown(p, '#to-circuittrim'), 'C2M has no trim step, and the CircuitTrim button shows in simple mode');
   ok(!(await shown(p, '#to-tracks')), 'C2M Rebuild in MIDI2Circuit hidden in simple mode (Tracks pack)');
   const nums = await p.$$eval('main > .panel > h2 > .num', (ns) => ns.filter((n) => n.offsetParent).map((n) => n.textContent).join(','));
   ok(nums === '1,2,3,4', `C2M visible steps renumbered (${nums})`);

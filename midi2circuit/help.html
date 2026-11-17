@@ -40,7 +40,7 @@
       <li class="navgroup">
         <button type="button" aria-haspopup="true">Pack Trimming</button>
         <ul>
-          <li><a href="../packtrim/">PackTrim</a></li>
+          <li><a href="../circuittrim/">CircuitTrim</a></li>
         </ul>
       </li>
     </ul>
@@ -49,7 +49,7 @@
 <header class="masthead">
   <div class="wrap">
     <p class="crumbs"><a href="./">← Back to MIDI2Circuit</a></p>
-    <h1>MIDI2Circuit help <span>CircuitGM MIDI to Circuit Converter</span> <em class="badge" title="Version of this page. If you expect a newer one, refresh with Shift-reload; GitHub Pages can take about 10 minutes to update.">alpha 0.13</em></h1>
+    <h1>MIDI2Circuit help <span>CircuitGM MIDI to Circuit Converter</span> <em class="badge" title="Version of this page. If you expect a newer one, refresh with Shift-reload; GitHub Pages can take about 10 minutes to update.">alpha 0.14</em></h1>
     <p class="lede">A Quickstart to get a song onto your Circuit Tracks in a few minutes, then a guide to every control.</p>
   </div>
 </header>
@@ -250,7 +250,7 @@
       <li><b>Drums.</b> The drum tracks play the loaded pack's own samples, so step 3 shows how many it uses instead of the kit list. Each drum track plays a sample at one pitch, so pitched Circuit Rhythm steps lose their pitch on the drum tracks (the notes under the grid say so).</li>
       <li><b>Step rates.</b> With Pattern length <i>Per track</i> (the default), each track keeps its own step rate where it can, so a project that fits in one project on the Circuit usually still does.</li>
       <li><b>Patches.</b> A Circuit Tracks pack becomes the base pack, so Synth 1 and Synth 2 keep their own patches. A Circuit Rhythm pack has no synth patches, so the base pack (the TracksGM pack unless you change it) supplies them. You can still choose another base pack for the patches; the drums stay the loaded pack's.</li>
-      <li><b>Trim the pack</b> (step 4, on by default) keeps only the two synth patches and the samples the song plays; unused slots are left empty, as Components stores them. Untick it to keep every patch of the base pack and every sample of the loaded pack. The line under the box shows what the pack will hold and its total sample time. This trims the pack being built; to trim the pack you loaded, keeping its projects, press <b>Trim the loaded pack in PackTrim</b> and <a href="../packtrim/">PackTrim</a> opens with it.</li>
+      <li><b>Trim the pack</b> (step 4, on by default) keeps only the two synth patches and the samples the song plays; unused slots are left empty, as Components stores them. Untick it to keep every patch of the base pack and every sample of the loaded pack. The line under the box shows what the pack will hold and its total sample time. This trims the pack being built; to trim the pack you loaded, keeping its projects, press <b>Trim the loaded pack in CircuitTrim</b> and <a href="../circuittrim/">CircuitTrim</a> opens with it.</li>
       <li><b>Circuit Rhythm samples.</b> A Circuit Rhythm pack has 128 sample slots and a Circuit Tracks pack 64, so the samples are renumbered, the song's own first. Samples that aren't 48 kHz, 16-bit mono are converted. A Circuit Tracks pack holds 196.6 s of samples in all, and Components doesn't warn when a pack is over; the converter does.</li>
       <li><b>Not carried over:</b> mixer levels, effects, parameter locks and automation, and Circuit Rhythm sample settings (slice, tune, reverse) other than the steps' own pitch.</li>
     </ul>

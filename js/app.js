@@ -77,7 +77,7 @@ async function init() {
   $('#shrink-on').addEventListener('change', updateShrinkInfo);
   $('#patch-s1').addEventListener('change', updateShrinkInfo);
   $('#patch-s2').addEventListener('change', updateShrinkInfo);
-  $('#to-packtrim').addEventListener('click', toPackTrim);
+  $('#to-circuittrim').addEventListener('click', toCircuitTrim);
   player.onEnd = () => { setPlanButton(false); setSourceButton(null); };
   // Opened from Circuit2MIDI's "Convert to Circuit Tracks": take the pack it handed over.
   if (new URLSearchParams(location.search).get('from') === 'circuit2midi') {
@@ -398,20 +398,20 @@ function drumSlots() {
   return [...new Set(sourcesFor('DR').flatMap((s) => s.notes.map((n) => n.slot)))].filter((x) => x != null).sort((a, b) => a - b);
 }
 
-// Hand the loaded Circuit pack to PackTrim (the trim box here only trims the pack being built).
-async function toPackTrim() {
+// Hand the loaded Circuit pack to CircuitTrim (the trim box here only trims the pack being built).
+async function toCircuitTrim() {
   const pack = state.songPack;
   if (!pack?.buffer) return;
   player.stop();
   setPlanButton(false);
-  const st = $('#to-packtrim-status');
+  const st = $('#to-circuittrim-status');
   st.classList.remove('error');
-  st.textContent = 'Opening PackTrim…';
+  st.textContent = 'Opening CircuitTrim…';
   try {
-    await putHandoff({ buffer: pack.buffer, fileName: pack.fileName }, 'packtrim');
-    location.href = '../packtrim/?from=midi2circuit';
+    await putHandoff({ buffer: pack.buffer, fileName: pack.fileName }, 'circuittrim');
+    location.href = '../circuittrim/?from=midi2circuit';
   } catch (err) {
-    st.textContent = `Could not hand the pack over (${err.message}). Open PackTrim and drop the pack there instead.`;
+    st.textContent = `Could not hand the pack over (${err.message}). Open CircuitTrim and drop the pack there instead.`;
     st.classList.add('error');
   }
 }

@@ -1,11 +1,11 @@
 // Passing a pack from one page to another: Circuit2MIDI to MIDI2Circuit ("Convert to Circuit
-// Tracks" / "Rebuild in MIDI2Circuit"), and Circuit2MIDI or MIDI2Circuit to PackTrim ("Trim
-// this pack in PackTrim"). The pages are on the same site, so the pack is kept in this
+// Tracks" / "Rebuild in MIDI2Circuit"), and Circuit2MIDI or MIDI2Circuit to CircuitTrim ("Trim
+// this pack in CircuitTrim"). The pages are on the same site, so the pack is kept in this
 // browser's IndexedDB for the moment it takes to open the other page; nothing leaves the
 // computer. The receiving page takes it and deletes it. Each receiving page has its own key.
 const DB = 'tracksgm-handoff';
 const STORE = 'packs';
-const KEY = 'pack';          // MIDI2Circuit's key (kept from before PackTrim took packs too)
+const KEY = 'pack';          // MIDI2Circuit's key (kept from before CircuitTrim took packs too)
 const keyFor = (to) => (to === 'midi2circuit' ? KEY : `pack-${to}`);
 const MAX_AGE_MS = 10 * 60 * 1000;   // ignore a hand-off left behind longer than this
 
@@ -28,7 +28,7 @@ function run(db, mode, fn) {
   });
 }
 
-// item = { buffer: ArrayBuffer, fileName, slot? }; to = the receiving page: 'midi2circuit' or 'packtrim'.
+// item = { buffer: ArrayBuffer, fileName, slot? }; to = the receiving page: 'midi2circuit' or 'circuittrim'.
 export async function putHandoff(item, to = 'midi2circuit') {
   const db = await open();
   try { await run(db, 'readwrite', (s) => s.put({ ...item, time: Date.now() }, keyFor(to))); } finally { db.close(); }

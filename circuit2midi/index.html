@@ -42,7 +42,7 @@
       <li class="navgroup">
         <button type="button" aria-haspopup="true">Pack Trimming</button>
         <ul>
-          <li><a href="../packtrim/">PackTrim</a></li>
+          <li><a href="../circuittrim/">CircuitTrim</a></li>
         </ul>
       </li>
     </ul>
@@ -50,9 +50,9 @@
 </nav>
 <header class="masthead">
   <div class="wrap">
-    <h1>Circuit2MIDI <span>Circuit Tracks and Rhythm to MIDI converter</span> <em class="badge" title="Version of this page. If you expect a newer one, refresh with Shift-reload; GitHub Pages can take about 10 minutes to update.">alpha 0.4</em></h1>
+    <h1>Circuit2MIDI <span>Circuit Tracks and Rhythm to MIDI converter</span> <em class="badge" title="Version of this page. If you expect a newer one, refresh with Shift-reload; GitHub Pages can take about 10 minutes to update.">alpha 0.5</em></h1>
     <p class="helplinks"><a href="help.html#quickstart">Quickstart</a> · <a href="help.html">User guide</a></p>
-    <p class="lede">Open a Novation Components pack for the Circuit Tracks or Circuit Rhythm and turn one of its projects into a Standard MIDI file: every scene, pattern chain and step, on the channels and sounds you choose. To make a pack smaller, use <a href="../packtrim/">PackTrim</a>.</p>
+    <p class="lede">Open a Novation Components pack for the Circuit Tracks or Circuit Rhythm and turn one of its projects into a Standard MIDI file: every scene, pattern chain and step, on the channels and sounds you choose. To make a pack smaller, use <a href="../circuittrim/">CircuitTrim</a>.</p>
     <p class="alpha">Alpha 0.1, for testing. The Circuit Rhythm project format was worked out from one hardware-saved project, so check the result against your Circuit, keep your original pack, and please report anything odd on <a href="https://github.com/GuinanNo1/CircuitGM/issues">GitHub</a>.</p>
   </div>
 </header>
@@ -78,10 +78,10 @@
     <p class="status" id="load-status" role="status"></p>
     <div class="fileinfo" id="packinfo" hidden></div>
     <div class="buildrow" id="trim-row" hidden>
-      <button class="btn" id="to-packtrim" type="button">Trim this pack in PackTrim</button>
-      <span class="status" id="to-packtrim-status" role="status"></span>
+      <button class="btn" id="to-circuittrim" type="button">Trim this pack in CircuitTrim</button>
+      <span class="status" id="to-circuittrim-status" role="status"></span>
     </div>
-    <p class="hint" id="trim-hint" hidden>Want a smaller pack, without the samples and patches no project uses? <a href="../packtrim/">PackTrim</a> opens with this pack loaded. Nothing is uploaded.</p>
+    <p class="hint" id="trim-hint" hidden>Want a smaller pack, without the samples and patches no project uses? <a href="../circuittrim/">CircuitTrim</a> opens with this pack loaded. Nothing is uploaded.</p>
   </section>
 
   <section class="panel" id="step-project" hidden>
@@ -156,6 +156,6 @@
   <p>Part of <a href="https://github.com/GuinanNo1/CircuitGM">TracksGM</a> by Ian Guinan. Project format code from <a href="https://github.com/namirsab/circuit-tracks-tools">circuit-tracks-tools</a> by Namir Sayed-Ahmad Baraza (MIT). Not affiliated with Novation or Focusrite; "Circuit Tracks", "Circuit Rhythm" and "Components" are their trademarks.</p>
 </footer>
 
-<script type="module" src="../js/c2m.js?v=20261115v"></script>
+<script type="module" src="../js/c2m.js?v=20261117ct"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 // Circuit2MIDI page: load a Circuit Tracks / Circuit Rhythm pack, pick a project (or hand the
-// pack to PackTrim or MIDI2Circuit), check its scenes, map its tracks to MIDI, preview it and save a .mid file.
+// pack to CircuitTrim or MIDI2Circuit), check its scenes, map its tracks to MIDI, preview it and save a .mid file.
 import { setupMode } from './mode.js';
 import { loadPack } from './pack.js';
 import {
@@ -91,24 +91,24 @@ function showPackInfo(pack) {
   box.hidden = false;
 }
 
-// ---------- Trim (PackTrim) ----------
+// ---------- Trim (CircuitTrim) ----------
 
-// Trimming lives in PackTrim; this hands the loaded pack over to it.
+// Trimming lives in CircuitTrim; this hands the loaded pack over to it.
 function showTrimLink() {
-  setStatus('to-packtrim-status', '');
+  setStatus('to-circuittrim-status', '');
   $('trim-row').hidden = false;
   $('trim-hint').hidden = false;
 }
 
-$('to-packtrim').addEventListener('click', async () => {
+$('to-circuittrim').addEventListener('click', async () => {
   if (!state.pack) return;
   player.stop();
-  setStatus('to-packtrim-status', 'Opening PackTrim…');
+  setStatus('to-circuittrim-status', 'Opening CircuitTrim…');
   try {
-    await putHandoff({ buffer: state.pack.buffer, fileName: state.pack.fileName }, 'packtrim');
-    location.href = '../packtrim/?from=circuit2midi';
+    await putHandoff({ buffer: state.pack.buffer, fileName: state.pack.fileName }, 'circuittrim');
+    location.href = '../circuittrim/?from=circuit2midi';
   } catch (err) {
-    setStatus('to-packtrim-status', `Could not hand the pack over (${err.message}). Open PackTrim and drop the pack there instead.`, true);
+    setStatus('to-circuittrim-status', `Could not hand the pack over (${err.message}). Open CircuitTrim and drop the pack there instead.`, true);
   }
 });
 
