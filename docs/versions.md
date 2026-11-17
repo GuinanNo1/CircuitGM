@@ -2,7 +2,7 @@
 
 Each tool page shows its version next to its status badge, so you can tell which version a browser has loaded. GitHub Pages can take about 10 minutes to serve a new version; refresh with Shift-reload if a page shows an older one.
 
-**Rule for every change to a tool:** bump its version here and on its page (badge in `<tool>/index.html`, and in `help.html` where it has one), add a line below, and bump the page's cache tag (`?v=…`) on the files you changed. MIDI2Rhythm takes its badge from `VERSION` in `js/m2r/app.js` and lists its versions in `midi2rhythm/help.html`.
+**Rule for every change to a tool:** bump its version here and everywhere the page shows it (badge in `<tool>/index.html` and `help.html`, the "for testing" note under the heading, the landing page card, the README table and the tool's own README title), add a line below, and bump the page's cache tag (`?v=…`) on the files you changed. MIDI2Rhythm takes its badge from `VERSION` in `js/m2r/app.js` and lists its versions in `midi2rhythm/help.html`.
 
 | Tool | Current | Shown as |
 |---|---|---|
