@@ -2,166 +2,22 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Circuit2MIDI Help · CircuitGM</title>
-<meta name="description" content="Quickstart and user guide for the CircuitGM Circuit to MIDI Converter (Circuit2MIDI).">
-<link rel="icon" href="../favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/app.css?v=20261116fx4">
+<title>CircuitGM has moved to RosettaGM</title>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://guinanno1.github.io/RosettaGM/circuitgm/circuit2midi/help.html">
+<meta http-equiv="refresh" content="0; url=https://guinanno1.github.io/RosettaGM/circuitgm/circuit2midi/help.html">
+<script>
+(function () {
+  var p = location.pathname.replace(/^\/CircuitGM\/?/i, '');
+  if (/^packtrim(\/|$)/i.test(p)) p = 'circuittrim/';
+  location.replace('https://guinanno1.github.io/RosettaGM/circuitgm/' + p + location.search + location.hash);
+})();
+</script>
 </head>
-<body>
-<nav class="sitenav" aria-label="CircuitGM">
-  <div class="wrap">
-    <a class="brand" href="../" title="CircuitGM home: all packs and tools">Circuit<b>GM</b></a>
-    <ul class="navgroups">
-      <li class="navgroup">
-        <button type="button" aria-haspopup="true">General MIDI Packs</button>
-        <ul>
-          <li><a href="../tracksgm/">TracksGM</a></li>
-          <li><a href="../rhythmgm/">RhythmGM</a></li>
-        </ul>
-      </li>
-      <li class="navgroup current">
-        <button type="button" aria-haspopup="true">Circuit MIDI Converters</button>
-        <ul>
-          <li><a href="../midi2circuit/">MIDI2Circuit</a></li>
-          <li><a href="../midi2rhythm/">MIDI2Rhythm</a></li>
-          <li><a href="./">Circuit2MIDI</a></li>
-        </ul>
-      </li>
-      <li class="navgroup">
-        <button type="button" aria-haspopup="true">Patch Editors</button>
-        <ul>
-          <li><a href="../patchworker/">PatchWorker</a></li>
-        </ul>
-      </li>
-      <li class="navgroup">
-        <button type="button" aria-haspopup="true">Pack Trimming</button>
-        <ul>
-          <li><a href="../circuittrim/">CircuitTrim</a></li>
-        </ul>
-      </li>
-    </ul>
-  </div>
-</nav>
-<header class="masthead">
-  <div class="wrap">
-    <p class="crumbs"><a href="./">← Back to Circuit2MIDI</a></p>
-    <h1>Circuit2MIDI help <span>CircuitGM Circuit to MIDI Converter</span> <em class="badge" title="Version of this page. If you expect a newer one, refresh with Shift-reload; GitHub Pages can take about 10 minutes to update.">alpha 0.5</em></h1>
-    <p class="lede">How to turn a project in a Circuit Tracks or Circuit Rhythm pack into a Standard MIDI file. Going the other way, from a MIDI file to a Circuit Tracks pack, is <a href="../midi2circuit/">MIDI2Circuit</a>; to a Circuit Rhythm pack, <a href="../midi2rhythm/">MIDI2Rhythm</a>.</p>
-  </div>
-</header>
-
-<main class="wrap doc">
-  <nav class="panel toc" aria-label="Contents">
-    <h2>Contents</h2>
-    <ol>
-      <li><a href="#quickstart">Quickstart</a></li>
-      <li><a href="#modes">Simple and Advanced mode</a></li>
-      <li><a href="#steps">The five steps in detail</a></li>
-      <li><a href="#timing">How a project becomes MIDI</a></li>
-      <li><a href="#rhythm">Circuit Rhythm projects</a></li>
-      <li><a href="#limits">Limits and alpha status</a></li>
-      <li><a href="#trouble">Troubleshooting</a></li>
-    </ol>
-  </nav>
-
-  <section class="panel" id="modes">
-    <h2>Simple and Advanced mode</h2>
-    <p>Circuit2MIDI opens in <b>simple mode</b>: load a pack, choose a project, check the scenes and save the MIDI file. Scenes play in the saved chain, swing is applied, chance steps are kept, and each track gets a MIDI channel, instrument and drum notes guessed from the pack.</p>
-    <p>Switch on <b>Advanced</b> (the Simple / Advanced switch at the top of step 1) to change those: Scene order (including a custom order), chance steps, swing, scene track masks, the solo buttons and notes in step 3, and the whole MIDI track and drum note tables (step 4). Advanced mode also shows <b>Rebuild in MIDI2Circuit</b> for a Circuit Tracks pack (step 2). Hidden settings keep their values, and the page remembers your choice in this browser.</p>
-  </section>
-
-  <section class="panel" id="quickstart">
-    <h2>Quickstart</h2>
-    <ol class="steps">
-      <li>In Novation Components, open your Circuit Tracks or Circuit Rhythm and save the pack to your computer (a <code>.circuittrackspack</code> or <code>.circuitrhythmpack</code> file).</li>
-      <li>Drop the pack on <b>Load a pack</b>. Nothing leaves your computer.</li>
-      <li>Pick a project. If the pack has only one project with notes, it is picked for you.</li>
-      <li>Press <b>Play preview</b> to hear it, then <b>Download .mid</b>.</li>
-    </ol>
-  </section>
-
-  <section class="panel" id="steps">
-    <h2>The five steps in detail</h2>
-    <h3>1. Load a pack</h3>
-    <p>The page reads the pack's list of projects, samples and (for the Circuit Tracks) synth patches, and every project in it. Empty project slots are skipped.</p>
-    <p>To make the pack smaller, press <b>Trim this pack in CircuitTrim</b>: <a href="../circuittrim/">CircuitTrim</a> opens with the pack loaded and saves a copy without the samples and patches no project uses (or, in its Advanced mode, with just one project and its sounds). The pack is handed over inside your browser and kept only for the few moments the other page takes to open.</p>
-    <h3>2. Choose a project</h3>
-    <p>One project is converted at a time. Each card shows the project's number on the Circuit, its name, how many scenes it uses, its length and tempo.</p>
-    <p>From a Circuit Rhythm pack, <b>Convert to Circuit Tracks (MIDI2Circuit)</b> opens the chosen project in <a href="../midi2circuit/">MIDI2Circuit</a> instead, to build a Circuit Tracks pack from it with the pack's own samples.</p>
-    <p>From a Circuit Tracks pack, the same button reads <b>Rebuild in MIDI2Circuit</b> and is shown in Advanced mode only. It opens the project in MIDI2Circuit to rebuild it as a new Circuit Tracks pack, for example to re-arrange it or move it onto the TracksGM sounds. MIDI2Circuit rebuilds the project from its notes, with the pack's own samples and patches, so the result is not an exact copy of the original.</p>
-    <p>Either way, the pack is handed over inside your browser and kept only for the few moments the other page takes to open.</p>
-    <h3>3. Check the scenes</h3>
-    <dl>
-      <dt>Scene order</dt>
-      <dd><b>Saved scene chain</b> plays the scenes chained when the project was saved. <b>Every used scene in order</b> plays every scene that has something saved in it, from scene 1 up; it is chosen for you when the saved chain is a single scene but more are used. <b>Custom order</b> takes scene numbers, ranges and repeats, for example <code>1-4, 2, 5x2</code>.</dd>
-      <dt>Steps with a chance below 100%</dt>
-      <dd>Steps set to play only some of the time are kept by default. Choose <b>Leave them out</b> to drop them.</dd>
-      <dt>Apply the project's swing</dt>
-      <dd>Moves every second step later, as the Circuit does.</dd>
-      <dt>Apply the track mutes saved in each scene</dt>
-      <dd>Shown when a project's scenes have tracks muted. The Circuit saves the mixer mutes with each scene and recalls them when the scene plays, so this is on by default: muted tracks stay silent in the preview and are left out of the MIDI file. Switch it off to hear and keep every track.</dd>
-      <dt>The grid</dt>
-      <dd>One column per scene in playing order, one row per Circuit track. Each cell shows the pattern chain that track plays in that scene; grey cells have no notes. The dot leaves a track out of both the preview and the MIDI file, and S solos a track in the preview only.</dd>
-    </dl>
-    <h3>4. Set the MIDI tracks</h3>
-    <dl>
-      <dt>Play as</dt>
-      <dd><b>Melodic</b> writes each step's note as stored. <b>Drums</b> writes one note per sample, set in the <b>Drum notes</b> table, so each sample gets its own key.</dd>
-      <dt>Channel, Instrument, Octave</dt>
-      <dd>Each track's MIDI channel, its General MIDI program change (or none) and an octave shift. Drum tracks default to channel 10, the General MIDI drum channel.</dd>
-      <dt>Drum notes</dt>
-      <dd>One row per sample the drum tracks play. Notes are guessed from the sample names (kick, snare, hat and so on); samples with no recognisable name get spare percussion notes, so no two samples share a note unless you choose that.</dd>
-    </dl>
-    <h3>5. Save the MIDI file</h3>
-    <p>A type 1 Standard MIDI file: one MIDI track for each Circuit track with notes, the project's tempo, and a marker named after each scene where it starts.</p>
-  </section>
-
-  <section class="panel" id="timing">
-    <h2>How a project becomes MIDI</h2>
-    <ul>
-      <li>Each scene lasts as long as its longest pattern chain. Shorter chains repeat until the scene ends, and every chain starts again at the next scene.</li>
-      <li>Each pattern plays from its start step to its end step at its own step length (1/32 to 1/4, including triplets), forwards, backwards or ping-pong. Random order is written forwards.</li>
-      <li>Notes keep their micro-step timing, gate length and velocity. On the Circuit Tracks, a long note tied across steps becomes one MIDI note. Drum rolls (several hits in one step) become separate notes.</li>
-      <li>Stored notes are converted with the same rule MIDI2Circuit uses to write them (stored note = MIDI note + 12), so a file taken through MIDI2Circuit and back comes out the same at 1/16 steps.</li>
-      <li>Automation (parameter locks), mixer levels, effects and the synth patches' sound are not written; the MIDI file holds the notes.</li>
-    </ul>
-  </section>
-
-  <section class="panel" id="rhythm">
-    <h2>Circuit Rhythm projects</h2>
-    <p>Each of the eight Circuit Rhythm tracks plays samples. A track whose steps are all at the sample's own pitch starts as a Drums track, with a note for each sample it plays; a track with transposed steps starts as Melodic, playing the step pitches with the sample's natural pitch as middle C (MIDI 60).</p>
-    <p>A Melodic track that switches samples on some steps plays them all on one MIDI instrument; the page warns you when that happens. Play it as Drums instead to give each sample its own note.</p>
-    <p>The preview plays the pack's own samples, transposed as the steps set, one sound at a time per track as on the Circuit.</p>
-  </section>
-
-  <section class="panel" id="limits">
-    <h2>Limits and alpha status</h2>
-    <ul>
-      <li>The Circuit Rhythm project format was worked out from one hardware-saved project. Tempo, swing, scenes, chains, steps, sample choices and pattern settings are read with confidence; the triplet step lengths and the scene track masks are not yet confirmed on hardware.</li>
-      <li>Which octave MIDI 1 and MIDI 2 on the Circuit Tracks send at is not yet confirmed.</li>
-      <li>The project's own scene chain may be a single scene even when more are used, because the Circuit saves the chain that was playing. Use <b>Every used scene in order</b> or a custom order.</li>
-    </ul>
-  </section>
-
-  <section class="panel" id="trouble">
-    <h2>Troubleshooting</h2>
-    <dl>
-      <dt>"This file has no index.json".</dt>
-      <dd>The file isn't a Components pack. Save the pack from Components, not a single project or sample.</dd>
-      <dt>The project is listed but plays nothing.</dt>
-      <dd>Check the scene order: the saved scene chain may point at an empty scene. Try <b>Every used scene in order</b>.</dd>
-      <dt>The drums are on the wrong sounds.</dt>
-      <dd>Change the notes in the <b>Drum notes</b> table; the guess goes by sample names.</dd>
-    </dl>
-  </section>
-</main>
-
-<footer class="wrap foot">
-  <p><a href="./">Back to Circuit2MIDI</a> · <a href="../midi2circuit/">MIDI2Circuit</a> · <a href="../midi2rhythm/">MIDI2Rhythm</a> · Project format code from <a href="https://github.com/namirsab/circuit-tracks-tools">circuit-tracks-tools</a> (MIT). Not affiliated with Novation or Focusrite.</p>
-</footer>
+<body style="font-family: system-ui, sans-serif; max-width: 40em; margin: 3em auto; padding: 0 1em; line-height: 1.5">
+<h1>CircuitGM has moved</h1>
+<p>CircuitGM is now part of <b>RosettaGM</b>, General MIDI tools for grooveboxes. This page is now at:</p>
+<p><a href="https://guinanno1.github.io/RosettaGM/circuitgm/circuit2midi/help.html">https://guinanno1.github.io/RosettaGM/circuitgm/circuit2midi/help.html</a></p>
+<p>Please update your bookmarks.</p>
 </body>
 </html>

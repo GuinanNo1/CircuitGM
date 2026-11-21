@@ -2,113 +2,22 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>CircuitGM</title>
-<meta name="description" content="General MIDI sound packs and browser tools for the Novation Circuit Tracks and Circuit Rhythm: convert MIDI files to Circuit packs and back, edit synth patches, and trim packs to what their projects use.">
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/app.css?v=20261116fx4">
+<title>CircuitGM has moved to RosettaGM</title>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://guinanno1.github.io/RosettaGM/circuitgm/">
+<meta http-equiv="refresh" content="0; url=https://guinanno1.github.io/RosettaGM/circuitgm/">
+<script>
+(function () {
+  var p = location.pathname.replace(/^\/CircuitGM\/?/i, '');
+  if (/^packtrim(\/|$)/i.test(p)) p = 'circuittrim/';
+  location.replace('https://guinanno1.github.io/RosettaGM/circuitgm/' + p + location.search + location.hash);
+})();
+</script>
 </head>
-<body>
-<nav class="sitenav" aria-label="CircuitGM">
-  <div class="wrap">
-    <a class="brand" href="./" aria-current="page" title="CircuitGM home: all packs and tools">Circuit<b>GM</b></a>
-    <ul class="navgroups">
-      <li class="navgroup">
-        <button type="button" aria-haspopup="true">General MIDI Packs</button>
-        <ul>
-          <li><a href="tracksgm/">TracksGM</a></li>
-          <li><a href="rhythmgm/">RhythmGM</a></li>
-        </ul>
-      </li>
-      <li class="navgroup">
-        <button type="button" aria-haspopup="true">Circuit MIDI Converters</button>
-        <ul>
-          <li><a href="midi2circuit/">MIDI2Circuit</a></li>
-          <li><a href="midi2rhythm/">MIDI2Rhythm</a></li>
-          <li><a href="circuit2midi/">Circuit2MIDI</a></li>
-        </ul>
-      </li>
-      <li class="navgroup">
-        <button type="button" aria-haspopup="true">Patch Editors</button>
-        <ul>
-          <li><a href="patchworker/">PatchWorker</a></li>
-        </ul>
-      </li>
-      <li class="navgroup">
-        <button type="button" aria-haspopup="true">Pack Trimming</button>
-        <ul>
-          <li><a href="circuittrim/">CircuitTrim</a></li>
-        </ul>
-      </li>
-    </ul>
-  </div>
-</nav>
-
-<header class="masthead">
-  <div class="wrap">
-    <h1>CircuitGM <span>General MIDI for the Novation Circuit</span></h1>
-    <p class="lede">Sound packs and browser tools that bring General MIDI songs to the Novation Circuit Tracks and Circuit Rhythm, and take your Circuit projects back out as MIDI. Everything runs in your browser: nothing is uploaded.</p>
-  </div>
-</header>
-
-<main class="wrap">
-  <p class="section-title">Sound packs</p>
-  <div class="cards">
-    <section class="panel card">
-      <h2><a href="tracksgm/">TracksGM</a> <span class="status-tag ready">Ready</span></h2>
-      <p class="kind">Circuit Tracks pack</p>
-      <p>The General MIDI sound set for the Circuit Tracks: 128 synth patches in GM order, voiced and loudness-matched on the hardware, plus 64 drum samples in 8 kits. Use it on its own, or as the sounds MIDI2Circuit builds on.</p>
-      <p class="links"><a href="tracksgm/">About and patch list</a> · <a href="tracksgm/TracksGM_v1.circuittrackspack" download>Download</a> · <a href="https://github.com/GuinanNo1/CircuitGM/tree/main/tracksgm">Code</a></p>
-    </section>
-    <section class="panel card">
-      <h2><a href="rhythmgm/">RhythmGM</a> <span class="status-tag alpha">beta</span></h2>
-      <p class="kind">Circuit Rhythm packs</p>
-      <p>General MIDI for the Circuit Rhythm in two packs from GeneralUser GS: RhythmInstGM, all 128 GM instruments in GM order, and RhythmDrumGM, eight drum kits of 16 hits in the same order. Use them on their own, or as the sounds MIDI2Rhythm builds on.</p>
-      <p class="links"><a href="rhythmgm/">About and sample lists</a> · Download <a href="rhythmgm/RhythmInstGM.circuitrhythmpack" download>RhythmInstGM</a> · <a href="rhythmgm/RhythmDrumGM.circuitrhythmpack" download>RhythmDrumGM</a> · <a href="https://github.com/GuinanNo1/CircuitGM/tree/main/rhythmgm">Code</a></p>
-    </section>
-  </div>
-
-  <p class="section-title">Tools</p>
-  <div class="cards">
-    <section class="panel card">
-      <h2><a href="midi2circuit/">MIDI2Circuit</a> <span class="status-tag alpha">alpha 0.14</span></h2>
-      <p class="kind">MIDI → Circuit Tracks</p>
-      <p>Turns a Standard MIDI file, or a project from a Circuit Tracks or Circuit Rhythm pack, into a Circuit Tracks pack. Choose the parts for each track, hear them, and download a pack for Novation Components.</p>
-      <p class="links"><a href="midi2circuit/">Open</a> · <a href="midi2circuit/help.html">Help</a> · <a href="https://github.com/GuinanNo1/CircuitGM/tree/main/midi2circuit">Code</a></p>
-    </section>
-    <section class="panel card">
-      <h2><a href="midi2rhythm/">MIDI2Rhythm</a> <span class="status-tag alpha">For testing · v0.19</span></h2>
-      <p class="kind">MIDI → Circuit Rhythm</p>
-      <p>Turns a Standard MIDI file, or a project from a Circuit pack, into a Circuit Rhythm pack on RhythmInstGM and a RhythmDrumGM kit. Picks the drums, bass, melody and busiest parts for the eight one-note tracks, and turns chords into a single line.</p>
-      <p class="links"><a href="midi2rhythm/">Open</a> · <a href="midi2rhythm/help.html">Help</a> · <a href="https://github.com/GuinanNo1/CircuitGM/tree/main/midi2rhythm">Code</a></p>
-    </section>
-    <section class="panel card">
-      <h2><a href="circuit2midi/">Circuit2MIDI</a> <span class="status-tag alpha">alpha 0.5</span></h2>
-      <p class="kind">Circuit Tracks / Rhythm → MIDI</p>
-      <p>Turns a project from a Circuit Tracks or Circuit Rhythm pack into a Standard MIDI file: scenes in order, pattern chains, timing, gates and velocities, with drum samples mapped to notes.</p>
-      <p class="links"><a href="circuit2midi/">Open</a> · <a href="circuit2midi/help.html">Help</a> · <a href="https://github.com/GuinanNo1/CircuitGM/tree/main/circuit2midi">Code</a></p>
-    </section>
-    <section class="panel card">
-      <h2><a href="patchworker/">PatchWorker</a> <span class="status-tag alpha">For testing · v0.6</span></h2>
-      <p class="kind">Circuit Tracks synth patches</p>
-      <p>A synth patch editor for the Circuit Tracks. Edit any patch in a pack, hear it in the browser or live on a linked Circuit Tracks, and save single <code>.syx</code> patches or the whole pack. Opens with TracksGM.</p>
-      <p class="links"><a href="patchworker/">Open</a> · <a href="patchworker/help.html">Help</a> · <a href="https://github.com/GuinanNo1/CircuitGM/tree/main/patchworker">Code</a></p>
-    </section>
-    <section class="panel card">
-      <h2><a href="circuittrim/">CircuitTrim</a> <span class="status-tag alpha">alpha 0.3</span></h2>
-      <p class="kind">Circuit Tracks / Rhythm packs</p>
-      <p>Trims a Circuit Tracks or Circuit Rhythm pack to what its projects use: every project is kept, with all the samples and patches they play, and the rest are left out of a smaller copy. Advanced mode can keep just one project and its sounds.</p>
-      <p class="links"><a href="circuittrim/">Open</a> · <a href="https://github.com/GuinanNo1/CircuitGM/tree/main/circuittrim">Code</a></p>
-    </section>
-  </div>
-</main>
-
-<footer class="wrap sitefoot">
-  <p>Drum samples: <a href="https://github.com/mrbumpy409/GeneralUser-GS">GeneralUser GS</a> by S. Christian Collins. Project-format code and research: <a href="https://github.com/namirsab/circuit-tracks-tools">circuit-tracks-tools</a> by Namir Sayed-Ahmad Baraza, and <a href="https://github.com/Ondrysak/ncstool">ncstool</a>.</p>
-  <p>Not affiliated with Novation or Focusrite; "Circuit Tracks", "Circuit Rhythm" and "Components" are their trademarks. <a href="https://github.com/GuinanNo1/CircuitGM">Source on GitHub</a> · <a href="https://github.com/GuinanNo1/CircuitGM/issues">Report a problem</a></p>
-</footer>
+<body style="font-family: system-ui, sans-serif; max-width: 40em; margin: 3em auto; padding: 0 1em; line-height: 1.5">
+<h1>CircuitGM has moved</h1>
+<p>CircuitGM is now part of <b>RosettaGM</b>, General MIDI tools for grooveboxes. This page is now at:</p>
+<p><a href="https://guinanno1.github.io/RosettaGM/circuitgm/">https://guinanno1.github.io/RosettaGM/circuitgm/</a></p>
+<p>Please update your bookmarks.</p>
 </body>
 </html>

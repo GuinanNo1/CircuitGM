@@ -2,199 +2,22 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>CircuitGM Patch Editor (PatchWorker)</title>
-<meta name="description" content="PatchWorker: a browser synth patch editor for the Novation Circuit Tracks. Edit patches with or without the hardware, hear them in the browser, and save .syx patches and complete .circuittrackspack packs.">
-<link rel="icon" href="../favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../css/patchworker.css?v=20261116nav">
+<title>CircuitGM has moved to RosettaGM</title>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://guinanno1.github.io/RosettaGM/circuitgm/patchworker/">
+<meta http-equiv="refresh" content="0; url=https://guinanno1.github.io/RosettaGM/circuitgm/patchworker/">
+<script>
+(function () {
+  var p = location.pathname.replace(/^\/CircuitGM\/?/i, '');
+  if (/^packtrim(\/|$)/i.test(p)) p = 'circuittrim/';
+  location.replace('https://guinanno1.github.io/RosettaGM/circuitgm/' + p + location.search + location.hash);
+})();
+</script>
 </head>
-<body>
-<nav class="topnav" aria-label="CircuitGM">
-  <a class="brand" href="../" title="CircuitGM home: all packs and tools">Circuit<b>GM</b></a>
-  <ul class="navgroups">
-    <li class="navgroup">
-      <button type="button" aria-haspopup="true">General MIDI Packs</button>
-      <ul>
-        <li><a href="../tracksgm/">TracksGM</a></li>
-        <li><a href="../rhythmgm/">RhythmGM</a></li>
-      </ul>
-    </li>
-    <li class="navgroup">
-      <button type="button" aria-haspopup="true">Circuit MIDI Converters</button>
-      <ul>
-        <li><a href="../midi2circuit/">MIDI2Circuit</a></li>
-        <li><a href="../midi2rhythm/">MIDI2Rhythm</a></li>
-        <li><a href="../circuit2midi/">Circuit2MIDI</a></li>
-      </ul>
-    </li>
-    <li class="navgroup current">
-      <button type="button" aria-haspopup="true">Patch Editors</button>
-      <ul>
-        <li><a href="./" aria-current="page">PatchWorker</a></li>
-      </ul>
-    </li>
-    <li class="navgroup">
-      <button type="button" aria-haspopup="true">Pack Trimming</button>
-      <ul>
-        <li><a href="../circuittrim/">CircuitTrim</a></li>
-      </ul>
-    </li>
-  </ul>
-  <span class="navfill"></span>
-  <span class="navver" title="Version of this page. If you expect a newer one, refresh with Shift-reload; GitHub Pages can take about 10 minutes to update."><span class="nv-long">For testing · </span>v0.6</span>
-  <a class="navhelp" href="help.html">Help</a>
-  <div class="link" id="link">
-    <span class="led" id="link-led"></span>
-    <span id="link-text">Circuit Tracks not linked</span>
-    <button type="button" id="link-btn" class="btn small">Link Circuit Tracks</button>
-    <button type="button" id="unlink-btn" class="btn small quiet" hidden title="Disconnect from the Circuit Tracks. PatchWorker won't link by itself on your next visit until you press Link again.">Unlink</button>
-  </div>
-</nav>
-
-<div class="app" id="app">
-  <aside class="side" aria-label="Pack">
-    <div class="packhead">
-      <p class="eyebrow">Pack</p>
-      <input id="pack-name" class="lcd" maxlength="16" spellcheck="false" aria-label="Pack name" title="Pack name (up to 16 characters)">
-      <p class="packinfo" id="pack-info">Loading…</p>
-      <div class="row">
-        <button type="button" class="btn" id="pack-open" title="Open a .circuittrackspack from your computer">Open pack…</button>
-        <button type="button" class="btn primary" id="pack-save" title="Download the pack with your edits, ready for Novation Components">Download pack</button>
-      </div>
-      <div class="row">
-        <button type="button" class="btn quiet" id="pack-bank" title="All 128 patches as one .syx file">Bank .syx</button>
-        <button type="button" class="btn quiet" id="pack-reset" title="Throw away this session and load the TracksGM pack again">Load TracksGM</button>
-      </div>
-      <div class="row" id="pack-tracks-row" hidden>
-        <button type="button" class="btn" id="pack-tracks" title="Read the 128 patches of a pack on the linked Circuit Tracks into this pack">Patches from the Circuit Tracks…</button>
-      </div>
-    </div>
-    <div class="listhead">
-      <input id="search" type="search" placeholder="Search patches" aria-label="Search patches">
-      <select id="filter" aria-label="Show"></select>
-    </div>
-    <ol class="patchlist" id="patchlist" aria-label="Patches"></ol>
-  </aside>
-
-  <main class="device">
-    <header class="patchbar">
-      <span class="seg face" id="face" role="radiogroup" aria-label="Panel or editor">
-        <button type="button" role="radio" data-face="tracks" aria-checked="false" title="The Circuit Tracks panel: tracks, views and pads">TRACKS</button>
-        <button type="button" role="radio" data-face="editor" aria-checked="true" class="on" title="The patch editor">EDITOR</button>
-      </span>
-      <button type="button" class="icon" id="undo" title="Undo (Ctrl/Cmd+Z)" aria-label="Undo">↶</button>
-      <button type="button" class="icon" id="redo" title="Redo (Ctrl/Cmd+Shift+Z)" aria-label="Redo">↷</button>
-      <span class="slot" id="slot-no">001</span>
-      <input id="patch-name" class="lcd big" maxlength="16" spellcheck="false" aria-label="Patch name" title="Patch name (up to 16 characters)">
-      <label class="mini">Category <select id="category"></select></label>
-      <label class="mini">Genre <select id="genre"></select></label>
-      <span class="navfill"></span>
-      <button type="button" class="btn" id="compare" title="Hold to hear the slot as it was when the pack was opened" hidden>Compare</button>
-      <div class="menu">
-        <button type="button" class="btn" id="patch-menu-btn" aria-haspopup="true" aria-expanded="false">Patch ▾</button>
-        <div class="menu-pop" id="patch-menu" hidden>
-          <button type="button" data-act="open-syx">Open .syx…</button>
-          <button type="button" data-act="save-syx">Download .syx</button>
-          <hr>
-          <button type="button" data-act="copy" title="Copy this patch into another slot and edit the copy">Duplicate to slot…</button>
-          <button type="button" data-act="init">Start from the Initial Patch</button>
-          <button type="button" data-act="revert">Revert to how the pack had it</button>
-        </div>
-      </div>
-      <div class="hw" id="hw" hidden>
-        <span class="hwlabel" id="hw-label">Edit</span>
-        <span class="seg" role="radiogroup" aria-labelledby="hw-label">
-          <button type="button" data-synth="0" class="on" title="Edit and play Synth 1 on the Circuit Tracks. This page can't change which track the Circuit Tracks itself shows.">Synth 1</button>
-          <button type="button" data-synth="1" title="Edit and play Synth 2 on the Circuit Tracks. This page can't change which track the Circuit Tracks itself shows.">Synth 2</button>
-        </span>
-        <button type="button" class="btn primary" id="hw-send" title="Play this patch on the chosen synth now, without saving it on the Circuit Tracks. Only needed with Live off: Live sends every edit by itself." hidden>Play on Tracks</button>
-        <button type="button" class="btn" id="hw-get" title="Fetch the patch the chosen synth is playing into a pack slot, to edit it here">Get</button>
-        <button type="button" class="btn quiet" id="hw-store" title="Save this patch into a patch slot on the Circuit Tracks itself">Save to Tracks…</button>
-        <label class="check" title="Send every edit, and each patch you choose, to the Circuit Tracks as you go, and follow patch changes made on the Circuit Tracks. Ticking this sends the patch you are editing."><input type="checkbox" id="hw-live" checked> Live</label>
-      </div>
-    </header>
-    <p class="editing" id="editing" role="status"><span id="ed-what"></span><span id="ed-hw" data-state="off"></span></p>
-
-    <section class="macros" aria-label="Macros">
-      <p class="eyebrow">Macros</p>
-      <div class="macro-row" id="macro-row"></div>
-    </section>
-
-    <section class="tracks" id="tracks" aria-label="Circuit Tracks panel" hidden></section>
-
-    <div class="tabs" role="tablist">
-      <button type="button" role="tab" data-page="main" aria-selected="true">Main</button>
-      <button type="button" role="tab" data-page="fx" aria-selected="false">Effects</button>
-      <button type="button" role="tab" data-page="mod" aria-selected="false">Modulation</button>
-    </div>
-
-    <div class="page" id="page-main"></div>
-    <div class="page" id="page-fx" hidden></div>
-    <div class="page" id="page-mod" hidden></div>
-
-    <p class="foot">Version 0.6, for testing: keep a copy of your packs. The browser sound is an approximation of the Circuit Tracks; the hardware is the reference. Not affiliated with Novation or Focusrite. Synth engine adapted from <a href="https://github.com/namirsab/circuit-tracks-tools">circuit-tracks-tools</a> by Namir Sayed-Ahmad Baraza. <a href="help.html">Help</a> · <a href="https://github.com/GuinanNo1/CircuitGM/issues">Report a problem</a></p>
-  </main>
-</div>
-
-<footer class="dock" aria-label="Play">
-  <div class="dock-ctl">
-    <div class="ctl">
-      <span class="eyebrow">Hear on</span>
-      <span class="seg" id="hear">
-        <button type="button" data-hear="browser" class="on">Browser</button>
-        <button type="button" data-hear="tracks" disabled title="Link a Circuit Tracks first">Tracks</button>
-        <button type="button" data-hear="both" disabled title="Link a Circuit Tracks first">Both</button>
-      </span>
-    </div>
-    <div class="ctl">
-      <span class="eyebrow">Octave</span>
-      <span class="seg"><button type="button" id="oct-down" title="Octave down (Z)">−</button><output id="oct">C3</output><button type="button" id="oct-up" title="Octave up (X)">+</button></span>
-    </div>
-    <label class="ctl"><span class="eyebrow">Velocity <output id="vel-out">100</output></span><input type="range" id="vel" min="1" max="127" value="100"></label>
-    <label class="ctl"><span class="eyebrow">Volume</span><input type="range" id="vol" min="0" max="100" value="80"></label>
-    <label class="ctl"><span class="eyebrow">Tempo</span><input type="number" id="bpm" min="40" max="240" value="120" title="Tempo for the loop and for tempo-synced LFOs in the browser"></label>
-    <div class="ctl">
-      <span class="eyebrow">Loop</span>
-      <span class="seg">
-        <select id="loop-kind" aria-label="Loop pattern">
-          <option value="bass">Bass line</option><option value="arp">Arpeggio</option><option value="chord">Chords</option><option value="note">Long note</option>
-        </select>
-        <button type="button" id="loop" title="Play a loop while you edit (Space)">▶</button>
-      </span>
-    </div>
-    <label class="check" title="Keep notes sounding after you let go"><input type="checkbox" id="hold"> Hold</label>
-    <div class="ctl">
-      <span class="eyebrow">Keys</span>
-      <span class="seg" id="keysize" role="radiogroup" aria-label="Keyboard size">
-        <button type="button" data-size="s" title="Small keyboard">S</button>
-        <button type="button" data-size="m" title="Medium keyboard">M</button>
-        <button type="button" data-size="l" title="Large keyboard">L</button>
-      </span>
-    </div>
-    <canvas id="scope" width="180" height="46" aria-hidden="true"></canvas>
-  </div>
-  <div class="keys" id="keys" aria-label="Keyboard"></div>
-</footer>
-
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
-
-<dialog id="dlg">
-  <form method="dialog">
-    <h2 id="dlg-title"></h2>
-    <div id="dlg-body"></div>
-    <div class="row end">
-      <button type="button" class="btn" id="dlg-cancel">Cancel</button>
-      <button type="submit" value="alt2" class="btn" id="dlg-alt2" hidden></button>
-      <button type="submit" value="alt" class="btn" id="dlg-alt" hidden></button>
-      <button type="submit" value="ok" class="btn primary" id="dlg-ok">OK</button>
-    </div>
-  </form>
-</dialog>
-<input type="file" id="file-pack" accept=".circuittrackspack,.zip" hidden>
-<input type="file" id="file-syx" accept=".syx" multiple hidden>
-<script type="module" src="../js/patchworker.js?v=20261114v"></script>
+<body style="font-family: system-ui, sans-serif; max-width: 40em; margin: 3em auto; padding: 0 1em; line-height: 1.5">
+<h1>CircuitGM has moved</h1>
+<p>CircuitGM is now part of <b>RosettaGM</b>, General MIDI tools for grooveboxes. This page is now at:</p>
+<p><a href="https://guinanno1.github.io/RosettaGM/circuitgm/patchworker/">https://guinanno1.github.io/RosettaGM/circuitgm/patchworker/</a></p>
+<p>Please update your bookmarks.</p>
 </body>
 </html>
